@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import { DatabaseService } from './database';
+import { MultiRPCService } from './multiRPCService';
 import { NotificationService } from './notification';
 
 export interface NetworkConfig {
@@ -53,13 +54,14 @@ export interface TrapDeployment {
 
 export class BlockchainService {
   private networks: NetworkConfig[] = [];
-  private providers: Map<number, ethers.Provider> = new Map();
+  private multiRPCService: MultiRPCService;
   private db: DatabaseService;
   private notification: NotificationService;
 
   constructor(db: DatabaseService, notification: NotificationService) {
     this.db = db;
     this.notification = notification;
+    this.multiRPCService = new MultiRPCService(db);
     this.initializeNetworks();
   }
 
@@ -68,7 +70,7 @@ export class BlockchainService {
       {
         chainId: 560048,
         name: 'Ethereum Hoodi Testnet',
-        rpcUrl: process.env.HOODI_RPC_URL || 'https://rpc.hoodi.network',
+        rpcUrl: 'https://rpc.hoodi.network', // This will be overridden by multiRPCService
         blockExplorer: 'https://hoodi.etherscan.io',
         nativeCurrency: {
           name: 'Ether',
@@ -82,24 +84,15 @@ export class BlockchainService {
         },
       },
     ];
-
-    // Initialize providers
-    this.networks.forEach(network => {
-      try {
-        const provider = new ethers.JsonRpcProvider(network.rpcUrl);
-        this.providers.set(network.chainId, provider);
-      } catch (error) {
-        console.error(`Failed to initialize provider for chain ${network.chainId}:`, error);
-      }
-    });
   }
 
   async getProvider(chainId: number): Promise<ethers.Provider> {
-    const provider = this.providers.get(chainId);
-    if (!provider) {
-      throw new Error(`Provider not found for chain ${chainId}`);
+    try {
+      return await this.multiRPCService.getProvider(chainId);
+    } catch (error) {
+      console.error(`Failed to get provider for chain ${chainId}:`, error);
+      throw new Error(`Provider not available for chain ${chainId}`);
     }
-    return provider;
   }
 
   async getNetworkInfo(chainId: number): Promise<NetworkConfig | null> {
@@ -108,6 +101,23 @@ export class BlockchainService {
 
   async getSupportedNetworks(): Promise<NetworkConfig[]> {
     return this.networks;
+  }
+
+  // Multi-RPC service methods
+  async getRPCStatus() {
+    return this.multiRPCService.getProviderStatus();
+  }
+
+  async getRPCStats() {
+    return this.multiRPCService.getProviderStats();
+  }
+
+  async switchRPCProvider(providerName: string) {
+    return this.multiRPCService.switchToProvider(providerName);
+  }
+
+  async getCurrentRPCProvider() {
+    return this.multiRPCService.getCurrentProvider();
   }
 
   async analyzeContract(address: string, chainId: number): Promise<ContractAnalysis> {
