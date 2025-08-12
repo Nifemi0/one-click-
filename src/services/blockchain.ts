@@ -66,35 +66,19 @@ export class BlockchainService {
   private initializeNetworks() {
     this.networks = [
       {
-        chainId: 1337,
-        name: 'Hoodie Testnet',
-        rpcUrl: process.env.HOODIE_RPC_URL || 'http://localhost:8545',
-        blockExplorer: process.env.HOODIE_BLOCK_EXPLORER_URL || 'http://localhost:4000',
+        chainId: 560048,
+        name: 'Ethereum Hoodi Testnet',
+        rpcUrl: process.env.HOODI_RPC_URL || 'https://rpc.hoodi.network',
+        blockExplorer: 'https://hoodi.etherscan.io',
         nativeCurrency: {
-          name: 'Hoodie',
-          symbol: 'HOOD',
+          name: 'Ether',
+          symbol: 'ETH',
           decimals: 18,
         },
         contracts: {
-          droseraFactory: process.env.HOODIE_DROSERA_FACTORY || '',
-          droseraRegistry: process.env.HOODIE_DROSERA_REGISTRY || '',
-          droseraOracle: process.env.HOODIE_DROSERA_ORACLE || '',
-        },
-      },
-      {
-        chainId: 31337,
-        name: 'Hoodie Alternative Port',
-        rpcUrl: process.env.HOODIE_ALT_RPC_URL || 'http://localhost:31337',
-        blockExplorer: process.env.HOODIE_BLOCK_EXPLORER_URL || 'http://localhost:4000',
-        nativeCurrency: {
-          name: 'Hoodie',
-          symbol: 'HOOD',
-          decimals: 18,
-        },
-        contracts: {
-          droseraFactory: process.env.HOODIE_DROSERA_FACTORY || '',
-          droseraRegistry: process.env.HOODIE_DROSERA_REGISTRY || '',
-          droseraOracle: process.env.HOODIE_DROSERA_ORACLE || '',
+          droseraFactory: process.env.HOODI_DROSERA_FACTORY || '',
+          droseraRegistry: process.env.HOODI_DROSERA_REGISTRY || '',
+          droseraOracle: process.env.HOODI_DROSERA_ORACLE || '',
         },
       },
     ];

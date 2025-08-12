@@ -41,40 +41,40 @@ export class RevenueService {
   private readonly pricingTiers: Map<string, PricingTier> = new Map([
     ['basic', {
       name: 'Basic',
-      deploymentFee: 0.05,
-      monthlyFee: 0.15,
+      deploymentFee: 0.005,
+      monthlyFee: 0.015,
       features: ['Basic monitoring', 'Standard reports', 'Email support'],
       gasMultiplier: 1.0,
       supportLevel: 'basic'
     }],
     ['premium', {
       name: 'Premium',
-      deploymentFee: 0.10,
-      monthlyFee: 0.30,
+      deploymentFee: 0.01,
+      monthlyFee: 0.03,
       features: ['Advanced monitoring', 'AI analysis', 'Priority support', 'Testnet analytics'],
       gasMultiplier: 1.5,
       supportLevel: 'premium'
     }],
     ['custom', {
       name: 'Custom',
-      deploymentFee: 0.15,
-      monthlyFee: 0.45,
+      deploymentFee: 0.015,
+      monthlyFee: 0.045,
       features: ['Custom configuration', 'Advanced AI analysis', 'Custom reports', 'Sandbox environment'],
       gasMultiplier: 1.8,
       supportLevel: 'premium'
     }],
     ['enterprise', {
       name: 'Enterprise',
-      deploymentFee: 0.25,
-      monthlyFee: 0.50,
+      deploymentFee: 0.025,
+      monthlyFee: 0.05,
       features: ['Enterprise monitoring', 'Custom integrations', 'Dedicated support', 'White-label options'],
       gasMultiplier: 2.0,
       supportLevel: 'enterprise'
     }],
     ['24_7', {
       name: '24/7 Support',
-      deploymentFee: 0.30,
-      monthlyFee: 0.75,
+      deploymentFee: 0.03,
+      monthlyFee: 0.075,
       features: ['24/7 monitoring', 'Instant alerts', 'Phone support', 'Emergency response'],
       gasMultiplier: 2.5,
       supportLevel: '24_7'
@@ -83,13 +83,13 @@ export class RevenueService {
 
   // Feature pricing
   private readonly featurePricing = {
-    aiAnalysis: 0.05,
-    advancedReports: 0.03,
-    prioritySupport: 0.15,
-    testnetAnalytics: 0.08,
-    sandboxEnvironment: 0.20,
-    fastTrackDeployment: 0.10,
-    customIntegration: 0.25
+    aiAnalysis: 0.005,
+    advancedReports: 0.003,
+    prioritySupport: 0.015,
+    testnetAnalytics: 0.008,
+    sandboxEnvironment: 0.02,
+    fastTrackDeployment: 0.01,
+    customIntegration: 0.025
   };
 
   constructor(db: DatabaseService) {
@@ -321,7 +321,7 @@ export class RevenueService {
         trapId,
         type,
         amount,
-        currency: 'HOOD',
+        currency: 'ETH',
         description,
         status: 'completed',
         metadata

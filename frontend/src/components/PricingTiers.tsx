@@ -15,8 +15,8 @@ interface PricingTier {
 const pricingTiers: PricingTier[] = [
   {
     name: 'Basic',
-    deploymentFee: 0.05,
-    monthlyFee: 0.15,
+    deploymentFee: 0.005,
+    monthlyFee: 0.015,
     features: [
       'Basic monitoring',
       'Standard reports', 
@@ -28,8 +28,8 @@ const pricingTiers: PricingTier[] = [
   },
   {
     name: 'Premium',
-    deploymentFee: 0.10,
-    monthlyFee: 0.30,
+    deploymentFee: 0.01,
+    monthlyFee: 0.03,
     features: [
       'Advanced monitoring',
       'AI-powered analysis',
@@ -43,8 +43,8 @@ const pricingTiers: PricingTier[] = [
   },
   {
     name: 'Custom',
-    deploymentFee: 0.15,
-    monthlyFee: 0.45,
+    deploymentFee: 0.015,
+    monthlyFee: 0.045,
     features: [
       'Custom configuration',
       'Advanced AI analysis',
@@ -57,8 +57,8 @@ const pricingTiers: PricingTier[] = [
   },
   {
     name: 'Enterprise',
-    deploymentFee: 0.25,
-    monthlyFee: 0.50,
+    deploymentFee: 0.025,
+    monthlyFee: 0.05,
     features: [
       'Enterprise monitoring',
       'Custom integrations',
@@ -71,8 +71,8 @@ const pricingTiers: PricingTier[] = [
   },
   {
     name: '24/7 Support',
-    deploymentFee: 0.30,
-    monthlyFee: 0.75,
+    deploymentFee: 0.03,
+    monthlyFee: 0.075,
     features: [
       '24/7 monitoring',
       'Instant alerts',
@@ -86,14 +86,14 @@ const pricingTiers: PricingTier[] = [
 ];
 
 const additionalFeatures = [
-  { name: 'AI Analysis', price: 0.05, description: 'Per analysis' },
-  { name: 'Advanced Reports', price: 0.03, description: 'Per report' },
-  { name: 'Priority Support', price: 0.15, description: 'Per month' },
-  { name: 'Testnet Analytics', price: 0.08, description: 'Per month' },
-  { name: 'Sandbox Environment', price: 0.20, description: 'Per month' },
-  { name: 'Fast Track Deployment', price: 0.10, description: 'Per deployment' },
-  { name: 'Custom Integration', price: 0.25, description: 'One-time' }
-];
+  { name: 'AI Analysis', price: 0.005, description: 'Per analysis' },
+  { name: 'Advanced Reports', price: 0.003, description: 'Per report' },
+  { name: 'Priority Support', price: 0.015, description: 'Per month' },
+  { name: 'Testnet Analytics', price: 0.008, description: 'Per month' },
+  { name: 'Sandbox Environment', price: 0.02, description: 'Per month' },
+  { name: 'Fast Track Deployment', price: 0.01, description: 'Per deployment' },
+  { name: 'Custom Integration', price: 0.025, description: 'One-time' }
+ ];
 
 export default function PricingTiers() {
   const [selectedTier, setSelectedTier] = useState<string>('premium');
@@ -162,14 +162,14 @@ export default function PricingTiers() {
                   <span className="text-3xl font-bold text-orange-500">
                     {tier.deploymentFee}
                   </span>
-                  <span className="text-gray-400"> HOOD</span>
+                  <span className="text-gray-400"> ETH</span>
                   <div className="text-sm text-gray-500">deployment</div>
                 </div>
                 <div className="mb-4">
                   <span className="text-2xl font-bold text-white">
                     {tier.monthlyFee}
                   </span>
-                  <span className="text-gray-400"> HOOD</span>
+                  <span className="text-gray-400"> ETH</span>
                   <div className="text-sm text-gray-500">per month</div>
                 </div>
                 <div className="text-sm text-gray-400 mb-4">
@@ -217,7 +217,7 @@ export default function PricingTiers() {
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="font-semibold">{feature.name}</h4>
                   <span className="text-orange-500 font-bold">
-                    {feature.price} HOOD
+                    {feature.price} ETH
                   </span>
                 </div>
                 <p className="text-sm text-gray-400">{feature.description}</p>
@@ -249,17 +249,17 @@ export default function PricingTiers() {
             
             <div className="flex justify-between items-center">
               <span className="text-gray-300">Deployment Fee:</span>
-              <span className="font-semibold text-orange-500">
-                {selectedTierData?.deploymentFee} HOOD
-              </span>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <span className="text-gray-300">Monthly Fee:</span>
-              <span className="font-semibold text-orange-500">
-                {selectedTierData?.monthlyFee} HOOD
-              </span>
-            </div>
+                                <span className="font-semibold text-orange-500">
+                    {selectedTierData?.deploymentFee} ETH
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-300">Monthly Fee:</span>
+                  <span className="font-semibold text-orange-500">
+                    {selectedTierData?.monthlyFee} ETH
+                  </span>
+                </div>
             
             {selectedFeatures.length > 0 && (
               <>
@@ -271,7 +271,7 @@ export default function PricingTiers() {
                       <div key={feature} className="flex justify-between items-center text-sm">
                         <span className="text-gray-400">{feature}</span>
                         <span className="text-orange-500">
-                          {featureData?.price} HOOD
+                          {featureData?.price} ETH
                         </span>
                       </div>
                     );
@@ -281,11 +281,11 @@ export default function PricingTiers() {
                 <div className="border-t border-gray-700 pt-4">
                   <div className="flex justify-between items-center text-lg font-bold">
                     <span>Total Deployment Cost:</span>
-                    <span className="text-orange-500">{totalDeploymentCost.toFixed(2)} HOOD</span>
+                    <span className="text-orange-500">{totalDeploymentCost.toFixed(3)} ETH</span>
                   </div>
                   <div className="flex justify-between items-center text-lg font-bold">
                     <span>Total Monthly Cost:</span>
-                    <span className="text-orange-500">{totalMonthlyCost.toFixed(2)} HOOD</span>
+                    <span className="text-orange-500">{totalMonthlyCost.toFixed(3)} ETH</span>
                   </div>
                 </div>
               </>

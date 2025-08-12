@@ -140,9 +140,8 @@ export class ContractAnalysisService {
   }
 
   private initializeBlockExplorers() {
-    // Hoodie testnet configuration
-    this.blockExplorerApis.set(1337, process.env.HOODIE_BLOCK_EXPLORER_API_KEY || ''); // Hoodie testnet
-    this.blockExplorerApis.set(31337, process.env.HOODIE_BLOCK_EXPLORER_API_KEY || ''); // Alternative Hoodie testnet port
+    // Hoodi testnet configuration
+    this.blockExplorerApis.set(560048, process.env.HOODI_ETHERSCAN_API_KEY || ''); // Ethereum Hoodi Testnet
   }
 
   async analyzeContract(address: string, chainId: number): Promise<EnhancedContractAnalysis> {
