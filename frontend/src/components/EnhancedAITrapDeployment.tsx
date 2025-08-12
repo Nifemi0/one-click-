@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useNetwork, useSwitchNetwork } from 'wagmi';
-import { ethers } from 'ethers';
+import { useAccount, useChainId } from 'wagmi';
 
 interface EnhancedAITrapDeploymentProps {
   isVisible?: boolean; // Control visibility for hidden feature
@@ -8,7 +7,7 @@ interface EnhancedAITrapDeploymentProps {
 
 interface DeploymentRequest {
   userPrompt: string;
-  complexity: 'simple' | 'medium' | 'advanced' | 'enterprise';
+  complexity: 'simple' | 'medium' | 'complex' | 'enterprise';
   targetNetwork: number;
   securityLevel: 'basic' | 'premium' | 'enterprise';
   customRequirements: string[];
@@ -17,7 +16,13 @@ interface DeploymentRequest {
   trapType: 'honeypot' | 'sandbox' | 'monitoring' | 'custom';
   monitoringLevel: 'basic' | 'advanced' | 'enterprise';
   alertPreferences: string[];
-  customParameters?: Record<string, any>;
+  customParameters?: Record<string, unknown>;
+}
+
+interface RiskAssessment {
+  overallRisk: 'low' | 'medium' | 'high';
+  riskScore: number;
+  details?: Record<string, unknown>;
 }
 
 interface Deployment {
@@ -30,15 +35,14 @@ interface Deployment {
   createdAt: string;
   deployedAt?: string;
   securityFeatures: string[];
-  riskAssessment: any;
+  riskAssessment: RiskAssessment;
 }
 
 const EnhancedAITrapDeployment: React.FC<EnhancedAITrapDeploymentProps> = ({ 
   isVisible = false 
 }) => {
   const { address, isConnected } = useAccount();
-  const { chain } = useNetwork();
-  const { switchNetwork } = useSwitchNetwork();
+  const chainId = useChainId();
   
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
@@ -56,6 +60,12 @@ const EnhancedAITrapDeployment: React.FC<EnhancedAITrapDeploymentProps> = ({
     monitoringLevel: 'advanced',
     alertPreferences: ['email']
   });
+
+  useEffect(() => {
+    if (isConnected) {
+      loadDeployments();
+    }
+  }, [isConnected]);
 
   // Hide component if not visible (for hidden feature)
   if (!isVisible) {
@@ -143,12 +153,6 @@ const EnhancedAITrapDeployment: React.FC<EnhancedAITrapDeploymentProps> = ({
     }
   };
 
-  useEffect(() => {
-    if (isConnected) {
-      loadDeployments();
-    }
-  }, [isConnected]);
-
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-7xl mx-auto">
@@ -210,13 +214,13 @@ const EnhancedAITrapDeployment: React.FC<EnhancedAITrapDeploymentProps> = ({
                         value={deploymentRequest.complexity}
                         onChange={(e) => setDeploymentRequest({
                           ...deploymentRequest,
-                          complexity: e.target.value as any
+                          complexity: e.target.value as 'simple' | 'medium' | 'complex' | 'enterprise'
                         })}
                         className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
                       >
                         <option value="simple">Simple</option>
                         <option value="medium">Medium</option>
-                        <option value="advanced">Advanced</option>
+                        <option value="complex">Complex</option>
                         <option value="enterprise">Enterprise</option>
                       </select>
                     </div>
@@ -229,7 +233,7 @@ const EnhancedAITrapDeployment: React.FC<EnhancedAITrapDeploymentProps> = ({
                         value={deploymentRequest.securityLevel}
                         onChange={(e) => setDeploymentRequest({
                           ...deploymentRequest,
-                          securityLevel: e.target.value as any
+                          securityLevel: e.target.value as 'basic' | 'premium' | 'enterprise'
                         })}
                         className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
                       >
@@ -248,7 +252,7 @@ const EnhancedAITrapDeployment: React.FC<EnhancedAITrapDeploymentProps> = ({
                       value={deploymentRequest.trapType}
                       onChange={(e) => setDeploymentRequest({
                         ...deploymentRequest,
-                        trapType: e.target.value as any
+                        trapType: e.target.value as 'honeypot' | 'sandbox' | 'monitoring' | 'custom'
                       })}
                       className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
                     >

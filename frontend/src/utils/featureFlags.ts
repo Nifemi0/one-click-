@@ -16,9 +16,11 @@ const defaultFeatureFlags: FeatureFlags = {
   betaFeatures: false, // Beta testing features
 };
 
+type Environment = 'development' | 'production' | 'staging' | 'test';
+
 // Environment-based feature flags
 const getEnvironmentFlags = (): Partial<FeatureFlags> => {
-  const env = process.env.NODE_ENV;
+  const env = (process.env.NODE_ENV || 'development') as Environment;
   
   if (env === 'development') {
     return {
@@ -34,6 +36,15 @@ const getEnvironmentFlags = (): Partial<FeatureFlags> => {
       enhancedAITrapDeployment: false, // Hidden in staging
       premiumFeatures: true,
       enterpriseFeatures: false,
+      betaFeatures: true,
+    };
+  }
+  
+  if (env === 'test') {
+    return {
+      enhancedAITrapDeployment: true, // Show in test
+      premiumFeatures: true,
+      enterpriseFeatures: true,
       betaFeatures: true,
     };
   }
