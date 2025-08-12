@@ -18,6 +18,7 @@ import trapRoutes from './routes/traps';
 import analysisRoutes from './routes/analysis';
 import alertRoutes from './routes/alerts';
 import marketplaceRoutes from './routes/marketplace';
+import rpcTestRoutes from './routes/rpcTest';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -102,6 +103,7 @@ app.use('/api/traps', authMiddleware, trapRoutes);
 app.use('/api/analyze', authMiddleware, analysisRoutes);
 app.use('/api/alerts', authMiddleware, alertRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/rpc-test', rpcTestRoutes);
 
 // WebSocket connection handling
 io.on('connection', (socket) => {
