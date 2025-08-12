@@ -59,26 +59,6 @@ export default function Home() {
               📚 View Templates
             </button>
           </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-orange-500 mb-2">50K+</div>
-              <div className="text-gray-400">Traps Deployed</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-orange-500 mb-2">$2.5B+</div>
-              <div className="text-gray-400">Assets Protected</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-orange-500 mb-2">99.9%</div>
-              <div className="text-gray-400">Success Rate</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-orange-500 mb-2">24/7</div>
-              <div className="text-gray-400">Monitoring</div>
-            </div>
-          </div>
         </div>
       </section>
 
