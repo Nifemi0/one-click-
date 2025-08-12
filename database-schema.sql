@@ -338,6 +338,35 @@ CREATE TRIGGER update_alerts_updated_at BEFORE UPDATE ON alerts FOR EACH ROW EXE
 CREATE TRIGGER update_feature_usage_updated_at BEFORE UPDATE ON feature_usage FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- =====================================================
+-- PREMIUM AI TRAP CREATION TABLE
+-- =====================================================
+CREATE TABLE premium_ai_guides (
+    id VARCHAR(50) PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    trap_name VARCHAR(100) NOT NULL,
+    description TEXT,
+    security_features JSONB DEFAULT '[]',
+    deployment_steps JSONB DEFAULT '[]',
+    estimated_cost VARCHAR(50),
+    risk_assessment JSONB DEFAULT '{}',
+    user_actions_required JSONB DEFAULT '[]',
+    ai_confidence INTEGER DEFAULT 85,
+    estimated_time VARCHAR(100),
+    complexity_score INTEGER DEFAULT 5,
+    status VARCHAR(20) DEFAULT 'active',
+    current_step INTEGER DEFAULT 1,
+    total_steps INTEGER DEFAULT 0,
+    progress_percentage INTEGER DEFAULT 0,
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create trigger for premium_ai_guides
+CREATE TRIGGER update_premium_ai_guides_updated_at BEFORE UPDATE ON premium_ai_guides FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
 -- INITIAL DATA INSERTION
 -- =====================================================
 
@@ -407,6 +436,8 @@ COMMENT ON TABLE subscriptions IS 'User subscription plans and billing';
 COMMENT ON TABLE alerts IS 'Security alerts and notifications';
 COMMENT ON TABLE monitoring_logs IS 'Real-time monitoring and logging data';
 COMMENT ON TABLE feature_usage IS 'Feature usage tracking for billing';
+
+COMMENT ON TABLE premium_ai_guides IS 'Premium AI-guided trap creation guides and progress tracking';
 
 COMMENT ON COLUMN users.wallet_address IS 'Ethereum wallet address (0x...)';
 COMMENT ON COLUMN users.subscription_tier IS 'Current subscription level';
