@@ -111,6 +111,10 @@ app.use('/api/rpc-test', rpcTestRoutes);
 // Enhanced AI Trap Routes (Hidden Premium Feature)
 app.use('/api/enhanced-ai-trap', enhancedAITrapRoutes);
 
+// Basic Trap Routes (One-Click Deployments)
+import basicTrapRoutes from './routes/basicTraps';
+app.use('/api/basic-traps', basicTrapRoutes);
+
 // WebSocket connection handling
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);

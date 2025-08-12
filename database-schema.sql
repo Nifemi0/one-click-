@@ -413,6 +413,30 @@ CREATE TABLE enhanced_deployments (
 CREATE TRIGGER update_enhanced_deployments_updated_at BEFORE UPDATE ON enhanced_deployments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- =====================================================
+-- BASIC TRAPS TABLE (One-Click Deployments)
+-- =====================================================
+CREATE TABLE basic_traps (
+    id VARCHAR(50) PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    trap_type VARCHAR(20) NOT NULL,
+    trap_name VARCHAR(100) NOT NULL,
+    description TEXT,
+    contract_address VARCHAR(42),
+    deployment_tx_hash VARCHAR(66),
+    network INTEGER NOT NULL,
+    status VARCHAR(20) DEFAULT 'deploying',
+    estimated_cost VARCHAR(50),
+    actual_cost VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deployed_at TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    metadata JSONB DEFAULT '{}'
+);
+
+-- Create trigger for basic_traps
+CREATE TRIGGER update_basic_traps_updated_at BEFORE UPDATE ON basic_traps FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
 -- INITIAL DATA INSERTION
 -- =====================================================
 
