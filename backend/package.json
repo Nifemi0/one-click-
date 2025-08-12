@@ -1,4 +1,4 @@
-{
+{{
   "name": "drosera-backend",
   "version": "1.0.0",
   "description": "Backend API server for Drosera Security Traps",
@@ -11,14 +11,7 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix"
   },
-  "keywords": [
-    "web3",
-    "security",
-    "defi",
-    "drosera",
-    "blockchain",
-    "api"
-  ],
+  "keywords": ["web3", "security", "defi", "drosera", "blockchain", "api"],
   "author": "Drosera Team",
   "license": "MIT",
   "dependencies": {
