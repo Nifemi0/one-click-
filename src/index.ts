@@ -20,6 +20,9 @@ import alertRoutes from './routes/alerts';
 import marketplaceRoutes from './routes/marketplace';
 import rpcTestRoutes from './routes/rpcTest';
 
+// Import enhanced AI trap routes (hidden feature)
+import enhancedAITrapRoutes from './routes/enhancedAITrap';
+
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
 import { authMiddleware } from './middleware/auth';
@@ -104,6 +107,9 @@ app.use('/api/analyze', authMiddleware, analysisRoutes);
 app.use('/api/alerts', authMiddleware, alertRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
 app.use('/api/rpc-test', rpcTestRoutes);
+
+// Enhanced AI Trap Routes (Hidden Premium Feature)
+app.use('/api/enhanced-ai-trap', enhancedAITrapRoutes);
 
 // WebSocket connection handling
 io.on('connection', (socket) => {
