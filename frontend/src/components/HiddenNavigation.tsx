@@ -33,18 +33,29 @@ const HiddenNavigation: React.FC<HiddenNavigationProps> = ({ isVisible = false }
   const handleKonamiCode = (e: React.KeyboardEvent) => {
     // Konami code: ↑↑↓↓←→←→BA
     const konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
-    let currentSequence: string[] = [];
     
     const handleKey = (event: KeyboardEvent) => {
+      let currentSequence: string[] = [];
+      
+      // Get existing sequence from storage or start fresh
+      const existingSequence = sessionStorage.getItem('konamiSequence');
+      if (existingSequence) {
+        currentSequence = JSON.parse(existingSequence);
+      }
+      
       currentSequence.push(event.code);
       
       if (currentSequence.length > konamiSequence.length) {
         currentSequence.shift();
       }
       
+      // Store updated sequence
+      sessionStorage.setItem('konamiSequence', JSON.stringify(currentSequence));
+      
       if (currentSequence.join(',') === konamiSequence.join(',')) {
         setShowHiddenMenu(true);
         document.removeEventListener('keydown', handleKey);
+        sessionStorage.removeItem('konamiSequence'); // Clear after success
       }
     };
     

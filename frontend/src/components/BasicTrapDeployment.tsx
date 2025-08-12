@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useNetwork } from 'wagmi';
+import { useAccount, useChainId } from 'wagmi';
 
 interface TrapTemplate {
   id: string;
@@ -14,23 +14,24 @@ interface TrapTemplate {
 
 interface BasicTrap {
   id: string;
+  userId: string;
   trapType: string;
   trapName: string;
   description: string;
-  contractAddress: string;
-  deploymentTxHash: string;
+  contractAddress?: string;
+  deploymentTxHash?: string;
   network: number;
-  status: 'deploying' | 'deployed' | 'failed';
+  status: string;
   estimatedCost: string;
   actualCost?: string;
   createdAt: string;
   deployedAt?: string;
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 
 const BasicTrapDeployment: React.FC = () => {
   const { address, isConnected } = useAccount();
-  const { chain } = useNetwork();
+  const chainId = useChainId();
   
   const [templates, setTemplates] = useState<TrapTemplate[]>([]);
   const [userTraps, setUserTraps] = useState<BasicTrap[]>([]);
@@ -96,7 +97,7 @@ const BasicTrapDeployment: React.FC = () => {
         },
         body: JSON.stringify({
           trapType: selectedTemplate.type,
-          network: chain?.id || 560048, // Default to Hoodi testnet
+          network: chainId || 560048, // Default to Hoodi testnet
           customName: customName || selectedTemplate.name,
           customDescription: customDescription || selectedTemplate.description
         })
