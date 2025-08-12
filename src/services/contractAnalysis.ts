@@ -407,6 +407,98 @@ Format your response as JSON:
     }
   }
 
+  // ===== MISSING METHOD: callAIProvider =====
+  private async callAIProvider(provider: AIProvider, prompt: string): Promise<string> {
+    try {
+      if (provider.name === 'Cursor') {
+        return await this.callCursorAPI(provider, prompt);
+      } else if (provider.name === 'Gemini') {
+        return await this.callGeminiAPI(provider, prompt);
+      } else if (provider.name === 'Claude') {
+        return await this.callClaudeAPI(provider, prompt);
+      } else if (provider.name === 'OpenAI') {
+        return await this.callOpenAIAPI(provider, prompt);
+      } else {
+        throw new Error(`Unsupported AI provider: ${provider.name}`);
+      }
+    } catch (error) {
+      throw new Error(`AI provider ${provider.name} failed: ${error}`);
+    }
+  }
+
+  private async callCursorAPI(provider: AIProvider, prompt: string): Promise<string> {
+    const response = await axios.post(provider.endpoint, {
+      model: provider.model,
+      messages: [
+        { role: 'system', content: 'You are a smart contract security expert. Analyze the provided contract and respond with the requested JSON format.' },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: provider.maxTokens,
+      temperature: provider.temperature,
+    }, {
+      headers: provider.headers,
+      timeout: 30000,
+    });
+
+    return response.data.choices[0]?.message?.content || '';
+  }
+
+  private async callGeminiAPI(provider: AIProvider, prompt: string): Promise<string> {
+    const response = await axios.post(provider.endpoint, {
+      contents: [
+        {
+          parts: [
+            { text: 'You are a smart contract security expert. Analyze the provided contract and respond with the requested JSON format.' },
+            { text: prompt }
+          ]
+        }
+      ],
+      generationConfig: {
+        maxOutputTokens: provider.maxTokens,
+        temperature: provider.temperature,
+      },
+    }, {
+      headers: provider.headers,
+      timeout: 30000,
+    });
+
+    return response.data.candidates[0]?.content?.parts[0]?.text || '';
+  }
+
+  private async callClaudeAPI(provider: AIProvider, prompt: string): Promise<string> {
+    const response = await axios.post(provider.endpoint, {
+      model: provider.model,
+      max_tokens: provider.maxTokens,
+      temperature: provider.temperature,
+      messages: [
+        { role: 'system', content: 'You are a smart contract security expert. Analyze the provided contract and respond with the requested JSON format.' },
+        { role: 'user', content: prompt }
+      ],
+    }, {
+      headers: provider.headers,
+      timeout: 30000,
+    });
+
+    return response.data.content[0]?.text || '';
+  }
+
+  private async callOpenAIAPI(provider: AIProvider, prompt: string): Promise<string> {
+    const response = await axios.post(provider.endpoint, {
+      model: provider.model,
+      messages: [
+        { role: 'system', content: 'You are a smart contract security expert. Analyze the provided contract and respond with the requested JSON format.' },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: provider.maxTokens,
+      temperature: provider.temperature,
+    }, {
+      headers: provider.headers,
+      timeout: 30000,
+    });
+
+    return response.data.choices[0]?.message?.content || '';
+  }
+
   private parseFallbackAnalysis(analysis: string): AIAnalysisResult {
     // Simple keyword-based parsing as fallback
     const riskScore = this.extractRiskScore(analysis);
