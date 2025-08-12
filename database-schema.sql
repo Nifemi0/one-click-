@@ -338,6 +338,105 @@ CREATE TRIGGER update_alerts_updated_at BEFORE UPDATE ON alerts FOR EACH ROW EXE
 CREATE TRIGGER update_feature_usage_updated_at BEFORE UPDATE ON feature_usage FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- =====================================================
+-- PREMIUM AI TRAP CREATION TABLE
+-- =====================================================
+CREATE TABLE premium_ai_guides (
+    id VARCHAR(50) PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    trap_name VARCHAR(100) NOT NULL,
+    description TEXT,
+    security_features JSONB DEFAULT '[]',
+    deployment_steps JSONB DEFAULT '[]',
+    estimated_cost VARCHAR(50),
+    risk_assessment JSONB DEFAULT '{}',
+    user_actions_required JSONB DEFAULT '[]',
+    ai_confidence INTEGER DEFAULT 85,
+    estimated_time VARCHAR(100),
+    complexity_score INTEGER DEFAULT 5,
+    status VARCHAR(20) DEFAULT 'active',
+    current_step INTEGER DEFAULT 1,
+    total_steps INTEGER DEFAULT 0,
+    progress_percentage INTEGER DEFAULT 0,
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create trigger for premium_ai_guides
+CREATE TRIGGER update_premium_ai_guides_updated_at BEFORE UPDATE ON premium_ai_guides FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
+-- ENHANCED AI TRAP DEPLOYMENT TABLE
+-- =====================================================
+CREATE TABLE enhanced_deployments (
+    id VARCHAR(50) PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Smart Contract
+    contract_address VARCHAR(42),
+    contract_code TEXT,
+    contract_abi TEXT,
+    deployment_tx_hash VARCHAR(66),
+    
+    -- TOML Configuration
+    toml_config TEXT,
+    toml_file_path TEXT,
+    
+    -- iTrap File
+    itrap_file TEXT,
+    itrap_file_path TEXT,
+    
+    -- Deployment Status
+    deployment_status VARCHAR(20) DEFAULT 'pending',
+    deployment_steps JSONB DEFAULT '[]',
+    
+    -- Monitoring & Alerts
+    monitoring_config JSONB DEFAULT '{}',
+    alert_rules JSONB DEFAULT '[]',
+    
+    -- Metadata
+    trap_name VARCHAR(100),
+    description TEXT,
+    security_features JSONB DEFAULT '[]',
+    risk_assessment JSONB DEFAULT '{}',
+    estimated_cost VARCHAR(50),
+    ai_confidence INTEGER DEFAULT 85,
+    
+    -- Timestamps
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deployed_at TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create trigger for enhanced_deployments
+CREATE TRIGGER update_enhanced_deployments_updated_at BEFORE UPDATE ON enhanced_deployments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
+-- BASIC TRAPS TABLE (One-Click Deployments)
+-- =====================================================
+CREATE TABLE basic_traps (
+    id VARCHAR(50) PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    trap_type VARCHAR(20) NOT NULL,
+    trap_name VARCHAR(100) NOT NULL,
+    description TEXT,
+    contract_address VARCHAR(42),
+    deployment_tx_hash VARCHAR(66),
+    network INTEGER NOT NULL,
+    status VARCHAR(20) DEFAULT 'deploying',
+    estimated_cost VARCHAR(50),
+    actual_cost VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deployed_at TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    metadata JSONB DEFAULT '{}'
+);
+
+-- Create trigger for basic_traps
+CREATE TRIGGER update_basic_traps_updated_at BEFORE UPDATE ON basic_traps FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
 -- INITIAL DATA INSERTION
 -- =====================================================
 
@@ -407,6 +506,10 @@ COMMENT ON TABLE subscriptions IS 'User subscription plans and billing';
 COMMENT ON TABLE alerts IS 'Security alerts and notifications';
 COMMENT ON TABLE monitoring_logs IS 'Real-time monitoring and logging data';
 COMMENT ON TABLE feature_usage IS 'Feature usage tracking for billing';
+
+COMMENT ON TABLE premium_ai_guides IS 'Premium AI-guided trap creation guides and progress tracking';
+
+COMMENT ON TABLE enhanced_deployments IS 'Complete AI trap deployment pipeline including TOML, iTrap files, and monitoring';
 
 COMMENT ON COLUMN users.wallet_address IS 'Ethereum wallet address (0x...)';
 COMMENT ON COLUMN users.subscription_tier IS 'Current subscription level';
