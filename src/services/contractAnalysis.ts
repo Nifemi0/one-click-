@@ -1,4 +1,3 @@
-import OpenAI from 'openai';
 import axios from 'axios';
 import { DatabaseService } from './database';
 import { BlockchainService, ContractAnalysis as BlockchainContractAnalysis } from './blockchain';
@@ -40,7 +39,7 @@ export interface EnhancedContractAnalysis extends BlockchainContractAnalysis {
 }
 
 export class ContractAnalysisService {
-  private openai: OpenAI;
+  private cursorApiKey: string | undefined;
   private db: DatabaseService;
   private blockchain: BlockchainService;
   private blockExplorerApis: Map<number, string> = new Map();
@@ -49,12 +48,8 @@ export class ContractAnalysisService {
     this.db = db;
     this.blockchain = blockchain;
     
-    // Initialize OpenAI
-    if (process.env.OPENAI_API_KEY) {
-      this.openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-      });
-    }
+    // Initialize Cursor API
+    this.cursorApiKey = process.env.CURSOR_API_KEY;
 
     // Initialize block explorer APIs
     this.initializeBlockExplorers();
@@ -233,13 +228,13 @@ export class ContractAnalysisService {
     blockchainAnalysis: BlockchainContractAnalysis
   ): Promise<AIAnalysisResult> {
     try {
-      if (!this.openai) {
-        throw new Error('OpenAI not configured');
+      if (!this.cursorApiKey) {
+        throw new Error('Cursor API not configured');
       }
 
       const prompt = this.buildAnalysisPrompt(sourceCode, blockchainAnalysis);
       
-      const completion = await this.openai.chat.completions.create({
+      const response = await axios.post('https://api.cursor.sh/v1/chat/completions', {
         model: 'gpt-4',
         messages: [
           {
@@ -253,16 +248,21 @@ export class ContractAnalysisService {
         ],
         max_tokens: 2000,
         temperature: 0.1,
+      }, {
+        headers: {
+          'Authorization': `Bearer ${this.cursorApiKey}`,
+          'Content-Type': 'application/json',
+        },
       });
 
-      const analysis = completion.choices[0]?.message?.content;
+      const analysis = response.data.choices[0]?.message?.content;
       if (!analysis) {
-        throw new Error('No analysis received from AI');
+        throw new Error('No analysis received from Cursor API');
       }
 
       return this.parseAIAnalysis(analysis);
     } catch (error) {
-      console.error('AI analysis failed:', error);
+      console.error('Cursor API analysis failed:', error);
       // Return fallback analysis based on blockchain analysis
       return this.generateFallbackAnalysis(blockchainAnalysis);
     }

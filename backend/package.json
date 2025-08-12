@@ -1,14 +1,19 @@
 {
-  "name": "backend",
+  "name": "drosera-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "Backend API server for Drosera Security Traps",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "nodemon src/index.ts",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "keywords": ["web3", "security", "defi", "drosera", "blockchain", "api"],
+  "author": "Drosera Team",
+  "license": "MIT",
   "dependencies": {
     "@supabase/supabase-js": "^2.54.0",
     "axios": "^1.11.0",
@@ -21,7 +26,6 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
-    "openai": "^5.12.2",
     "pg": "^8.16.3",
     "socket.io": "^4.8.1"
   },
@@ -35,6 +39,11 @@
     "@types/pg": "^8.15.5",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.12",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0"
   }
 }
