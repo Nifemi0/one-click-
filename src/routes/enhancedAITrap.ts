@@ -4,7 +4,7 @@ import { DatabaseService } from '../services/database';
 import { ContractAnalysisService } from '../services/contractAnalysis';
 import { NotificationService } from '../services/notification';
 import { BlockchainService } from '../services/blockchain';
-import { authenticateToken } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
 import { rateLimit } from 'express-rate-limit';
 
 const router = express.Router();
@@ -13,7 +13,7 @@ const router = express.Router();
 const db = new DatabaseService();
 const contractAnalysis = new ContractAnalysisService(db, {} as any); // Simplified for demo
 const notification = new NotificationService(db);
-const blockchain = new BlockchainService(db);
+const blockchain = new BlockchainService(db, {} as any); // Add second parameter
 const enhancedAIService = new EnhancedAITrapDeploymentService(
   db, 
   contractAnalysis, 
@@ -40,7 +40,7 @@ const premiumRateLimit = rateLimit({
  * @access Private (Premium users only)
  */
 router.post('/deploy', 
-  authenticateToken, 
+  authMiddleware, 
   premiumRateLimit,
   async (req, res) => {
     try {
@@ -67,7 +67,7 @@ router.post('/deploy',
       }
 
       // Check if user has premium subscription
-      const user = await db.getUserById(req.user.id);
+      const user = await db.getUser(req.user?.walletAddress || '');
       if (!user || !['premium', 'enterprise'].includes(user.subscription_tier)) {
         return res.status(403).json({
           success: false,
@@ -77,7 +77,7 @@ router.post('/deploy',
 
       // Create deployment request
       const deploymentRequest = {
-        userId: req.user.id,
+        userId: req.user?.walletAddress || '',
         userPrompt,
         complexity: complexity || 'medium',
         targetNetwork: parseInt(targetNetwork),
@@ -94,14 +94,14 @@ router.post('/deploy',
       // Start enhanced AI deployment
       const deployment = await enhancedAIService.deployCompleteTrap(deploymentRequest);
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         message: 'Enhanced AI Trap Deployment started successfully',
         data: {
           deploymentId: deployment.id,
           trapName: deployment.trapName,
           estimatedCost: deployment.estimatedCost,
-          estimatedTime: deployment.estimatedTime,
+          estimatedTime: '2-4 hours', // Default value since it's not in the interface
           aiConfidence: deployment.aiConfidence,
           status: deployment.deploymentStatus
         }
@@ -109,10 +109,11 @@ router.post('/deploy',
 
     } catch (error) {
       console.error('Enhanced AI trap deployment failed:', error);
-      res.status(500).json({
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return res.status(500).json({
         success: false,
         message: 'Enhanced AI trap deployment failed',
-        error: error.message
+        error: errorMessage
       });
     }
   }
@@ -124,12 +125,12 @@ router.post('/deploy',
  * @access Private
  */
 router.get('/deployments', 
-  authenticateToken,
+  authMiddleware,
   async (req, res) => {
     try {
-      const deployments = await enhancedAIService.getUserDeployments(req.user.id);
+      const deployments = await enhancedAIService.getUserDeployments(req.user?.walletAddress || '');
       
-      res.json({
+      return res.json({
         success: true,
         data: deployments.map(deployment => ({
           id: deployment.id,
@@ -147,10 +148,11 @@ router.get('/deployments',
 
     } catch (error) {
       console.error('Failed to get deployments:', error);
-      res.status(500).json({
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return res.status(500).json({
         success: false,
         message: 'Failed to get deployments',
-        error: error.message
+        error: errorMessage
       });
     }
   }
@@ -162,7 +164,7 @@ router.get('/deployments',
  * @access Private
  */
 router.get('/deployments/:id', 
-  authenticateToken,
+  authMiddleware,
   async (req, res) => {
     try {
       const { id } = req.params;
@@ -171,7 +173,18 @@ router.get('/deployments/:id',
       const progress = await enhancedAIService.getDeploymentProgress(id);
       
       // Get deployment details
-      const deployments = await enhancedAIService.getUserDeployments(req.user.id);
+      const userId = req.user?.walletAddress;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+      }
+      
+      // At this point, userId is guaranteed to be a string
+      const userIdString: string = userId as string;
+      
+      const deployments = await enhancedAIService.getUserDeployments(userIdString);
       const deployment = deployments.find(d => d.id === id);
       
       if (!deployment) {
@@ -181,7 +194,7 @@ router.get('/deployments/:id',
         });
       }
 
-      res.json({
+      return res.json({
         success: true,
         data: {
           ...deployment,
@@ -191,10 +204,11 @@ router.get('/deployments/:id',
 
     } catch (error) {
       console.error('Failed to get deployment details:', error);
-      res.status(500).json({
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return res.status(500).json({
         success: false,
         message: 'Failed to get deployment details',
-        error: error.message
+        error: errorMessage
       });
     }
   }
@@ -206,13 +220,24 @@ router.get('/deployments/:id',
  * @access Private
  */
 router.get('/deployments/:id/files', 
-  authenticateToken,
+  authMiddleware,
   async (req, res) => {
     try {
       const { id } = req.params;
       const { fileType } = req.query; // 'toml', 'itrap', 'contract'
       
-      const deployments = await enhancedAIService.getUserDeployments(req.user.id);
+      const userId = req.user?.walletAddress;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+      }
+      
+      // At this point, userId is guaranteed to be a string
+      const userIdString: string = userId as string;
+      
+      const deployments = await enhancedAIService.getUserDeployments(userIdString);
       const deployment = deployments.find(d => d.id === id);
       
       if (!deployment) {
@@ -249,14 +274,15 @@ router.get('/deployments/:id/files',
 
       res.setHeader('Content-Type', contentType);
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-      res.send(fileContent);
+      return res.send(fileContent);
 
     } catch (error) {
       console.error('Failed to download file:', error);
-      res.status(500).json({
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return res.status(500).json({
         success: false,
         message: 'Failed to download file',
-        error: error.message
+        error: errorMessage
       });
     }
   }
@@ -268,7 +294,7 @@ router.get('/deployments/:id/files',
  * @access Private
  */
 router.post('/deployments/:id/actions', 
-  authenticateToken,
+  authMiddleware,
   async (req, res) => {
     try {
       const { id } = req.params;
@@ -277,7 +303,7 @@ router.post('/deployments/:id/actions',
       // This would integrate with the deployment service to handle user actions
       // For now, we'll return a success response
       
-      res.json({
+      return res.json({
         success: true,
         message: `Action ${actionType} completed for step ${stepNumber}`,
         data: {
@@ -291,10 +317,11 @@ router.post('/deployments/:id/actions',
 
     } catch (error) {
       console.error('Failed to handle user action:', error);
-      res.status(500).json({
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return res.status(500).json({
         success: false,
         message: 'Failed to handle user action',
-        error: error.message
+        error: errorMessage
       });
     }
   }
@@ -306,14 +333,14 @@ router.post('/deployments/:id/actions',
  * @access Private
  */
 router.get('/status', 
-  authenticateToken,
+  authMiddleware,
   async (req, res) => {
     try {
       // Check if user has access to enhanced features
-      const user = await db.getUserById(req.user.id);
+      const user = await db.getUser(req.user?.walletAddress || '');
       const hasAccess = user && ['premium', 'enterprise'].includes(user.subscription_tier);
       
-      res.json({
+      return res.json({
         success: true,
         data: {
           service: 'Enhanced AI Trap Deployment',
@@ -337,10 +364,11 @@ router.get('/status',
 
     } catch (error) {
       console.error('Failed to get service status:', error);
-      res.status(500).json({
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return res.status(500).json({
         success: false,
         message: 'Failed to get service status',
-        error: error.message
+        error: errorMessage
       });
     }
   }

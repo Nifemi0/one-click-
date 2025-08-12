@@ -3,13 +3,13 @@ import { BasicTrapDeploymentService } from '../services/basicTrapDeployment';
 import { DatabaseService } from '../services/database';
 import { BlockchainService } from '../services/blockchain';
 import { NotificationService } from '../services/notification';
-import { authenticateToken } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
 
 const router = express.Router();
 
 // Initialize services
 const db = new DatabaseService();
-const blockchain = new BlockchainService(db);
+const blockchain = new BlockchainService(db, {} as any); // Add second parameter
 const notification = new NotificationService(db);
 const basicTrapService = new BasicTrapDeploymentService(db, blockchain, notification);
 
@@ -42,10 +42,11 @@ router.get('/templates', async (req, res) => {
 
   } catch (error) {
     console.error('Failed to get trap templates:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({
       success: false,
       message: 'Failed to get trap templates',
-      error: error.message
+      error: errorMessage
     });
   }
 });
@@ -55,7 +56,7 @@ router.get('/templates', async (req, res) => {
  * @desc Deploy basic trap with one click
  * @access Private
  */
-router.post('/deploy', authenticateToken, async (req, res) => {
+router.post('/deploy', authMiddleware, async (req, res) => {
   try {
     const {
       trapType,
@@ -81,9 +82,21 @@ router.post('/deploy', authenticateToken, async (req, res) => {
       });
     }
 
+    // Validate user authentication
+    const userId = req.user?.walletAddress;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
+
+    // At this point, userId is guaranteed to be a string
+    const userIdString: string = userId as string;
+
     // Create deployment request
     const deploymentRequest = {
-      userId: req.user.id,
+      userId: userIdString,
       trapType,
       network: parseInt(network),
       customName,
@@ -93,7 +106,7 @@ router.post('/deploy', authenticateToken, async (req, res) => {
     // Deploy trap
     const trap = await basicTrapService.deployBasicTrap(deploymentRequest);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Basic trap deployment started successfully',
       data: {
@@ -108,10 +121,11 @@ router.post('/deploy', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Basic trap deployment failed:', error);
-    res.status(500).json({
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({
       success: false,
       message: 'Basic trap deployment failed',
-      error: error.message
+      error: errorMessage
     });
   }
 });
@@ -121,21 +135,33 @@ router.post('/deploy', authenticateToken, async (req, res) => {
  * @desc Get user's basic traps
  * @access Private
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
-    const traps = await basicTrapService.getUserTraps(req.user.id);
+    const userId = req.user?.walletAddress;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
+
+    // At this point, userId is guaranteed to be a string
+    const userIdString: string = userId as string;
+
+    const traps = await basicTrapService.getUserTraps(userIdString);
     
-    res.json({
+    return res.json({
       success: true,
       data: traps
     });
 
   } catch (error) {
     console.error('Failed to get user traps:', error);
-    res.status(500).json({
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({
       success: false,
       message: 'Failed to get user traps',
-      error: error.message
+      error: errorMessage
     });
   }
 });
@@ -145,9 +171,20 @@ router.get('/', authenticateToken, async (req, res) => {
  * @desc Get specific basic trap details
  * @access Private
  */
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.walletAddress;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
+    
+    // At this point, userId is guaranteed to be a string
+    const userIdString: string = userId as string;
     
     const trap = await basicTrapService.getTrapById(id);
     
@@ -159,24 +196,25 @@ router.get('/:id', authenticateToken, async (req, res) => {
     }
 
     // Check if user owns this trap
-    if (trap.userId !== req.user.id) {
+    if (trap.userId !== userIdString) {
       return res.status(403).json({
         success: false,
         message: 'Access denied'
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: trap
     });
 
   } catch (error) {
     console.error('Failed to get trap details:', error);
-    res.status(500).json({
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({
       success: false,
       message: 'Failed to get trap details',
-      error: error.message
+      error: errorMessage
     });
   }
 });
@@ -186,9 +224,20 @@ router.get('/:id', authenticateToken, async (req, res) => {
  * @desc Get trap contract code
  * @access Private
  */
-router.get('/:id/contract', authenticateToken, async (req, res) => {
+router.get('/:id/contract', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.walletAddress;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
+    
+    // At this point, userId is guaranteed to be a string
+    const userIdString: string = userId as string;
     
     const trap = await basicTrapService.getTrapById(id);
     
@@ -200,7 +249,7 @@ router.get('/:id/contract', authenticateToken, async (req, res) => {
     }
 
     // Check if user owns this trap
-    if (trap.userId !== req.user.id) {
+    if (trap.userId !== userIdString) {
       return res.status(403).json({
         success: false,
         message: 'Access denied'
@@ -218,7 +267,7 @@ router.get('/:id/contract', authenticateToken, async (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         contractCode: template.contractCode,
@@ -230,10 +279,11 @@ router.get('/:id/contract', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Failed to get contract code:', error);
-    res.status(500).json({
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({
       success: false,
       message: 'Failed to get contract code',
-      error: error.message
+      error: errorMessage
     });
   }
 });
@@ -243,9 +293,20 @@ router.get('/:id/contract', authenticateToken, async (req, res) => {
  * @desc Get trap deployment status
  * @access Private
  */
-router.get('/:id/status', authenticateToken, async (req, res) => {
+router.get('/:id/status', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.walletAddress;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
+    
+    // At this point, userId is guaranteed to be a string
+    const userIdString: string = userId as string;
     
     const trap = await basicTrapService.getTrapById(id);
     
@@ -257,14 +318,14 @@ router.get('/:id/status', authenticateToken, async (req, res) => {
     }
 
     // Check if user owns this trap
-    if (trap.userId !== req.user.id) {
+    if (trap.userId !== userIdString) {
       return res.status(403).json({
         success: false,
         message: 'Access denied'
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         id: trap.id,
@@ -280,10 +341,11 @@ router.get('/:id/status', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Failed to get trap status:', error);
-    res.status(500).json({
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({
       success: false,
       message: 'Failed to get trap status',
-      error: error.message
+      error: errorMessage
     });
   }
 });

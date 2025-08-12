@@ -247,6 +247,7 @@ export class BasicTrapDeploymentService {
         type: 'success',
         title: 'Trap Deployed Successfully!',
         message: `Your ${template.name} has been deployed to the blockchain.`,
+        userId: request.userId,
         data: { 
           trapId: trap.id, 
           contractAddress: trap.contractAddress,
@@ -259,7 +260,8 @@ export class BasicTrapDeploymentService {
 
     } catch (error) {
       console.error('Basic trap deployment failed:', error);
-      throw new Error(`Basic trap deployment failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Basic trap deployment failed: ${errorMessage}`);
     }
   }
 
@@ -294,7 +296,11 @@ export class BasicTrapDeploymentService {
     const txHash = `0x${Math.random().toString(16).substr(2, 64)}`;
     
     // Calculate actual cost (slightly randomize for realism)
-    const baseCost = parseFloat(template.estimatedCost.split(' ')[0]);
+    const costString = template.estimatedCost;
+    if (!costString) {
+      throw new Error('Template cost is undefined');
+    }
+    const baseCost = parseFloat(costString.split(' ')[0]);
     const actualCost = (baseCost * (0.9 + Math.random() * 0.2)).toFixed(4);
     
     return {
@@ -317,7 +323,7 @@ export class BasicTrapDeploymentService {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       `, [
         trap.id, trap.userId, trap.trapType, trap.trapName,
-        trap.description, trap.contractAddress, trap.deploymentTxHash,
+        trap.description || 'No description provided', trap.contractAddress, trap.deploymentTxHash,
         trap.network, trap.status, trap.estimatedCost,
         trap.createdAt, JSON.stringify(trap.metadata)
       ]);
@@ -341,7 +347,7 @@ export class BasicTrapDeploymentService {
         WHERE id = $6
       `, [
         trap.contractAddress, trap.deploymentTxHash,
-        trap.status, trap.deployedAt, trap.actualCost, trap.id
+        trap.status, trap.deployedAt || null, trap.actualCost, trap.id
       ]);
 
       console.log(`✅ Basic trap updated in database: ${trap.id}`);
@@ -361,7 +367,7 @@ export class BasicTrapDeploymentService {
         [userId]
       );
 
-      return result.rows.map(row => ({
+      return result.rows.map((row: any) => ({
         id: row.id,
         userId: row.user_id,
         trapType: row.trap_type,
@@ -412,7 +418,7 @@ export class BasicTrapDeploymentService {
         createdAt: new Date(row.created_at),
         deployedAt: row.deployed_at ? new Date(row.deployed_at) : undefined,
         metadata: JSON.parse(row.metadata || '{}')
-      };
+      } as BasicTrap;
 
     } catch (error) {
       console.error('Failed to get trap by ID:', error);
