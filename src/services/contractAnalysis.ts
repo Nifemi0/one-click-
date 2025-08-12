@@ -12,6 +12,7 @@ export interface AIAnalysisResult {
   complexityScore: number;
   gasOptimization: string[];
   bestPractices: string[];
+  aiProvider: string; // Track which AI provider was used
 }
 
 export interface ContractSourceCode {
@@ -38,8 +39,19 @@ export interface EnhancedContractAnalysis extends BlockchainContractAnalysis {
   };
 }
 
+// AI Provider Configuration
+interface AIProvider {
+  name: string;
+  apiKey: string;
+  endpoint: string;
+  headers: Record<string, string>;
+  model: string;
+  maxTokens: number;
+  temperature: number;
+}
+
 export class ContractAnalysisService {
-  private cursorApiKey: string | undefined;
+  private aiProviders: AIProvider[] = [];
   private db: DatabaseService;
   private blockchain: BlockchainService;
   private blockExplorerApis: Map<number, string> = new Map();
@@ -48,18 +60,89 @@ export class ContractAnalysisService {
     this.db = db;
     this.blockchain = blockchain;
     
-    // Initialize Cursor API
-    this.cursorApiKey = process.env.CURSOR_API_KEY;
+    // Initialize AI Providers with fallback priority
+    this.initializeAIProviders();
 
-    // Initialize block explorer APIs
+    // Initialize block explorer APIs for Hoodie testnet
     this.initializeBlockExplorers();
   }
 
+  private initializeAIProviders() {
+    // Priority 1: Cursor API
+    if (process.env.CURSOR_API_KEY) {
+      this.aiProviders.push({
+        name: 'Cursor',
+        apiKey: process.env.CURSOR_API_KEY,
+        endpoint: 'https://api.cursor.sh/v1/chat/completions',
+        headers: {
+          'Authorization': `Bearer ${process.env.CURSOR_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        model: 'gpt-4',
+        maxTokens: 2000,
+        temperature: 0.1,
+      });
+    }
+
+    // Priority 2: Gemini API
+    if (process.env.GEMINI_API_KEY) {
+      this.aiProviders.push({
+        name: 'Gemini',
+        apiKey: process.env.GEMINI_API_KEY,
+        endpoint: `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        model: 'gemini-pro',
+        maxTokens: 2000,
+        temperature: 0.1,
+      });
+    }
+
+    // Priority 3: Claude API
+    if (process.env.CLAUDE_API_KEY) {
+      this.aiProviders.push({
+        name: 'Claude',
+        apiKey: process.env.CLAUDE_API_KEY,
+        endpoint: 'https://api.anthropic.com/v1/messages',
+        headers: {
+          'Authorization': `Bearer ${process.env.CLAUDE_API_KEY}`,
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01',
+        },
+        model: 'claude-3-sonnet-20240229',
+        maxTokens: 2000,
+        temperature: 0.1,
+      });
+    }
+
+    // Priority 4: OpenAI API (as last resort)
+    if (process.env.OPENAI_API_KEY) {
+      this.aiProviders.push({
+        name: 'OpenAI',
+        apiKey: process.env.OPENAI_API_KEY,
+        endpoint: 'https://api.openai.com/v1/chat/completions',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        model: 'gpt-4',
+        maxTokens: 2000,
+        temperature: 0.1,
+      });
+    }
+
+    if (this.aiProviders.length === 0) {
+      console.warn('No AI providers configured. AI analysis will be disabled.');
+    } else {
+      console.log(`Initialized ${this.aiProviders.length} AI providers: ${this.aiProviders.map(p => p.name).join(', ')}`);
+    }
+  }
+
   private initializeBlockExplorers() {
-    this.blockExplorerApis.set(1, process.env.ETHERSCAN_API_KEY || ''); // Ethereum
-    this.blockExplorerApis.set(137, process.env.POLYGONSCAN_API_KEY || ''); // Polygon
-    this.blockExplorerApis.set(42161, process.env.ARBISCAN_API_KEY || ''); // Arbitrum
-    this.blockExplorerApis.set(8453, process.env.BASESCAN_API_KEY || ''); // Base
+    // Hoodie testnet configuration
+    this.blockExplorerApis.set(1337, process.env.HOODIE_BLOCK_EXPLORER_API_KEY || ''); // Hoodie testnet
+    this.blockExplorerApis.set(31337, process.env.HOODIE_BLOCK_EXPLORER_API_KEY || ''); // Alternative Hoodie testnet port
   }
 
   async analyzeContract(address: string, chainId: number): Promise<EnhancedContractAnalysis> {
@@ -73,10 +156,10 @@ export class ContractAnalysisService {
       // Get block explorer data
       const blockExplorerData = await this.getBlockExplorerData(address, chainId);
       
-      // Perform AI analysis if source code is available
+      // Perform AI analysis if source code is available and AI providers are configured
       let aiAnalysis: AIAnalysisResult | undefined;
-      if (sourceCode?.sourceCode) {
-        aiAnalysis = await this.performAIAnalysis(sourceCode, blockchainAnalysis);
+      if (sourceCode?.sourceCode && this.aiProviders.length > 0) {
+        aiAnalysis = await this.performAIAnalysisWithFallback(sourceCode, blockchainAnalysis);
       }
       
       // Get social sentiment data
@@ -223,49 +306,33 @@ export class ContractAnalysisService {
     }
   }
 
-  private async performAIAnalysis(
+  private async performAIAnalysisWithFallback(
     sourceCode: ContractSourceCode,
     blockchainAnalysis: BlockchainContractAnalysis
   ): Promise<AIAnalysisResult> {
-    try {
-      if (!this.cursorApiKey) {
-        throw new Error('Cursor API not configured');
+    const prompt = this.buildAnalysisPrompt(sourceCode, blockchainAnalysis);
+    
+    // Try each AI provider in order until one succeeds
+    for (const provider of this.aiProviders) {
+      try {
+        console.log(`Attempting AI analysis with ${provider.name}...`);
+        const result = await this.callAIProvider(provider, prompt);
+        return {
+          ...this.parseAIAnalysis(result),
+          aiProvider: provider.name,
+        };
+      } catch (error) {
+        console.error(`${provider.name} analysis failed:`, error);
+        continue; // Try next provider
       }
-
-      const prompt = this.buildAnalysisPrompt(sourceCode, blockchainAnalysis);
-      
-      const response = await axios.post('https://api.cursor.sh/v1/chat/completions', {
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a smart contract security expert. Analyze the provided Solidity code for vulnerabilities, security issues, and provide actionable recommendations. Focus on common attack vectors like reentrancy, access control, integer overflow, and gas optimization.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        max_tokens: 2000,
-        temperature: 0.1,
-      }, {
-        headers: {
-          'Authorization': `Bearer ${this.cursorApiKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const analysis = response.data.choices[0]?.message?.content;
-      if (!analysis) {
-        throw new Error('No analysis received from Cursor API');
-      }
-
-      return this.parseAIAnalysis(analysis);
-    } catch (error) {
-      console.error('Cursor API analysis failed:', error);
-      // Return fallback analysis based on blockchain analysis
-      return this.generateFallbackAnalysis(blockchainAnalysis);
     }
+    
+    // If all providers fail, return fallback analysis
+    console.warn('All AI providers failed, using fallback analysis');
+    return {
+      ...this.generateFallbackAnalysis(blockchainAnalysis),
+      aiProvider: 'fallback',
+    };
   }
 
   private buildAnalysisPrompt(sourceCode: ContractSourceCode, blockchainAnalysis: BlockchainContractAnalysis): string {
@@ -329,6 +396,7 @@ Format your response as JSON:
           complexityScore: parsed.complexityScore || 5,
           gasOptimization: parsed.gasOptimization || [],
           bestPractices: parsed.bestPractices || [],
+          aiProvider: 'fallback', // Default to fallback if JSON parsing fails
         };
       }
       
@@ -356,6 +424,7 @@ Format your response as JSON:
       complexityScore: this.calculateComplexityScore(analysis),
       gasOptimization: this.extractGasOptimization(analysis),
       bestPractices: this.extractBestPractices(analysis),
+      aiProvider: 'fallback', // Default to fallback if keyword parsing fails
     };
   }
 
@@ -494,6 +563,7 @@ Format your response as JSON:
       complexityScore: 5,
       gasOptimization: ['Optimize storage usage', 'Use external functions where possible'],
       bestPractices: ['Implement access controls', 'Add reentrancy guards'],
+      aiProvider: 'fallback', // Default to fallback if blockchain analysis is not available
     };
   }
 
@@ -508,6 +578,7 @@ Format your response as JSON:
       complexityScore: 5,
       gasOptimization: ['Standard optimization techniques'],
       bestPractices: ['Follow Solidity security guidelines'],
+      aiProvider: 'fallback', // Default to fallback if no analysis is available
     };
   }
 

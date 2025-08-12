@@ -22,34 +22,38 @@ export interface NetworkConfig {
 export interface ContractAnalysis {
   address: string;
   chainId: number;
-  bytecode: string;
-  sourceCode?: string;
-  abi?: any[];
   riskScore: number;
   vulnerabilities: string[];
   recommendations: string[];
-  gasEstimate: number;
-  deploymentCost: string;
+  securityLevel: 'low' | 'medium' | 'high' | 'critical';
+  auditRecommendation: boolean;
+  estimatedAuditCost: string;
+  complexityScore: number;
+  gasOptimization: string[];
+  bestPractices: string[];
+  lastAnalyzed: Date;
+  analysisVersion: string;
 }
 
 export interface TrapDeployment {
   id: string;
-  userId: string;
-  templateId: string;
+  name: string;
+  description: string;
   contractAddress: string;
   chainId: number;
-  status: 'pending' | 'deploying' | 'active' | 'paused' | 'error';
-  gasUsed: number;
-  gasPrice: string;
-  deploymentCost: string;
+  owner: string;
+  status: 'active' | 'inactive' | 'compromised';
   deployedAt: Date;
   lastActivity: Date;
-  configuration: any;
+  securityScore: number;
+  revenueGenerated: number;
+  gasUsed: number;
+  transactionHash: string;
 }
 
 export class BlockchainService {
-  private providers: Map<number, ethers.Provider> = new Map();
   private networks: NetworkConfig[] = [];
+  private providers: Map<number, ethers.Provider> = new Map();
   private db: DatabaseService;
   private notification: NotificationService;
 
@@ -62,67 +66,35 @@ export class BlockchainService {
   private initializeNetworks() {
     this.networks = [
       {
-        chainId: 1,
-        name: 'Ethereum Mainnet',
-        rpcUrl: process.env.ETHEREUM_RPC_URL || 'https://eth-mainnet.g.alchemy.com/v2/your-key',
-        blockExplorer: 'https://etherscan.io',
+        chainId: 1337,
+        name: 'Hoodie Testnet',
+        rpcUrl: process.env.HOODIE_RPC_URL || 'http://localhost:8545',
+        blockExplorer: process.env.HOODIE_BLOCK_EXPLORER_URL || 'http://localhost:4000',
         nativeCurrency: {
-          name: 'Ether',
-          symbol: 'ETH',
+          name: 'Hoodie',
+          symbol: 'HOOD',
           decimals: 18,
         },
         contracts: {
-          droseraFactory: process.env.ETHEREUM_DROSERA_FACTORY || '',
-          droseraRegistry: process.env.ETHEREUM_DROSERA_REGISTRY || '',
-          droseraOracle: process.env.ETHEREUM_DROSERA_ORACLE || '',
+          droseraFactory: process.env.HOODIE_DROSERA_FACTORY || '',
+          droseraRegistry: process.env.HOODIE_DROSERA_REGISTRY || '',
+          droseraOracle: process.env.HOODIE_DROSERA_ORACLE || '',
         },
       },
       {
-        chainId: 137,
-        name: 'Polygon',
-        rpcUrl: process.env.POLYGON_RPC_URL || 'https://polygon-rpc.com',
-        blockExplorer: 'https://polygonscan.com',
+        chainId: 31337,
+        name: 'Hoodie Alternative Port',
+        rpcUrl: process.env.HOODIE_ALT_RPC_URL || 'http://localhost:31337',
+        blockExplorer: process.env.HOODIE_BLOCK_EXPLORER_URL || 'http://localhost:4000',
         nativeCurrency: {
-          name: 'MATIC',
-          symbol: 'MATIC',
+          name: 'Hoodie',
+          symbol: 'HOOD',
           decimals: 18,
         },
         contracts: {
-          droseraFactory: process.env.POLYGON_DROSERA_FACTORY || '',
-          droseraRegistry: process.env.POLYGON_DROSERA_REGISTRY || '',
-          droseraOracle: process.env.POLYGON_DROSERA_ORACLE || '',
-        },
-      },
-      {
-        chainId: 42161,
-        name: 'Arbitrum One',
-        rpcUrl: process.env.ARBITRUM_RPC_URL || 'https://arb1.arbitrum.io/rpc',
-        blockExplorer: 'https://arbiscan.io',
-        nativeCurrency: {
-          name: 'Ether',
-          symbol: 'ETH',
-          decimals: 18,
-        },
-        contracts: {
-          droseraFactory: process.env.ARBITRUM_DROSERA_FACTORY || '',
-          droseraRegistry: process.env.ARBITRUM_DROSERA_REGISTRY || '',
-          droseraOracle: process.env.ARBITRUM_DROSERA_ORACLE || '',
-        },
-      },
-      {
-        chainId: 8453,
-        name: 'Base',
-        rpcUrl: process.env.BASE_RPC_URL || 'https://mainnet.base.org',
-        blockExplorer: 'https://basescan.org',
-        nativeCurrency: {
-          name: 'Ether',
-          symbol: 'ETH',
-          decimals: 18,
-        },
-        contracts: {
-          droseraFactory: process.env.BASE_DROSERA_FACTORY || '',
-          droseraRegistry: process.env.BASE_DROSERA_REGISTRY || '',
-          droseraOracle: process.env.BASE_DROSERA_ORACLE || '',
+          droseraFactory: process.env.HOODIE_DROSERA_FACTORY || '',
+          droseraRegistry: process.env.HOODIE_DROSERA_REGISTRY || '',
+          droseraOracle: process.env.HOODIE_DROSERA_ORACLE || '',
         },
       },
     ];
@@ -158,131 +130,166 @@ export class BlockchainService {
     try {
       const provider = await this.getProvider(chainId);
       
-      // Get contract bytecode
-      const bytecode = await provider.getCode(address);
-      
-      if (bytecode === '0x') {
-        throw new Error('Contract not found or not deployed');
+      // Get contract code
+      const code = await provider.getCode(address);
+      if (code === '0x') {
+        throw new Error('No contract found at address');
       }
 
-      // Basic bytecode analysis
-      const riskScore = this.calculateRiskScore(bytecode);
-      const vulnerabilities = this.detectVulnerabilities(bytecode);
-      const recommendations = this.generateRecommendations(vulnerabilities);
-      
-      // Estimate gas for deployment
-      const gasEstimate = await this.estimateGas(bytecode, chainId);
-      const deploymentCost = await this.calculateDeploymentCost(gasEstimate, chainId);
-
-      return {
+      // Basic contract analysis
+      const analysis: ContractAnalysis = {
         address,
         chainId,
-        bytecode,
-        riskScore,
-        vulnerabilities,
-        recommendations,
-        gasEstimate,
-        deploymentCost,
+        riskScore: this.calculateRiskScore(code),
+        vulnerabilities: this.detectVulnerabilities(code),
+        recommendations: this.generateRecommendations(code),
+        securityLevel: this.determineSecurityLevel(code),
+        auditRecommendation: this.shouldRecommendAudit(code),
+        estimatedAuditCost: this.estimateAuditCost(code),
+        complexityScore: this.calculateComplexityScore(code),
+        gasOptimization: this.suggestGasOptimizations(code),
+        bestPractices: this.suggestBestPractices(code),
+        lastAnalyzed: new Date(),
+        analysisVersion: '1.0.0',
       };
+
+      return analysis;
     } catch (error) {
       console.error('Contract analysis failed:', error);
-      throw new Error(`Failed to analyze contract: ${error.message}`);
+      throw new Error(`Analysis failed: ${error.message}`);
     }
   }
 
-  private calculateRiskScore(bytecode: string): number {
-    let riskScore = 0;
+  private calculateRiskScore(code: string): number {
+    // Basic risk scoring based on code size and patterns
+    let riskScore = 50; // Base score
     
-    // Check for common risky patterns
-    if (bytecode.includes('DELEGATECALL')) riskScore += 30;
-    if (bytecode.includes('CALLCODE')) riskScore += 25;
-    if (bytecode.includes('SELFDESTRUCT')) riskScore += 40;
-    if (bytecode.includes('SUICIDE')) riskScore += 40;
+    if (code.length > 10000) riskScore += 20; // Large contracts are riskier
+    if (code.includes('delegatecall')) riskScore += 15; // Dangerous pattern
+    if (code.includes('selfdestruct')) riskScore += 20; // Very dangerous
+    if (code.includes('suicide')) riskScore += 20; // Deprecated but dangerous
     
-    // Check for access control patterns
-    if (bytecode.includes('CALLER') && bytecode.includes('EQ')) riskScore -= 10;
-    if (bytecode.includes('ORIGIN') && bytecode.includes('EQ')) riskScore += 20;
-    
-    // Check for reentrancy protection
-    if (bytecode.includes('REENTRANCY_GUARD')) riskScore -= 15;
-    
-    return Math.max(0, Math.min(100, riskScore));
+    return Math.min(riskScore, 100);
   }
 
-  private detectVulnerabilities(bytecode: string): string[] {
+  private detectVulnerabilities(code: string): string[] {
     const vulnerabilities: string[] = [];
     
-    if (bytecode.includes('DELEGATECALL')) {
-      vulnerabilities.push('Unrestricted delegatecall - potential code injection');
+    if (code.includes('delegatecall')) {
+      vulnerabilities.push('Potential delegatecall vulnerability');
     }
-    if (bytecode.includes('SELFDESTRUCT') || bytecode.includes('SUICIDE')) {
-      vulnerabilities.push('Self-destruct function - contract can be destroyed');
+    if (code.includes('selfdestruct') || code.includes('suicide')) {
+      vulnerabilities.push('Self-destruct functionality detected');
     }
-    if (bytecode.includes('ORIGIN') && !bytecode.includes('CALLER')) {
-      vulnerabilities.push('tx.origin usage - potential phishing vulnerability');
-    }
-    if (!bytecode.includes('REENTRANCY_GUARD')) {
-      vulnerabilities.push('No reentrancy protection detected');
+    if (code.includes('tx.origin')) {
+      vulnerabilities.push('tx.origin usage may be unsafe');
     }
     
     return vulnerabilities;
   }
 
-  private generateRecommendations(vulnerabilities: string[]): string[] {
+  private generateRecommendations(code: string): string[] {
     const recommendations: string[] = [];
     
-    if (vulnerabilities.some(v => v.includes('delegatecall'))) {
-      recommendations.push('Implement strict access controls for delegatecall functions');
+    if (code.includes('delegatecall')) {
+      recommendations.push('Review delegatecall usage for security implications');
     }
-    if (vulnerabilities.some(v => v.includes('Self-destruct'))) {
-      recommendations.push('Add timelock or multi-sig for self-destruct function');
-    }
-    if (vulnerabilities.some(v => v.includes('tx.origin'))) {
-      recommendations.push('Replace tx.origin with msg.sender for access control');
-    }
-    if (vulnerabilities.some(v => v.includes('reentrancy'))) {
-      recommendations.push('Implement reentrancy guards for state-changing functions');
-    }
-    
-    if (recommendations.length === 0) {
-      recommendations.push('Contract appears to follow security best practices');
+    if (code.includes('tx.origin')) {
+      recommendations.push('Consider using msg.sender instead of tx.origin');
     }
     
     return recommendations;
   }
 
-  private async estimateGas(bytecode: string, chainId: number): Promise<number> {
+  private determineSecurityLevel(code: string): 'low' | 'medium' | 'high' | 'critical' {
+    const riskScore = this.calculateRiskScore(code);
+    
+    if (riskScore >= 80) return 'critical';
+    if (riskScore >= 60) return 'high';
+    if (riskScore >= 40) return 'medium';
+    return 'low';
+  }
+
+  private shouldRecommendAudit(code: string): boolean {
+    const riskScore = this.calculateRiskScore(code);
+    return riskScore >= 60; // Recommend audit for medium-high risk contracts
+  }
+
+  private estimateAuditCost(code: string): string {
+    const riskScore = this.calculateRiskScore(code);
+    
+    if (riskScore >= 80) return '$50,000 - $100,000';
+    if (riskScore >= 60) return '$25,000 - $50,000';
+    if (riskScore >= 40) return '$10,000 - $25,000';
+    return '$5,000 - $10,000';
+  }
+
+  private calculateComplexityScore(code: string): number {
+    // Simple complexity scoring
+    let complexity = 1;
+    
+    if (code.length > 5000) complexity += 2;
+    if (code.length > 10000) complexity += 2;
+    if (code.includes('assembly')) complexity += 3;
+    
+    return Math.min(complexity, 10);
+  }
+
+  private suggestGasOptimizations(code: string): string[] {
+    const optimizations: string[] = [];
+    
+    if (code.includes('storage')) {
+      optimizations.push('Consider using memory for temporary data');
+    }
+    if (code.includes('for')) {
+      optimizations.push('Optimize loop iterations');
+    }
+    
+    return optimizations;
+  }
+
+  private suggestBestPractices(code: string): string[] {
+    const practices: string[] = [];
+    
+    practices.push('Implement access controls');
+    practices.push('Add reentrancy guards');
+    practices.push('Use SafeMath or Solidity 0.8+');
+    
+    return practices;
+  }
+
+  // Revenue tracking methods
+  async trackDeploymentRevenue(trapId: string, revenue: number, gasUsed: number): Promise<void> {
     try {
-      const provider = await this.getProvider(chainId);
-      const gasPrice = await provider.getFeeData();
-      
-      // Basic gas estimation based on bytecode size
-      const baseGas = 21000;
-      const bytecodeGas = Math.ceil(bytecode.length / 2) * 16; // 16 gas per byte
-      const deploymentGas = baseGas + bytecodeGas;
-      
-      // Add buffer for safety
-      return Math.ceil(deploymentGas * 1.2);
+      await this.db.query(
+        'UPDATE trap_deployments SET revenue_generated = revenue_generated + $1, gas_used = gas_used + $2, last_activity = NOW() WHERE id = $3',
+        [revenue, gasUsed, trapId]
+      );
     } catch (error) {
-      console.error('Gas estimation failed:', error);
-      return 500000; // Default fallback
+      console.error('Failed to track deployment revenue:', error);
     }
   }
 
-  private async calculateDeploymentCost(gasEstimate: number, chainId: number): Promise<string> {
+  async getTotalRevenue(): Promise<number> {
     try {
-      const provider = await this.getProvider(chainId);
-      const gasPrice = await provider.getFeeData();
-      
-      if (!gasPrice.gasPrice) {
-        return 'Unknown';
-      }
-      
-      const cost = gasPrice.gasPrice * BigInt(gasEstimate);
-      return ethers.formatEther(cost);
+      const result = await this.db.query('SELECT SUM(revenue_generated) as total FROM trap_deployments');
+      return parseFloat(result.rows[0]?.total || '0');
     } catch (error) {
-      console.error('Cost calculation failed:', error);
-      return 'Unknown';
+      console.error('Failed to get total revenue:', error);
+      return 0;
+    }
+  }
+
+  async getRevenueByNetwork(chainId: number): Promise<number> {
+    try {
+      const result = await this.db.query(
+        'SELECT SUM(revenue_generated) as total FROM trap_deployments WHERE chain_id = $1',
+        [chainId]
+      );
+      return parseFloat(result.rows[0]?.total || '0');
+    } catch (error) {
+      console.error('Failed to get revenue by network:', error);
+      return 0;
     }
   }
 
@@ -313,17 +320,18 @@ export class BlockchainService {
       // Create deployment record
       const deployment: TrapDeployment = {
         id: this.generateId(),
-        userId,
-        templateId,
+        name: 'New Trap', // Placeholder, will be updated
+        description: 'Deployed by user', // Placeholder, will be updated
         contractAddress: '',
         chainId,
-        status: 'pending',
-        gasUsed: 0,
-        gasPrice: '0',
-        deploymentCost: '0',
+        owner: userId,
+        status: 'active',
         deployedAt: new Date(),
         lastActivity: new Date(),
-        configuration,
+        securityScore: 0, // Placeholder, will be updated
+        revenueGenerated: 0, // Placeholder, will be updated
+        gasUsed: 0, // Placeholder, will be updated
+        transactionHash: '', // Placeholder, will be updated
       };
 
       // Save initial deployment record
@@ -354,19 +362,15 @@ export class BlockchainService {
         deployment.contractAddress = deployedAddress;
         deployment.status = 'active';
         deployment.gasUsed = Number(receipt.gasUsed);
-        deployment.gasPrice = receipt.gasPrice?.toString() || '0';
-        deployment.deploymentCost = ethers.formatEther(
-          BigInt(receipt.gasUsed) * BigInt(receipt.gasPrice || 0)
-        );
-        deployment.deployedAt = new Date();
+        deployment.transactionHash = receipt.transactionHash;
+        deployment.lastActivity = new Date();
         
         await this.db.updateDeployedTrap(deployment.id, {
           contractAddress: deployedAddress,
           status: 'active',
           gasUsed: deployment.gasUsed,
-          gasPrice: deployment.gasPrice,
-          deploymentCost: deployment.deploymentCost,
-          deployedAt: deployment.deployedAt,
+          transactionHash: deployment.transactionHash,
+          lastActivity: deployment.lastActivity,
         });
 
         // Send success notification
