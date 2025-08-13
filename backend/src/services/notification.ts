@@ -10,457 +10,285 @@ export interface Notification {
   data?: any;
   isRead: boolean;
   createdAt: Date;
-  readAt?: Date;
 }
 
-export interface NotificationPreferences {
-  userId: string;
-  email: boolean;
-  telegram: boolean;
-  discord: boolean;
-  push: boolean;
-  telegramChatId?: string;
-  discordWebhook?: string;
-  emailAddress?: string;
-}
-
-export interface NotificationChannel {
-  type: 'email' | 'telegram' | 'discord' | 'push';
-  enabled: boolean;
-  config?: any;
+export interface PushSubscription {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
 }
 
 export class NotificationService {
   private db: DatabaseService;
-  private channels: Map<string, NotificationChannel> = new Map();
+  private webhookUrl?: string;
+  private pushVapidPublicKey?: string;
+  private pushVapidPrivateKey?: string;
 
   constructor(db: DatabaseService) {
     this.db = db;
-    this.initializeChannels();
+    this.webhookUrl = process.env.NOTIFICATION_WEBHOOK_URL;
+    this.pushVapidPublicKey = process.env.PUSH_VAPID_PUBLIC_KEY;
+    this.pushVapidPrivateKey = process.env.PUSH_VAPID_PRIVATE_KEY;
   }
 
-  private initializeChannels() {
-    // Initialize notification channels
-    this.channels.set('email', {
-      type: 'email',
-      enabled: !!process.env.SMTP_HOST,
-      config: {
-        host: process.env.SMTP_HOST,
-        port: process.env.SMTP_PORT,
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      },
-    });
-
-    this.channels.set('telegram', {
-      type: 'telegram',
-      enabled: !!process.env.TELEGRAM_BOT_TOKEN,
-      config: {
-        botToken: process.env.TELEGRAM_BOT_TOKEN,
-        apiUrl: 'https://api.telegram.org/bot',
-      },
-    });
-
-    this.channels.set('discord', {
-      type: 'discord',
-      enabled: !!process.env.DISCORD_WEBHOOK_URL,
-      config: {
-        webhookUrl: process.env.DISCORD_WEBHOOK_URL,
-      },
-    });
-
-    this.channels.set('push', {
-      type: 'push',
-      enabled: !!process.env.VAPID_PUBLIC_KEY,
-      config: {
-        vapidPublicKey: process.env.VAPID_PUBLIC_KEY,
-        vapidPrivateKey: process.env.VAPID_PRIVATE_KEY,
-      },
-    });
-  }
-
-  async sendNotification(
-    userId: string,
-    notification: Omit<Notification, 'id' | 'isRead' | 'createdAt'>
-  ): Promise<Notification> {
+  async sendNotification(userId: string, notificationData: Omit<Notification, 'id' | 'isRead' | 'createdAt'>): Promise<Notification> {
     try {
-      // Create notification record
-      const newNotification: Notification = {
-        ...notification,
-        id: this.generateId(),
-        isRead: false,
-        createdAt: new Date(),
-      };
+      // Create notification in database
+      const notification = await this.db.createNotification({
+        userId,
+        type: notificationData.type,
+        title: notificationData.title,
+        message: notificationData.message,
+        data: notificationData.data || {},
+        isRead: false
+      });
 
-      // Save to database
-      await this.db.createAlert(newNotification);
+      // Send push notification if user has subscription
+      await this.sendPushNotification(userId, notification);
 
-      // Get user preferences
-      const preferences = await this.getUserPreferences(userId);
-
-      // Send through enabled channels
-      const promises: Promise<any>[] = [];
-
-      if (preferences.email && preferences.emailAddress && this.channels.get('email')?.enabled) {
-        promises.push(this.sendEmailNotification(preferences.emailAddress, newNotification));
+      // Send webhook if configured
+      if (this.webhookUrl) {
+        await this.sendWebhookNotification(notification);
       }
 
-      if (preferences.telegram && preferences.telegramChatId && this.channels.get('telegram')?.enabled) {
-        promises.push(this.sendTelegramNotification(preferences.telegramChatId, newNotification));
-      }
-
-      if (preferences.discord && preferences.discordWebhook && this.channels.get('discord')?.enabled) {
-        promises.push(this.sendDiscordNotification(preferences.discordWebhook, newNotification));
-      }
-
-      if (preferences.push && this.channels.get('push')?.enabled) {
-        promises.push(this.sendPushNotification(userId, newNotification));
-      }
-
-      // Wait for all notifications to be sent
-      await Promise.allSettled(promises);
-
-      return newNotification;
+      return notification;
     } catch (error) {
       console.error('Failed to send notification:', error);
-      throw new Error(`Notification failed: ${error.message}`);
+      throw new Error(`Notification failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  private async sendEmailNotification(email: string, notification: Notification): Promise<void> {
+  async sendPushNotification(userId: string, notification: Notification): Promise<void> {
     try {
-      const channel = this.channels.get('email');
-      if (!channel?.enabled || !channel.config) {
-        throw new Error('Email channel not configured');
-      }
-
-      // For now, use a simple HTTP email service
-      // In production, you'd use a proper SMTP library like nodemailer
-      const emailData = {
-        to: email,
-        subject: notification.title,
-        text: notification.message,
-        html: this.generateEmailHTML(notification),
-      };
-
-      // Send via external email service (e.g., SendGrid, Mailgun)
-      if (process.env.EMAIL_SERVICE_URL) {
-        await axios.post(process.env.EMAIL_SERVICE_URL, emailData, {
-          headers: {
-            'Authorization': `Bearer ${process.env.EMAIL_SERVICE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-        });
-      }
-
-      console.log(`Email notification sent to ${email}`);
-    } catch (error) {
-      console.error('Email notification failed:', error);
-      throw error;
-    }
-  }
-
-  private async sendTelegramNotification(chatId: string, notification: Notification): Promise<void> {
-    try {
-      const channel = this.channels.get('telegram');
-      if (!channel?.enabled || !channel.config) {
-        throw new Error('Telegram channel not configured');
-      }
-
-      const { botToken, apiUrl } = channel.config;
-      const message = this.formatTelegramMessage(notification);
-
-      await axios.post(`${apiUrl}${botToken}/sendMessage`, {
-        chat_id: chatId,
-        text: message,
-        parse_mode: 'HTML',
-      });
-
-      console.log(`Telegram notification sent to chat ${chatId}`);
-    } catch (error) {
-      console.error('Telegram notification failed:', error);
-      throw error;
-    }
-  }
-
-  private async sendDiscordNotification(webhookUrl: string, notification: Notification): Promise<void> {
-    try {
-      const channel = this.channels.get('discord');
-      if (!channel?.enabled) {
-        throw new Error('Discord channel not configured');
-      }
-
-      const embed = this.formatDiscordEmbed(notification);
-
-      await axios.post(webhookUrl, {
-        embeds: [embed],
-      });
-
-      console.log('Discord notification sent');
-    } catch (error) {
-      console.error('Discord notification failed:', error);
-      throw error;
-    }
-  }
-
-  private async sendPushNotification(userId: string, notification: Notification): Promise<void> {
-    try {
-      const channel = this.channels.get('push');
-      if (!channel?.enabled) {
-        throw new Error('Push notification channel not configured');
-      }
-
-      // Get user's push subscription
       const subscription = await this.db.getPushSubscription(userId);
       if (!subscription) {
-        console.log(`No push subscription found for user ${userId}`);
+        return; // User has no push subscription
+      }
+
+      if (!this.pushVapidPublicKey || !this.pushVapidPrivateKey) {
+        console.warn('Push notification keys not configured');
         return;
       }
 
-      // Send push notification
-      // This would use a library like web-push
-      console.log(`Push notification prepared for user ${userId}`);
-    } catch (error) {
-      console.error('Push notification failed:', error);
-      throw error;
-    }
-  }
-
-  private generateEmailHTML(notification: Notification): string {
-    const colorMap = {
-      success: '#10B981',
-      error: '#EF4444',
-      warning: '#F59E0B',
-      info: '#3B82F6',
-    };
-
-    const color = colorMap[notification.type] || colorMap.info;
-
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>${notification.title}</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: ${color}; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
-              <h1 style="margin: 0; font-size: 24px;">${notification.title}</h1>
-            </div>
-            <div style="background: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px;">
-              <p style="margin: 0 0 20px 0; font-size: 16px;">${notification.message}</p>
-              ${notification.data ? `<pre style="background: #fff; padding: 15px; border-radius: 4px; overflow-x: auto;">${JSON.stringify(notification.data, null, 2)}</pre>` : ''}
-              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666;">
-                <p>This notification was sent by Drosera Security Traps</p>
-                <p>Sent at: ${notification.createdAt.toLocaleString()}</p>
-              </div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
-  }
-
-  private formatTelegramMessage(notification: Notification): string {
-    const emojiMap = {
-      success: '✅',
-      error: '❌',
-      warning: '⚠️',
-      info: 'ℹ️',
-    };
-
-    const emoji = emojiMap[notification.type] || emojiMap.info;
-    
-    let message = `${emoji} <b>${notification.title}</b>\n\n`;
-    message += `${notification.message}\n\n`;
-    
-    if (notification.data) {
-      message += `<code>${JSON.stringify(notification.data, null, 2)}</code>\n\n`;
-    }
-    
-    message += `📅 ${notification.createdAt.toLocaleString()}`;
-    
-    return message;
-  }
-
-  private formatDiscordEmbed(notification: Notification): any {
-    const colorMap = {
-      success: 0x10B981,
-      error: 0xEF4444,
-      warning: 0xF59E0B,
-      info: 0x3B82F6,
-    };
-
-    const color = colorMap[notification.type] || colorMap.info;
-
-    return {
-      title: notification.title,
-      description: notification.message,
-      color: color,
-      timestamp: notification.createdAt.toISOString(),
-      footer: {
-        text: 'Drosera Security Traps',
-      },
-      ...(notification.data && {
-        fields: [
+      // Prepare push message
+      const pushMessage = {
+        title: notification.title,
+        body: notification.message,
+        icon: '/icon-192x192.png',
+        badge: '/badge-72x72.png',
+        data: notification.data || {},
+        actions: [
           {
-            name: 'Additional Data',
-            value: `\`\`\`json\n${JSON.stringify(notification.data, null, 2)}\n\`\`\``,
-            inline: false,
+            action: 'view',
+            title: 'View'
           },
-        ],
-      }),
-    };
+          {
+            action: 'dismiss',
+            title: 'Dismiss'
+          }
+        ]
+      };
+
+      // Send push notification
+      await this.sendPushMessage(subscription, pushMessage);
+    } catch (error) {
+      console.error('Failed to send push notification:', error);
+      // Don't throw error as push notification failure shouldn't break the main flow
+    }
   }
 
-  async getUserPreferences(userId: string): Promise<NotificationPreferences> {
+  private async sendPushMessage(subscription: any, message: any): Promise<void> {
     try {
-      // Get user preferences from database
-      const user = await this.db.getUser(userId);
-      if (!user) {
-        throw new Error('User not found');
+      // This is a simplified implementation
+      // In production, you'd use a proper push notification service
+      console.log('Sending push notification:', { subscription: subscription.endpoint, message });
+      
+      // For now, just log the notification
+      // In a real implementation, you'd use web-push or similar library
+    } catch (error) {
+      console.error('Failed to send push message:', error);
+    }
+  }
+
+  async sendWebhookNotification(notification: Notification): Promise<void> {
+    try {
+      if (!this.webhookUrl) {
+        return;
       }
 
-      return {
-        userId,
-        email: user.preferences?.notifications?.email || false,
-        telegram: user.preferences?.notifications?.telegram || false,
-        discord: user.preferences?.notifications?.discord || false,
-        push: user.preferences?.notifications?.push || true,
-        telegramChatId: user.preferences?.telegramChatId,
-        discordWebhook: user.preferences?.discordWebhook,
-        emailAddress: user.preferences?.emailAddress,
+      const webhookData = {
+        notification: {
+          id: notification.id,
+          userId: notification.userId,
+          type: notification.type,
+          title: notification.title,
+          message: notification.message,
+          data: notification.data,
+          createdAt: notification.createdAt
+        },
+        timestamp: new Date().toISOString(),
+        source: 'drosera-backend'
       };
+
+      await axios.post(this.webhookUrl, webhookData, {
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Drosera-Notification-Service/1.0'
+        },
+        timeout: 5000
+      });
     } catch (error) {
-      console.error('Failed to get user preferences:', error);
-      // Return default preferences
-      return {
-        userId,
-        email: false,
-        telegram: false,
-        discord: false,
-        push: true,
-      };
+      console.error('Failed to send webhook notification:', error);
+      // Don't throw error as webhook failure shouldn't break the main flow
     }
   }
 
-  async updateUserPreferences(
-    userId: string,
-    preferences: Partial<NotificationPreferences>
-  ): Promise<void> {
+  async markAsRead(notificationId: string): Promise<Notification | null> {
     try {
-      await this.db.updateUser(userId, {
-        preferences: preferences,
-      });
-    } catch (error) {
-      console.error('Failed to update user preferences:', error);
-      throw error;
-    }
-  }
-
-  async markNotificationAsRead(notificationId: string): Promise<void> {
-    try {
-      await this.db.updateAlert(notificationId, {
-        isRead: true,
-        readAt: new Date(),
-      });
+      return await this.db.markNotificationAsRead(notificationId);
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
+      return null;
+    }
+  }
+
+  async markAllAsRead(userId: string): Promise<void> {
+    try {
+      await this.db.markAllNotificationsAsRead(userId);
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
       throw error;
     }
   }
 
-  async getUnreadNotifications(userId: string): Promise<Notification[]> {
+  async getUnreadCount(userId: string): Promise<number> {
     try {
-      return await this.db.getAlertsByUser(userId, { isRead: false });
+      return await this.db.getUnreadNotificationCount(userId);
     } catch (error) {
-      console.error('Failed to get unread notifications:', error);
+      console.error('Failed to get unread notification count:', error);
+      return 0;
+    }
+  }
+
+  async getUserNotifications(userId: string, options: any = {}): Promise<Notification[]> {
+    try {
+      return await this.db.getNotificationsByUser(userId, {}, options);
+    } catch (error) {
+      console.error('Failed to get user notifications:', error);
       return [];
     }
   }
 
-  async deleteNotification(notificationId: string): Promise<void> {
+  async deleteNotification(notificationId: string): Promise<boolean> {
     try {
-      await this.db.deleteAlert(notificationId);
+      await this.db.deleteNotification(notificationId);
+      return true;
     } catch (error) {
       console.error('Failed to delete notification:', error);
+      return false;
+    }
+  }
+
+  async createPushSubscription(userId: string, subscriptionData: any): Promise<any> {
+    try {
+      return await this.db.createPushSubscription({
+        userId,
+        endpoint: subscriptionData.endpoint,
+        p256dh: subscriptionData.keys.p256dh,
+        auth: subscriptionData.keys.auth,
+        isActive: true
+      });
+    } catch (error) {
+      console.error('Failed to create push subscription:', error);
       throw error;
     }
   }
 
-  async sendBulkNotification(
-    userIds: string[],
-    notification: Omit<Notification, 'id' | 'userId' | 'isRead' | 'createdAt'>
-  ): Promise<void> {
+  async updatePushSubscription(userId: string, updates: any): Promise<any> {
     try {
-      const promises = userIds.map(userId =>
-        this.sendNotification(userId, notification)
+      return await this.db.updatePushSubscription(userId, updates);
+    } catch (error) {
+      console.error('Failed to update push subscription:', error);
+      throw error;
+    }
+  }
+
+  async deletePushSubscription(userId: string): Promise<void> {
+    try {
+      await this.db.deletePushSubscription(userId);
+    } catch (error) {
+      console.error('Failed to delete push subscription:', error);
+      throw error;
+    }
+  }
+
+  async sendBulkNotification(userIds: string[], notificationData: Omit<Notification, 'id' | 'isRead' | 'createdAt' | 'userId'>): Promise<void> {
+    try {
+      const notifications = await Promise.all(
+        userIds.map(userId => 
+          this.sendNotification(userId, {
+            ...notificationData,
+            userId
+          })
+        )
       );
 
-      await Promise.allSettled(promises);
-      console.log(`Bulk notification sent to ${userIds.length} users`);
+      console.log(`Sent ${notifications.length} bulk notifications`);
     } catch (error) {
-      console.error('Bulk notification failed:', error);
+      console.error('Failed to send bulk notifications:', error);
       throw error;
     }
   }
 
-  async sendSystemNotification(
-    notification: Omit<Notification, 'id' | 'userId' | 'isRead' | 'createdAt'>
-  ): Promise<void> {
+  async sendSystemNotification(notificationData: Omit<Notification, 'id' | 'isRead' | 'createdAt' | 'userId'>): Promise<void> {
     try {
       // Get all active users
-      const users = await this.db.getAllUsers();
-      const userIds = users.map(user => user.id);
-
-      await this.sendBulkNotification(userIds, notification);
+      const users = await this.db.query('SELECT id FROM users WHERE is_active = true');
+      
+      if (users.rows.length > 0) {
+        const userIds = users.rows.map((row: any) => row.id);
+        await this.sendBulkNotification(userIds, notificationData);
+      }
     } catch (error) {
-      console.error('System notification failed:', error);
+      console.error('Failed to send system notification:', error);
       throw error;
     }
   }
 
-  private generateId(): string {
-    return `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
+  async getNotificationStats(userId: string): Promise<any> {
+    try {
+      const totalNotifications = await this.db.query(
+        'SELECT COUNT(*) FROM notifications WHERE user_id = $1',
+        [userId]
+      );
 
-  // Health check for notification channels
-  async checkChannelHealth(): Promise<Record<string, boolean>> {
-    const health: Record<string, boolean> = {};
+      const unreadNotifications = await this.db.query(
+        'SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false',
+        [userId]
+      );
 
-    for (const [name, channel] of this.channels) {
-      try {
-        if (channel.enabled) {
-          // Test each channel
-          switch (name) {
-            case 'email':
-              health[name] = !!process.env.SMTP_HOST;
-              break;
-            case 'telegram':
-              health[name] = !!process.env.TELEGRAM_BOT_TOKEN;
-              break;
-            case 'discord':
-              health[name] = !!process.env.DISCORD_WEBHOOK_URL;
-              break;
-            case 'push':
-              health[name] = !!process.env.VAPID_PUBLIC_KEY;
-              break;
-            default:
-              health[name] = false;
-          }
-        } else {
-          health[name] = false;
-        }
-      } catch (error) {
-        health[name] = false;
-      }
+      const notificationsByType = await this.db.query(
+        'SELECT type, COUNT(*) FROM notifications WHERE user_id = $1 GROUP BY type',
+        [userId]
+      );
+
+      return {
+        total: parseInt(totalNotifications.rows[0].count),
+        unread: parseInt(unreadNotifications.rows[0].count),
+        byType: notificationsByType.rows.reduce((acc: any, row: any) => {
+          acc[row.type] = parseInt(row.count);
+          return acc;
+        }, {})
+      };
+    } catch (error) {
+      console.error('Failed to get notification stats:', error);
+      return {
+        total: 0,
+        unread: 0,
+        byType: {}
+      };
     }
-
-    return health;
   }
 }

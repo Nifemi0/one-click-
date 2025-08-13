@@ -1,19 +1,26 @@
 import { Router } from 'express';
 import { BlockchainService } from '../services/blockchain';
+import { DatabaseService } from '../services/database';
+import { asyncHandler } from '../middleware/errorHandler';
 
 const router = Router();
+const db = new DatabaseService();
+const blockchainService = new BlockchainService(db, {} as any);
 
-// Test RPC connectivity
+// Test RPC connection
 router.get('/test', async (req, res) => {
   try {
-    const blockchainService = req.app.locals.blockchainService as BlockchainService;
+    const { chainId = 560048 } = req.query;
+    const provider = blockchainService.getProvider(parseInt(chainId as string));
     
-    if (!blockchainService) {
-      return res.status(500).json({ error: 'Blockchain service not initialized' });
+    if (!provider) {
+      res.status(400).json({
+        success: false,
+        error: 'No provider available for this chain ID'
+      });
+      return;
     }
 
-    // Test basic connectivity
-    const provider = await blockchainService.getProvider(560048);
     const network = await provider.getNetwork();
     const blockNumber = await provider.getBlockNumber();
     const currentProvider = await blockchainService.getCurrentRPCProvider();
@@ -22,23 +29,22 @@ router.get('/test', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'RPC connection successful',
       data: {
         chainId: network.chainId.toString(),
-        chainName: network.name,
+        networkName: network.name,
         blockNumber: blockNumber.toString(),
-        currentProvider: currentProvider?.name || 'None',
+        currentProvider,
         rpcStatus,
-        rpcStats
+        rpcStats,
+        timestamp: new Date().toISOString()
       }
     });
-
   } catch (error) {
     console.error('RPC test failed:', error);
     res.status(500).json({
       success: false,
-      error: error.message,
-      message: 'RPC connection failed'
+      error: error instanceof Error ? error.message : 'Unknown error',
+      message: 'Failed to test RPC connection'
     });
   }
 });
@@ -46,49 +52,46 @@ router.get('/test', async (req, res) => {
 // Test RPC fallback
 router.post('/test-fallback', async (req, res) => {
   try {
-    const blockchainService = req.app.locals.blockchainService as BlockchainService;
+    const { providerName, chainId = 560048 } = req.body;
     
-    if (!blockchainService) {
-      return res.status(500).json({ error: 'Blockchain service not initialized' });
+    if (!providerName) {
+      res.status(400).json({
+        success: false,
+        error: 'Provider name is required'
+      });
+      return;
     }
 
-    const { providerName } = req.body;
+    // Switch to specified provider
+    const success = await blockchainService.switchRPCProvider(providerName);
     
-    if (providerName) {
-      // Test switching to specific provider
-      const success = await blockchainService.switchRPCProvider(providerName);
+    if (success) {
+      const provider = blockchainService.getProvider(parseInt(chainId));
+      const network = await provider!.getNetwork();
       const currentProvider = await blockchainService.getCurrentRPCProvider();
       
       res.json({
         success: true,
-        message: `Switched to provider: ${providerName}`,
         data: {
-          switchSuccess: success,
-          currentProvider: currentProvider?.name || 'None'
+          message: `Successfully switched to ${providerName}`,
+          chainId: network.chainId.toString(),
+          networkName: network.name,
+          currentProvider,
+          timestamp: new Date().toISOString()
         }
       });
     } else {
-      // Test automatic fallback
-      const provider = await blockchainService.getProvider(560048);
-      const network = await provider.getNetwork();
-      const currentProvider = await blockchainService.getCurrentRPCProvider();
-      
-      res.json({
-        success: true,
-        message: 'Automatic fallback test successful',
-        data: {
-          chainId: network.chainId.toString(),
-          currentProvider: currentProvider?.name || 'None'
-        }
+      res.status(400).json({
+        success: false,
+        error: `Failed to switch to provider ${providerName}`
       });
     }
-
   } catch (error) {
     console.error('RPC fallback test failed:', error);
     res.status(500).json({
       success: false,
-      error: error.message,
-      message: 'RPC fallback test failed'
+      error: error instanceof Error ? error.message : 'Unknown error',
+      message: 'Failed to test RPC fallback'
     });
   }
 });
@@ -96,69 +99,84 @@ router.post('/test-fallback', async (req, res) => {
 // Get RPC status
 router.get('/status', async (req, res) => {
   try {
-    const blockchainService = req.app.locals.blockchainService as BlockchainService;
-    
-    if (!blockchainService) {
-      return res.status(500).json({ error: 'Blockchain service not initialized' });
-    }
-
     const rpcStatus = await blockchainService.getRPCStatus();
     const rpcStats = await blockchainService.getRPCStats();
     const currentProvider = await blockchainService.getCurrentRPCProvider();
-
+    
     res.json({
       success: true,
       data: {
         rpcStatus,
         rpcStats,
-        currentProvider: currentProvider?.name || 'None'
+        currentProvider,
+        timestamp: new Date().toISOString()
       }
     });
-
   } catch (error) {
     console.error('Failed to get RPC status:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-// Test specific RPC endpoint
+// Test specific endpoint
 router.post('/test-endpoint', async (req, res) => {
   try {
-    const { rpcUrl, chainId = 560048 } = req.body;
+    const { endpoint, chainId = 560048, method = 'GET', params = {} } = req.body;
     
-    if (!rpcUrl) {
-      return res.status(400).json({ error: 'RPC URL is required' });
+    if (!endpoint) {
+      res.status(400).json({
+        success: false,
+        error: 'Endpoint is required'
+      });
+      return;
     }
 
-    // Test the specific RPC endpoint
-    const provider = new (await import('ethers')).JsonRpcProvider(rpcUrl);
+    const provider = blockchainService.getProvider(parseInt(chainId));
     
-    const startTime = Date.now();
-    const network = await provider.getNetwork();
-    const blockNumber = await provider.getBlockNumber();
-    const responseTime = Date.now() - startTime;
+    if (!provider) {
+      res.status(400).json({
+        success: false,
+        error: 'No provider available for this chain ID'
+      });
+      return;
+    }
+
+    // Test the endpoint
+    let result;
+    try {
+      // Use the provider's request method for custom RPC calls
+      if (method === 'POST') {
+        result = await provider.send(endpoint, params);
+      } else {
+        result = await provider.send(endpoint, params);
+      }
+    } catch (error) {
+      // Fallback to basic provider methods
+      result = {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        method: 'fallback'
+      };
+    }
 
     res.json({
       success: true,
-      message: 'RPC endpoint test successful',
       data: {
-        rpcUrl,
-        chainId: network.chainId.toString(),
-        chainName: network.name,
-        blockNumber: blockNumber.toString(),
-        responseTime: `${responseTime}ms`
+        endpoint,
+        method,
+        params,
+        result,
+        timestamp: new Date().toISOString()
       }
     });
-
   } catch (error) {
-    console.error('RPC endpoint test failed:', error);
+    console.error('Endpoint test failed:', error);
     res.status(500).json({
       success: false,
-      error: error.message,
-      message: 'RPC endpoint test failed'
+      error: error instanceof Error ? error.message : 'Unknown error',
+      message: 'Failed to test endpoint'
     });
   }
 });

@@ -9,7 +9,7 @@ export interface RateLimitOptions {
 export const createRateLimiter = (options: RateLimitOptions) => {
   const requests = new Map<string, { count: number; resetTime: number }>();
   
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const key = req.user?.walletAddress || req.ip || 'unknown';
     const now = Date.now();
     
@@ -26,11 +26,12 @@ export const createRateLimiter = (options: RateLimitOptions) => {
       }
       
       if (requestData.count > options.max) {
-        return res.status(429).json({
+        res.status(429).json({
           error: 'Too Many Requests',
           message: options.message,
           retryAfter: Math.ceil((requestData.resetTime - now) / 1000),
         });
+        return;
       }
     }
     

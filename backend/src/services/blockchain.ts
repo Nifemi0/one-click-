@@ -3,491 +3,441 @@ import { DatabaseService } from './database';
 import { MultiRPCService } from './multiRPCService';
 import { NotificationService } from './notification';
 
-export interface NetworkConfig {
-  chainId: number;
-  name: string;
-  rpcUrl: string;
-  blockExplorer: string;
-  nativeCurrency: {
-    name: string;
-    symbol: string;
-    decimals: number;
-  };
-  contracts: {
-    droseraFactory: string;
-    droseraRegistry: string;
-    droseraOracle: string;
-  };
-}
-
 export interface ContractAnalysis {
-  address: string;
+  contractAddress: string;
   chainId: number;
   riskScore: number;
   vulnerabilities: string[];
   recommendations: string[];
-  securityLevel: 'low' | 'medium' | 'high' | 'critical';
-  auditRecommendation: boolean;
-  estimatedAuditCost: string;
-  complexityScore: number;
-  gasOptimization: string[];
-  bestPractices: string[];
-  lastAnalyzed: Date;
-  analysisVersion: string;
+  analysisTimestamp: Date;
 }
 
-export interface TrapDeployment {
+export interface DeploymentStatus {
   id: string;
-  name: string;
-  description: string;
-  contractAddress: string;
-  chainId: number;
-  owner: string;
-  status: 'active' | 'inactive' | 'compromised';
-  deployedAt: Date;
-  lastActivity: Date;
-  securityScore: number;
-  revenueGenerated: number;
-  gasUsed: number;
-  transactionHash: string;
+  status: 'pending' | 'deploying' | 'active' | 'inactive' | 'compromised' | 'error';
+  contractAddress?: string;
+  transactionHash?: string;
+  error?: string;
 }
 
 export class BlockchainService {
-  private networks: NetworkConfig[] = [];
-  private multiRPCService: MultiRPCService;
   private db: DatabaseService;
+  private multiRPC: MultiRPCService;
   private notification: NotificationService;
+  private providers: Map<number, ethers.Provider> = new Map();
 
   constructor(db: DatabaseService, notification: NotificationService) {
     this.db = db;
     this.notification = notification;
-    this.multiRPCService = new MultiRPCService(db);
-    this.initializeNetworks();
+    this.multiRPC = new MultiRPCService(db);
   }
 
-  private initializeNetworks() {
-    this.networks = [
-      {
-        chainId: 560048,
-        name: 'Ethereum Hoodi Testnet',
-        rpcUrl: 'https://rpc.hoodi.network', // This will be overridden by multiRPCService
-        blockExplorer: 'https://hoodi.etherscan.io',
-        nativeCurrency: {
-          name: 'Ether',
-          symbol: 'ETH',
-          decimals: 18,
-        },
-        contracts: {
-          droseraFactory: process.env.HOODI_DROSERA_FACTORY || '',
-          droseraRegistry: process.env.HOODI_DROSERA_REGISTRY || '',
-          droseraOracle: process.env.HOODI_DROSERA_ORACLE || '',
-        },
-      },
-    ];
-  }
-
-  async getProvider(chainId: number): Promise<ethers.Provider> {
+  async initialize(): Promise<void> {
     try {
-      return await this.multiRPCService.getProvider(chainId);
+      // Initialize RPC providers for supported networks
+      await this.initializeProviders();
+      console.log('Blockchain service initialized successfully');
     } catch (error) {
-      console.error(`Failed to get provider for chain ${chainId}:`, error);
-      throw new Error(`Provider not available for chain ${chainId}`);
-    }
-  }
-
-  async getNetworkInfo(chainId: number): Promise<NetworkConfig | null> {
-    return this.networks.find(n => n.chainId === chainId) || null;
-  }
-
-  async getSupportedNetworks(): Promise<NetworkConfig[]> {
-    return this.networks;
-  }
-
-  // Multi-RPC service methods
-  async getRPCStatus() {
-    return this.multiRPCService.getProviderStatus();
-  }
-
-  async getRPCStats() {
-    return this.multiRPCService.getProviderStats();
-  }
-
-  async switchRPCProvider(providerName: string) {
-    return this.multiRPCService.switchToProvider(providerName);
-  }
-
-  async getCurrentRPCProvider() {
-    return this.multiRPCService.getCurrentProvider();
-  }
-
-  async analyzeContract(address: string, chainId: number): Promise<ContractAnalysis> {
-    try {
-      const provider = await this.getProvider(chainId);
-      
-      // Get contract code
-      const code = await provider.getCode(address);
-      if (code === '0x') {
-        throw new Error('No contract found at address');
-      }
-
-      // Basic contract analysis
-      const analysis: ContractAnalysis = {
-        address,
-        chainId,
-        riskScore: this.calculateRiskScore(code),
-        vulnerabilities: this.detectVulnerabilities(code),
-        recommendations: this.generateRecommendations(code),
-        securityLevel: this.determineSecurityLevel(code),
-        auditRecommendation: this.shouldRecommendAudit(code),
-        estimatedAuditCost: this.estimateAuditCost(code),
-        complexityScore: this.calculateComplexityScore(code),
-        gasOptimization: this.suggestGasOptimizations(code),
-        bestPractices: this.suggestBestPractices(code),
-        lastAnalyzed: new Date(),
-        analysisVersion: '1.0.0',
-      };
-
-      return analysis;
-    } catch (error) {
-      console.error('Contract analysis failed:', error);
-      throw new Error(`Analysis failed: ${error.message}`);
-    }
-  }
-
-  private calculateRiskScore(code: string): number {
-    // Basic risk scoring based on code size and patterns
-    let riskScore = 50; // Base score
-    
-    if (code.length > 10000) riskScore += 20; // Large contracts are riskier
-    if (code.includes('delegatecall')) riskScore += 15; // Dangerous pattern
-    if (code.includes('selfdestruct')) riskScore += 20; // Very dangerous
-    if (code.includes('suicide')) riskScore += 20; // Deprecated but dangerous
-    
-    return Math.min(riskScore, 100);
-  }
-
-  private detectVulnerabilities(code: string): string[] {
-    const vulnerabilities: string[] = [];
-    
-    if (code.includes('delegatecall')) {
-      vulnerabilities.push('Potential delegatecall vulnerability');
-    }
-    if (code.includes('selfdestruct') || code.includes('suicide')) {
-      vulnerabilities.push('Self-destruct functionality detected');
-    }
-    if (code.includes('tx.origin')) {
-      vulnerabilities.push('tx.origin usage may be unsafe');
-    }
-    
-    return vulnerabilities;
-  }
-
-  private generateRecommendations(code: string): string[] {
-    const recommendations: string[] = [];
-    
-    if (code.includes('delegatecall')) {
-      recommendations.push('Review delegatecall usage for security implications');
-    }
-    if (code.includes('tx.origin')) {
-      recommendations.push('Consider using msg.sender instead of tx.origin');
-    }
-    
-    return recommendations;
-  }
-
-  private determineSecurityLevel(code: string): 'low' | 'medium' | 'high' | 'critical' {
-    const riskScore = this.calculateRiskScore(code);
-    
-    if (riskScore >= 80) return 'critical';
-    if (riskScore >= 60) return 'high';
-    if (riskScore >= 40) return 'medium';
-    return 'low';
-  }
-
-  private shouldRecommendAudit(code: string): boolean {
-    const riskScore = this.calculateRiskScore(code);
-    return riskScore >= 60; // Recommend audit for medium-high risk contracts
-  }
-
-  private estimateAuditCost(code: string): string {
-    const riskScore = this.calculateRiskScore(code);
-    
-    if (riskScore >= 80) return '$50,000 - $100,000';
-    if (riskScore >= 60) return '$25,000 - $50,000';
-    if (riskScore >= 40) return '$10,000 - $25,000';
-    return '$5,000 - $10,000';
-  }
-
-  private calculateComplexityScore(code: string): number {
-    // Simple complexity scoring
-    let complexity = 1;
-    
-    if (code.length > 5000) complexity += 2;
-    if (code.length > 10000) complexity += 2;
-    if (code.includes('assembly')) complexity += 3;
-    
-    return Math.min(complexity, 10);
-  }
-
-  private suggestGasOptimizations(code: string): string[] {
-    const optimizations: string[] = [];
-    
-    if (code.includes('storage')) {
-      optimizations.push('Consider using memory for temporary data');
-    }
-    if (code.includes('for')) {
-      optimizations.push('Optimize loop iterations');
-    }
-    
-    return optimizations;
-  }
-
-  private suggestBestPractices(code: string): string[] {
-    const practices: string[] = [];
-    
-    practices.push('Implement access controls');
-    practices.push('Add reentrancy guards');
-    practices.push('Use SafeMath or Solidity 0.8+');
-    
-    return practices;
-  }
-
-  // Revenue tracking methods
-  async trackDeploymentRevenue(trapId: string, revenue: number, gasUsed: number): Promise<void> {
-    try {
-      await this.db.query(
-        'UPDATE trap_deployments SET revenue_generated = revenue_generated + $1, gas_used = gas_used + $2, last_activity = NOW() WHERE id = $3',
-        [revenue, gasUsed, trapId]
-      );
-    } catch (error) {
-      console.error('Failed to track deployment revenue:', error);
-    }
-  }
-
-  async getTotalRevenue(): Promise<number> {
-    try {
-      const result = await this.db.query('SELECT SUM(revenue_generated) as total FROM trap_deployments');
-      return parseFloat(result.rows[0]?.total || '0');
-    } catch (error) {
-      console.error('Failed to get total revenue:', error);
-      return 0;
-    }
-  }
-
-  async getRevenueByNetwork(chainId: number): Promise<number> {
-    try {
-      const result = await this.db.query(
-        'SELECT SUM(revenue_generated) as total FROM trap_deployments WHERE chain_id = $1',
-        [chainId]
-      );
-      return parseFloat(result.rows[0]?.total || '0');
-    } catch (error) {
-      console.error('Failed to get revenue by network:', error);
-      return 0;
-    }
-  }
-
-  async deployTrap(
-    userId: string,
-    templateId: string,
-    chainId: number,
-    configuration: any,
-    wallet: ethers.Wallet
-  ): Promise<TrapDeployment> {
-    try {
-      const provider = await this.getProvider(chainId);
-      const network = await this.getNetworkInfo(chainId);
-      
-      if (!network) {
-        throw new Error(`Unsupported network: ${chainId}`);
-      }
-
-      // Connect wallet to provider
-      const connectedWallet = wallet.connect(provider);
-      
-      // Get trap template
-      const template = await this.db.getTrapTemplate(templateId);
-      if (!template) {
-        throw new Error('Trap template not found');
-      }
-
-      // Create deployment record
-      const deployment: TrapDeployment = {
-        id: this.generateId(),
-        name: 'New Trap', // Placeholder, will be updated
-        description: 'Deployed by user', // Placeholder, will be updated
-        contractAddress: '',
-        chainId,
-        owner: userId,
-        status: 'active',
-        deployedAt: new Date(),
-        lastActivity: new Date(),
-        securityScore: 0, // Placeholder, will be updated
-        revenueGenerated: 0, // Placeholder, will be updated
-        gasUsed: 0, // Placeholder, will be updated
-        transactionHash: '', // Placeholder, will be updated
-      };
-
-      // Save initial deployment record
-      await this.db.createDeployedTrap(deployment);
-
-      try {
-        // Update status to deploying
-        deployment.status = 'deploying';
-        await this.db.updateDeployedTrap(deployment.id, { status: 'deploying' });
-
-        // Deploy the contract
-        const factory = new ethers.Contract(
-          network.contracts.droseraFactory,
-          ['function deployTrap(bytes memory bytecode, bytes memory constructorArgs) external returns (address)'],
-          connectedWallet
-        );
-
-        const constructorArgs = this.encodeConstructorArgs(template, configuration);
-        const tx = await factory.deployTrap(template.bytecode, constructorArgs);
-        
-        // Wait for transaction confirmation
-        const receipt = await tx.wait();
-        
-        // Extract deployed contract address from logs
-        const deployedAddress = this.extractDeployedAddress(receipt.logs);
-        
-        // Update deployment record
-        deployment.contractAddress = deployedAddress;
-        deployment.status = 'active';
-        deployment.gasUsed = Number(receipt.gasUsed);
-        deployment.transactionHash = receipt.transactionHash;
-        deployment.lastActivity = new Date();
-        
-        await this.db.updateDeployedTrap(deployment.id, {
-          contractAddress: deployedAddress,
-          status: 'active',
-          gasUsed: deployment.gasUsed,
-          transactionHash: deployment.transactionHash,
-          lastActivity: deployment.lastActivity,
-        });
-
-        // Send success notification
-        await this.notification.sendNotification(userId, {
-          type: 'success',
-          title: 'Trap Deployed Successfully',
-          message: `Your security trap has been deployed on ${network.name}`,
-          data: { deploymentId: deployment.id, contractAddress: deployedAddress },
-        });
-
-        return deployment;
-      } catch (error) {
-        // Update status to error
-        deployment.status = 'error';
-        await this.db.updateDeployedTrap(deployment.id, { status: 'error' });
-        
-        // Send error notification
-        await this.notification.sendNotification(userId, {
-          type: 'error',
-          title: 'Trap Deployment Failed',
-          message: `Failed to deploy security trap: ${error.message}`,
-          data: { deploymentId: deployment.id },
-        });
-        
-        throw error;
-      }
-    } catch (error) {
-      console.error('Trap deployment failed:', error);
-      throw new Error(`Deployment failed: ${error.message}`);
-    }
-  }
-
-  private encodeConstructorArgs(template: any, configuration: any): string {
-    // This would encode the constructor arguments based on the template ABI
-    // For now, return empty bytes
-    return '0x';
-  }
-
-  private extractDeployedAddress(logs: any[]): string {
-    // This would extract the deployed contract address from transaction logs
-    // For now, return a placeholder
-    return '0x0000000000000000000000000000000000000000';
-  }
-
-  private generateId(): string {
-    return `trap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  async monitorContract(address: string, chainId: number): Promise<void> {
-    try {
-      const provider = await this.getProvider(chainId);
-      
-      // Set up event listeners for the contract
-      provider.on(address, (log) => {
-        this.handleContractEvent(log, address, chainId);
-      });
-      
-      console.log(`Started monitoring contract ${address} on chain ${chainId}`);
-    } catch (error) {
-      console.error('Failed to start contract monitoring:', error);
+      console.error('Failed to initialize blockchain service:', error);
       throw error;
     }
   }
 
-  private async handleContractEvent(log: any, address: string, chainId: number): Promise<void> {
+  private async initializeProviders(): Promise<void> {
     try {
-      // Parse the event log
-      const event = this.parseEventLog(log);
+      // Initialize Hoodi testnet provider
+      const hoodiProvider = new ethers.JsonRpcProvider(process.env.HOODI_RPC_URL);
+      this.providers.set(560048, hoodiProvider);
       
-      if (event) {
-        // Store event in database
-        await this.db.createAlert({
-          id: this.generateId(),
-          userId: '', // Will be filled based on contract ownership
-          type: 'contract_event',
-          severity: 'info',
-          title: `Contract Event: ${event.name}`,
-          message: `Event ${event.name} triggered on contract ${address}`,
-          data: event,
-          chainId,
-          contractAddress: address,
-          createdAt: new Date(),
-          isRead: false,
-        });
-        
-        // Send real-time notification if needed
-        // This would be handled by the WebSocket service
+      // Initialize other providers as needed
+      if (process.env.ALCHEMY_API_KEY) {
+        const alchemyProvider = new ethers.AlchemyProvider(
+          'mainnet',
+          process.env.ALCHEMY_API_KEY
+        );
+        this.providers.set(1, alchemyProvider);
       }
+
+      console.log(`Initialized ${this.providers.size} blockchain providers`);
     } catch (error) {
-      console.error('Failed to handle contract event:', error);
+      console.error('Error initializing blockchain providers:', error);
+      throw error;
     }
   }
 
-  private parseEventLog(log: any): any {
+  getProvider(chainId: number): ethers.Provider | null {
+    return this.providers.get(chainId) || null;
+  }
+
+  async analyzeContract(contractAddress: string, chainId: number): Promise<ContractAnalysis> {
     try {
-      // This would parse the event log based on the contract ABI
-      // For now, return a basic structure
+      const provider = this.getProvider(chainId);
+      if (!provider) {
+        throw new Error(`No provider available for chain ID ${chainId}`);
+      }
+
+      // Get contract code
+      const code = await provider.getCode(contractAddress);
+      if (code === '0x') {
+        throw new Error('Contract not found at specified address');
+      }
+
+      // Basic security analysis
+      const vulnerabilities: string[] = [];
+      const recommendations: string[] = [];
+      let riskScore = 0;
+
+      // Check for common vulnerabilities
+      if (code.includes('delegatecall')) {
+        vulnerabilities.push('Uses delegatecall - potential security risk');
+        riskScore += 30;
+        recommendations.push('Review delegatecall usage carefully');
+      }
+
+      if (code.includes('selfdestruct')) {
+        vulnerabilities.push('Contains selfdestruct function');
+        riskScore += 25;
+        recommendations.push('Ensure selfdestruct is properly controlled');
+      }
+
+      if (code.includes('suicide')) {
+        vulnerabilities.push('Contains deprecated suicide function');
+        riskScore += 20;
+        recommendations.push('Update to use selfdestruct instead');
+      }
+
+      // Check for reentrancy patterns
+      if (code.includes('call') && code.includes('value')) {
+        vulnerabilities.push('Uses low-level call with value - potential reentrancy risk');
+        riskScore += 35;
+        recommendations.push('Implement reentrancy guards');
+      }
+
+      // Check for access control
+      if (!code.includes('onlyOwner') && !code.includes('modifier')) {
+        vulnerabilities.push('No apparent access control mechanisms');
+        riskScore += 15;
+        recommendations.push('Implement proper access control');
+      }
+
+      // Normalize risk score to 0-100
+      riskScore = Math.min(riskScore, 100);
+
+      const analysis: ContractAnalysis = {
+        contractAddress,
+        chainId,
+        riskScore,
+        vulnerabilities,
+        recommendations,
+        analysisTimestamp: new Date()
+      };
+
+      // Store analysis in database
+      await this.db.query(
+        'INSERT INTO contract_analysis (contract_address, chain_id, analysis_result, risk_score, analyzed_at, expires_at) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (contract_address) DO UPDATE SET analysis_result = $3, risk_score = $4, analyzed_at = $5, expires_at = $6',
+        [
+          contractAddress,
+          chainId,
+          JSON.stringify(analysis),
+          riskScore,
+          analysis.analysisTimestamp,
+          new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+        ]
+      );
+
+      return analysis;
+    } catch (error) {
+      console.error('Contract analysis failed:', error);
+      throw new Error(`Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async deploySecurityTrap(
+    userId: string,
+    templateId: string,
+    constructorArgs: any[],
+    network: number
+  ): Promise<DeploymentStatus> {
+    try {
+      // Get template from database
+      const template = await this.db.getTrapTemplate(templateId);
+      if (!template) {
+        throw new Error('Template not found');
+      }
+
+      // Get user's wallet
+      const user = await this.db.getUser(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Get provider for the network
+      const provider = this.getProvider(network);
+      if (!provider) {
+        throw new Error(`No provider available for network ${network}`);
+      }
+
+      // Create deployment record
+      const deployment = await this.db.createDeployedTrap({
+        userId,
+        templateId,
+        network,
+        contractAddress: '',
+        deploymentTxHash: '',
+        status: 'deploying',
+        estimatedCost: template.estimatedCost || '0',
+        actualCost: '0'
+      });
+
+      try {
+        // Deploy the contract using the template's ABI and bytecode
+        const factory = new ethers.ContractFactory(
+          template.abi,
+          template.bytecode,
+          provider
+        );
+
+        // Use the standard deploy method instead of deployTrap
+        const tx = await factory.deploy(...constructorArgs);
+        const receipt = await tx.waitForDeployment();
+        const deployedAddress = await tx.getAddress();
+
+        if (deployedAddress) {
+          // Update deployment record
+          await this.db.updateDeployedTrap(deployment.id, {
+            contractAddress: deployedAddress,
+            deploymentTxHash: tx.deploymentTransaction()?.hash || '',
+            status: 'active',
+            actualCost: '0' // Will be updated when we get the receipt
+          });
+
+          // Send success notification
+          await this.notification.sendNotification(userId, {
+            type: 'success',
+            title: 'Deployment Successful',
+            message: 'Security trap deployed successfully',
+            data: { deploymentId: deployment.id, contractAddress: deployedAddress }
+          });
+
+          return {
+            id: deployment.id,
+            status: 'active',
+            contractAddress: deployedAddress,
+            transactionHash: tx.deploymentTransaction()?.hash || ''
+          };
+        } else {
+          throw new Error('Failed to get deployed address');
+        }
+      } catch (error) {
+        // Update deployment status to error
+        await this.db.updateDeployedTrap(deployment.id, {
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+
+        // Send error notification
+        await this.notification.sendNotification(userId, {
+          type: 'error',
+          title: 'Deployment Failed',
+          message: `Failed to deploy security trap: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          data: { deploymentId: deployment.id }
+        });
+
+        throw new Error(`Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Deployment failed:', error);
+      throw error;
+    }
+  }
+
+  async getDeploymentStatus(deploymentId: string): Promise<DeploymentStatus | null> {
+    try {
+      const deployment = await this.db.getDeployedTrap(deploymentId);
+      if (!deployment) {
+        return null;
+      }
+
       return {
-        name: 'UnknownEvent',
-        args: {},
-        blockNumber: log.blockNumber,
-        transactionHash: log.transactionHash,
+        id: deployment.id,
+        status: deployment.status as any,
+        contractAddress: deployment.contract_address,
+        transactionHash: deployment.deployment_tx_hash,
+        error: deployment.error
       };
     } catch (error) {
-      console.error('Failed to parse event log:', error);
+      console.error('Failed to get deployment status:', error);
       return null;
     }
   }
 
-  async getGasPrice(chainId: number): Promise<string> {
+  async pauseDeployment(deploymentId: string): Promise<boolean> {
     try {
-      const provider = await this.getProvider(chainId);
-      const gasPrice = await provider.getFeeData();
-      return gasPrice.gasPrice?.toString() || '0';
+      const deployment = await this.db.getDeployedTrap(deploymentId);
+      if (!deployment) {
+        return false;
+      }
+
+      await this.db.updateDeployedTrap(deploymentId, { status: 'inactive' });
+      return true;
     } catch (error) {
-      console.error('Failed to get gas price:', error);
-      return '0';
+      console.error('Failed to pause deployment:', error);
+      return false;
+    }
+  }
+
+  async resumeDeployment(deploymentId: string): Promise<boolean> {
+    try {
+      const deployment = await this.db.getDeployedTrap(deploymentId);
+      if (!deployment) {
+        return false;
+      }
+
+      await this.db.updateDeployedTrap(deploymentId, { status: 'active' });
+      return true;
+    } catch (error) {
+      console.error('Failed to resume deployment:', error);
+      return false;
+    }
+  }
+
+  async deleteDeployment(deploymentId: string): Promise<boolean> {
+    try {
+      await this.db.query('DELETE FROM deployed_traps WHERE id = $1', [deploymentId]);
+      return true;
+    } catch (error) {
+      console.error('Failed to delete deployment:', error);
+      return false;
+    }
+  }
+
+  // Add missing method for calculating deployment cost
+  async calculateDeploymentCost(
+    bytecode: string,
+    constructorArgs: any[],
+    network: number
+  ): Promise<string> {
+    try {
+      const provider = this.getProvider(network);
+      if (!provider) {
+        throw new Error(`No provider available for network ${network}`);
+      }
+
+      // Estimate gas for deployment
+      const gasEstimate = await provider.estimateGas({
+        data: bytecode,
+        value: 0
+      });
+
+      // Get current gas price
+      const gasPrice = await provider.getFeeData();
+      const estimatedGasPrice = gasPrice.gasPrice || ethers.parseUnits('20', 'gwei');
+
+      // Calculate estimated cost
+      const estimatedCost = gasEstimate * estimatedGasPrice;
+      const costInEth = ethers.formatEther(estimatedCost);
+
+      return `${costInEth} ETH`;
+    } catch (error) {
+      console.error('Failed to calculate deployment cost:', error);
+      return 'Unknown';
+    }
+  }
+
+  async getNetworkInfo(network: number): Promise<any> {
+    try {
+      const provider = this.getProvider(network);
+      if (!provider) {
+        return null;
+      }
+
+      const [blockNumber, gasPrice] = await Promise.all([
+        provider.getBlockNumber(),
+        provider.getFeeData()
+      ]);
+
+      return {
+        network,
+        blockNumber,
+        gasPrice: gasPrice.gasPrice ? ethers.formatUnits(gasPrice.gasPrice, 'gwei') : 'Unknown',
+        isConnected: true
+      };
+    } catch (error) {
+      console.error(`Failed to get network info for ${network}:`, error);
+      return {
+        network,
+        isConnected: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  async validateAddress(address: string): Promise<boolean> {
+    try {
+      return ethers.isAddress(address);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async getTransactionReceipt(txHash: string, network: number): Promise<any> {
+    try {
+      const provider = this.getProvider(network);
+      if (!provider) {
+        throw new Error(`No provider available for network ${network}`);
+      }
+
+      return await provider.getTransactionReceipt(txHash);
+    } catch (error) {
+      console.error('Failed to get transaction receipt:', error);
+      throw error;
+    }
+  }
+
+  // Add missing methods for RPC testing
+  async getRPCStatus(): Promise<any> {
+    try {
+      return await this.multiRPC.getProviderStatus();
+    } catch (error) {
+      console.error('Failed to get RPC status:', error);
+      return { error: 'Failed to get RPC status' };
+    }
+  }
+
+  async getRPCStats(): Promise<any> {
+    try {
+      return await this.multiRPC.getProviderStats();
+    } catch (error) {
+      console.error('Failed to get RPC stats:', error);
+      return { error: 'Failed to get RPC stats' };
+    }
+  }
+
+  async getCurrentRPCProvider(): Promise<any> {
+    try {
+      return await this.multiRPC.getCurrentProvider();
+    } catch (error) {
+      console.error('Failed to get current RPC provider:', error);
+      return { error: 'Failed to get current RPC provider' };
+    }
+  }
+
+  async switchRPCProvider(providerName: string): Promise<boolean> {
+    try {
+      return await this.multiRPC.switchToProvider(providerName);
+    } catch (error) {
+      console.error('Failed to switch RPC provider:', error);
+      return false;
     }
   }
 
   async getBalance(address: string, chainId: number): Promise<string> {
     try {
-      const provider = await this.getProvider(chainId);
+      const provider = this.getProvider(chainId);
+      if (!provider) {
+        throw new Error(`No provider available for chain ID ${chainId}`);
+      }
+
       const balance = await provider.getBalance(address);
       return ethers.formatEther(balance);
     } catch (error) {

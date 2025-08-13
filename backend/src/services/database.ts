@@ -106,434 +106,196 @@ export class DatabaseService {
     }
   }
 
-  // Health check method
-  async healthCheck(): Promise<boolean> {
-    try {
-      const result = await this.query('SELECT NOW()');
-      return result.rows.length > 0;
-    } catch (error) {
-      console.error('Database health check failed:', error);
-      return false;
-    }
-  }
+  // =====================================================
+  // USER MANAGEMENT
+  // =====================================================
 
-  // Database initialization (create tables if they don't exist)
-  async initializeDatabase(): Promise<void> {
-    try {
-      await this.createTables();
-      console.log('Database tables initialized successfully');
-    } catch (error) {
-      console.error('Failed to initialize database tables:', error);
-      throw error;
-    }
-  }
-
-  private async createTables(): Promise<void> {
-    const createUsersTable = `
-      CREATE TABLE IF NOT EXISTS users (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        wallet_address VARCHAR(42) UNIQUE NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW(),
-        preferences JSONB DEFAULT '{}',
-        chain_id INTEGER DEFAULT 1,
-        is_connected BOOLEAN DEFAULT FALSE
-      );
-    `;
-
-    const createTrapTemplatesTable = `
-      CREATE TABLE IF NOT EXISTS trap_templates (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(255) NOT NULL,
-        description TEXT,
-        category VARCHAR(50) NOT NULL,
-        complexity VARCHAR(20) NOT NULL,
-        creator_address VARCHAR(42) NOT NULL,
-        code_ipfs_hash VARCHAR(100),
-        abi JSONB NOT NULL,
-        bytecode TEXT NOT NULL,
-        is_audited BOOLEAN DEFAULT FALSE,
-        rating DECIMAL(3,2) DEFAULT 0.0,
-        deployment_count INTEGER DEFAULT 0,
-        price DECIMAL(20,18) DEFAULT 0.0,
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      );
-    `;
-
-    const createDeployedTrapsTable = `
-      CREATE TABLE IF NOT EXISTS deployed_traps (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_address VARCHAR(42) NOT NULL,
-        contract_address VARCHAR(42) NOT NULL,
-        template_id UUID REFERENCES trap_templates(id),
-        chain_id INTEGER NOT NULL,
-        deployment_tx VARCHAR(66),
-        configuration JSONB DEFAULT '{}',
-        is_active BOOLEAN DEFAULT TRUE,
-        deployed_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      );
-    `;
-
-    const createAlertsTable = `
-      CREATE TABLE IF NOT EXISTS alerts (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        trap_id UUID REFERENCES deployed_traps(id),
-        alert_type VARCHAR(50) NOT NULL,
-        severity VARCHAR(20) NOT NULL,
-        message TEXT NOT NULL,
-        metadata JSONB DEFAULT '{}',
-        is_acknowledged BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      );
-    `;
-
-    const createContractAnalysisTable = `
-      CREATE TABLE IF NOT EXISTS contract_analysis (
-        contract_address VARCHAR(42) PRIMARY KEY,
-        chain_id INTEGER NOT NULL,
-        analysis_result JSONB NOT NULL,
-        risk_score INTEGER NOT NULL,
-        analyzed_at TIMESTAMP DEFAULT NOW(),
-        expires_at TIMESTAMP NOT NULL
-      );
-    `;
-
-    const createIndexes = `
-      CREATE INDEX IF NOT EXISTS idx_users_wallet_address ON users(wallet_address);
-      CREATE INDEX IF NOT EXISTS idx_traps_user_address ON deployed_traps(user_address);
-      CREATE INDEX IF NOT EXISTS idx_traps_contract_address ON deployed_traps(contract_address);
-      CREATE INDEX IF NOT EXISTS idx_traps_chain_id ON deployed_traps(chain_id);
-      CREATE INDEX IF NOT EXISTS idx_alerts_trap_id ON alerts(trap_id);
-      CREATE INDEX IF NOT EXISTS idx_alerts_created_at ON alerts(created_at);
-      CREATE INDEX IF NOT EXISTS idx_templates_category ON trap_templates(category);
-      CREATE INDEX IF NOT EXISTS idx_templates_complexity ON trap_templates(complexity);
-      CREATE INDEX IF NOT EXISTS idx_analysis_contract_address ON contract_analysis(contract_address);
-      CREATE INDEX IF NOT EXISTS idx_analysis_expires_at ON contract_analysis(expires_at);
-    `;
-
-    try {
-      await this.query(createUsersTable);
-      await this.query(createTrapTemplatesTable);
-      await this.query(createDeployedTrapsTable);
-      await this.query(createAlertsTable);
-      await this.query(createContractAnalysisTable);
-      await this.query(createIndexes);
-    } catch (error) {
-      console.error('Error creating tables:', error);
-      throw error;
-    }
-  }
-
-  // Row Level Security (RLS) policies for Supabase
-  async setupRLS(): Promise<void> {
-    try {
-      // Enable RLS on all tables
-      const enableRLS = `
-        ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE deployed_traps ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE alerts ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE trap_templates ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE contract_analysis ENABLE ROW LEVEL SECURITY;
-      `;
-
-      // Create policies
-      const createPolicies = `
-        -- Users can only read/write their own data
-        CREATE POLICY "Users can read own data" ON users 
-          FOR SELECT USING (wallet_address = current_setting('request.jwt.claims')::json->>'wallet_address');
-        
-        CREATE POLICY "Users can update own data" ON users 
-          FOR UPDATE USING (wallet_address = current_setting('request.jwt.claims')::json->>'wallet_address');
-        
-        -- Users can only access their own traps
-        CREATE POLICY "Users can read own traps" ON deployed_traps
-          FOR SELECT USING (user_address = current_setting('request.jwt.claims')::json->>'wallet_address');
-        
-        CREATE POLICY "Users can insert own traps" ON deployed_traps
-          FOR INSERT WITH CHECK (user_address = current_setting('request.jwt.claims')::json->>'wallet_address');
-        
-        CREATE POLICY "Users can update own traps" ON deployed_traps
-          FOR UPDATE USING (user_address = current_setting('request.jwt.claims')::json->>'wallet_address');
-        
-        -- Users can only access alerts for their traps
-        CREATE POLICY "Users can read own alerts" ON alerts
-          FOR SELECT USING (
-            trap_id IN (
-              SELECT id FROM deployed_traps 
-              WHERE user_address = current_setting('request.jwt.claims')::json->>'wallet_address'
-            )
-          );
-        
-        -- Trap templates are public for reading
-        CREATE POLICY "Anyone can read templates" ON trap_templates
-          FOR SELECT USING (true);
-        
-        -- Only creators can update their templates
-        CREATE POLICY "Creators can update templates" ON trap_templates
-          FOR UPDATE USING (creator_address = current_setting('request.jwt.claims')::json->>'wallet_address');
-        
-        -- Contract analysis is public for reading
-        CREATE POLICY "Anyone can read analysis" ON contract_analysis
-          FOR SELECT USING (true);
-      `;
-
-      await this.query(enableRLS);
-      await this.query(createPolicies);
-      
-      console.log('Row Level Security policies configured successfully');
-    } catch (error) {
-      console.error('Error setting up RLS:', error);
-      // Don't throw error as RLS is optional for development
-    }
-  }
-
-  // ===== MISSING METHODS FOR OTHER SERVICES =====
-
-  // Alert management
-  async createAlert(alertData: any): Promise<any> {
-    const { trap_id, user_id, alert_type, severity, title, message, metadata } = alertData;
+  async createUser(userData: any): Promise<any> {
+    const { walletAddress, chainId, preferences = {} } = userData;
+    
     const query = `
-      INSERT INTO alerts (trap_id, user_id, alert_type, severity, title, message, metadata)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO users (wallet_address, chain_id, preferences, created_at, updated_at)
+      VALUES ($1, $2, $3, NOW(), NOW())
       RETURNING *
     `;
-    const result = await this.query(query, [trap_id, user_id, alert_type, severity, title, message, metadata]);
-    return result.rows[0];
-  }
-
-  async updateAlert(alertId: string, updates: any): Promise<any> {
-    const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
-    const query = `UPDATE alerts SET ${fields} WHERE id = $1 RETURNING *`;
-    const values = [alertId, ...Object.values(updates)];
-    const result = await this.query(query, values);
-    return result.rows[0];
-  }
-
-  async deleteAlert(alertId: string): Promise<void> {
-    await this.query('DELETE FROM alerts WHERE id = $1', [alertId]);
-  }
-
-  async getAlertsByUser(userId: string, filters: any = {}): Promise<any[]> {
-    let query = 'SELECT * FROM alerts WHERE user_id = $1';
-    const values = [userId];
     
-    if (filters.isRead !== undefined) {
-      query += ' AND is_read = $2';
-      values.push(filters.isRead);
+    const result = await this.query(query, [walletAddress, chainId, JSON.stringify(preferences)]);
+    return result.rows[0];
+  }
+
+  async getUser(walletAddress: string): Promise<any> {
+    const query = 'SELECT * FROM users WHERE wallet_address = $1';
+    const result = await this.query(query, [walletAddress]);
+    return result.rows[0] || null;
+  }
+
+  async updateUser(walletAddress: string, updates: any): Promise<any> {
+    const { chainId, preferences, lastActive } = updates;
+    
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+    let paramCount = 1;
+
+    if (chainId !== undefined) {
+      updateFields.push(`chain_id = $${paramCount}`);
+      updateValues.push(chainId);
+      paramCount++;
     }
-    
-    query += ' ORDER BY created_at DESC';
-    const result = await this.query(query, values);
-    return result.rows;
-  }
 
-  // Contract analysis management
-  async createContractAnalysis(analysisData: any): Promise<any> {
-    const { contract_address, chain_id, analysis_result, risk_score } = analysisData;
-    const query = `
-      INSERT INTO contract_analysis (contract_address, chain_id, analysis_result, risk_score, expires_at)
-      VALUES ($1, $2, $3, $4, NOW() + INTERVAL '24 hours')
-      ON CONFLICT (contract_address) 
-      DO UPDATE SET 
-        analysis_result = $3, 
-        risk_score = $4, 
-        analyzed_at = NOW(),
-        expires_at = NOW() + INTERVAL '24 hours'
-      RETURNING *
-    `;
-    const result = await this.query(query, [contract_address, chain_id, analysis_result, risk_score]);
-    return result.rows[0];
-  }
-
-  async getContractAnalysis(address: string, chainId: number): Promise<any> {
-    const query = `
-      SELECT * FROM contract_analysis 
-      WHERE contract_address = $1 AND chain_id = $2 AND expires_at > NOW()
-    `;
-    const result = await this.query(query, [address, chainId]);
-    return result.rows[0];
-  }
-
-  async getContractAnalysisHistory(address: string, chainId: number): Promise<any[]> {
-    const query = `
-      SELECT * FROM contract_analysis 
-      WHERE contract_address = $1 AND chain_id = $2
-      ORDER BY analyzed_at DESC
-    `;
-    const result = await this.query(query, [address, chainId]);
-    return result.rows;
-  }
-
-  // User management
-  async getUser(userId: string): Promise<any> {
-    const result = await this.query('SELECT * FROM users WHERE id = $1', [userId]);
-    return result.rows[0];
-  }
-
-  async updateUser(userId: string, updates: any): Promise<any> {
-    const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
-    const query = `UPDATE users SET ${fields} WHERE id = $1 RETURNING *`;
-    const values = [userId, ...Object.values(updates)];
-    const result = await this.query(query, values);
-    return result.rows[0];
-  }
-
-  async getAllUsers(): Promise<any[]> {
-    const result = await this.query('SELECT * FROM users ORDER BY created_at DESC');
-    return result.rows;
-  }
-
-  // Push subscription management
-  async getPushSubscription(userId: string): Promise<any> {
-    const result = await this.query('SELECT * FROM push_subscriptions WHERE user_id = $1', [userId]);
-    return result.rows[0];
-  }
-
-  // Revenue and transaction management
-  async createRevenueTransaction(transactionData: any): Promise<any> {
-    const { user_id, transaction_type, amount, currency, network_id, tx_hash, description, metadata } = transactionData;
-    const query = `
-      INSERT INTO revenue_transactions (user_id, transaction_type, amount, currency, network_id, tx_hash, description, metadata)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING *
-    `;
-    const result = await this.query(query, [user_id, transaction_type, amount, currency, network_id, tx_hash, description, metadata]);
-    return result.rows[0];
-  }
-
-  async getRevenueTransactions(userId: string, filters: any = {}): Promise<any[]> {
-    let query = 'SELECT * FROM revenue_transactions WHERE user_id = $1';
-    const values = [userId];
-    
-    if (filters.transaction_type) {
-      query += ' AND transaction_type = $2';
-      values.push(filters.transaction_type);
+    if (preferences !== undefined) {
+      updateFields.push(`preferences = $${paramCount}`);
+      updateValues.push(JSON.stringify(preferences));
+      paramCount++;
     }
-    
-    if (filters.status) {
-      query += ' AND status = $' + (values.length + 1);
-      values.push(filters.status);
+
+    if (lastActive !== undefined) {
+      updateFields.push(`last_active = $${paramCount}`);
+      updateValues.push(lastActive);
+      paramCount++;
     }
-    
-    query += ' ORDER BY created_at DESC';
-    const result = await this.query(query, values);
-    return result.rows;
-  }
 
-  async updateRevenueTransaction(transactionId: string, updates: any): Promise<any> {
-    const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
-    const query = `UPDATE revenue_transactions SET ${fields} WHERE id = $1 RETURNING *`;
-    const values = [transactionId, ...Object.values(updates)];
-    const result = await this.query(query, values);
-    return result.rows[0];
-  }
+    if (updateFields.length === 0) {
+      return null;
+    }
 
-  // Security trap management
-  async createSecurityTrap(trapData: any): Promise<any> {
-    const { user_id, network_id, trap_name, trap_description, trap_type, contract_code } = trapData;
+    updateFields.push(`updated_at = NOW()`);
+    updateValues.push(walletAddress);
+
     const query = `
-      INSERT INTO security_traps (user_id, network_id, trap_name, trap_description, trap_type, contract_code)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      UPDATE users 
+      SET ${updateFields.join(', ')}
+      WHERE wallet_address = $${paramCount}
       RETURNING *
     `;
-    const result = await this.query(query, [user_id, network_id, trap_name, trap_description, trap_type, contract_code]);
-    return result.rows[0];
+
+    const result = await this.query(query, updateValues);
+    return result.rows[0] || null;
   }
 
-  async updateSecurityTrap(trapId: string, updates: any): Promise<any> {
-    const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
-    const query = `UPDATE security_traps SET ${fields} WHERE id = $1 RETURNING *`;
-    const values = [trapId, ...Object.values(updates)];
-    const result = await this.query(query, values);
-    return result.rows[0];
+  async deleteUser(walletAddress: string): Promise<void> {
+    const query = 'DELETE FROM users WHERE wallet_address = $1';
+    await this.query(query, [walletAddress]);
   }
 
-  async getSecurityTrap(trapId: string): Promise<any> {
-    const result = await this.query('SELECT * FROM security_traps WHERE id = $1', [trapId]);
-    return result.rows[0];
-  }
+  // =====================================================
+  // TRAP TEMPLATE MANAGEMENT
+  // =====================================================
 
-  async getSecurityTrapsByUser(userId: string): Promise<any[]> {
-    const result = await this.query('SELECT * FROM security_traps WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
-    return result.rows;
-  }
-
-  // AI analysis management
-  async createAIAnalysis(analysisData: any): Promise<any> {
-    const { trap_id, user_id, ai_provider, analysis_type, prompt, response, risk_score, vulnerabilities_detected, recommendations } = analysisData;
-    const query = `
-      INSERT INTO ai_analyses (trap_id, user_id, ai_provider, analysis_type, prompt, response, risk_score, vulnerabilities_detected, recommendations)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING *
-    `;
-    const result = await this.query(query, [trap_id, user_id, ai_provider, analysis_type, prompt, response, risk_score, vulnerabilities_detected, recommendations]);
-    return result.rows[0];
-  }
-
-  async getAIAnalysis(analysisId: string): Promise<any> {
-    const result = await this.query('SELECT * FROM ai_analyses WHERE id = $1', [analysisId]);
-    return result.rows[0];
-  }
-
-  async getAIAnalysesByTrap(trapId: string): Promise<any[]> {
-    const result = await this.query('SELECT * FROM ai_analyses WHERE trap_id = $1 ORDER BY created_at DESC', [trapId]);
-    return result.rows;
-  }
-
-  // ===== TRAP TEMPLATE MANAGEMENT =====
   async createTrapTemplate(templateData: any): Promise<any> {
-    const { name, description, category, complexity, code, tags, creator_address, is_public } = templateData;
+    const {
+      name,
+      description,
+      category,
+      complexity,
+      creatorAddress,
+      bytecode,
+      abi,
+      constructorArgs,
+      estimatedCost,
+      tags = [],
+      isPublic = true
+    } = templateData;
+
     const query = `
-      INSERT INTO trap_templates (name, description, category, complexity, code, tags, creator_address, is_public)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO trap_templates (
+        name, description, category, complexity, creator_address, 
+        bytecode, abi, constructor_args, estimated_cost, tags, 
+        is_public, created_at, updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
       RETURNING *
     `;
-    const result = await this.query(query, [name, description, category, complexity, code, tags, creator_address, is_public]);
+
+    const result = await this.query(query, [
+      name, description, category, complexity, creatorAddress,
+      bytecode, abi, JSON.stringify(constructorArgs), estimatedCost,
+      tags, isPublic
+    ]);
+
     return result.rows[0];
   }
 
-  async getTrapTemplate(templateId: string): Promise<any> {
-    const result = await this.query('SELECT * FROM trap_templates WHERE id = $1', [templateId]);
-    return result.rows[0];
+  async getTrapTemplate(id: string): Promise<any> {
+    const query = 'SELECT * FROM trap_templates WHERE id = $1';
+    const result = await this.query(query, [id]);
+    return result.rows[0] || null;
+  }
+
+  async updateTrapTemplate(templateId: string, updates: any): Promise<any> {
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+    let paramCount = 1;
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== undefined) {
+        updateFields.push(`${key} = $${paramCount}`);
+        updateValues.push(value);
+        paramCount++;
+      }
+    });
+
+    if (updateFields.length === 0) {
+      return null;
+    }
+
+    updateFields.push(`updated_at = NOW()`);
+    updateValues.push(templateId);
+
+    const query = `
+      UPDATE trap_templates 
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramCount}
+      RETURNING *
+    `;
+
+    const result = await this.query(query, updateValues);
+    return result.rows[0] || null;
+  }
+
+  async deleteTrapTemplate(templateId: string): Promise<void> {
+    const query = 'DELETE FROM trap_templates WHERE id = $1';
+    await this.query(query, [templateId]);
   }
 
   async getTrapTemplates(filters: any = {}, options: any = {}): Promise<any[]> {
     let query = 'SELECT * FROM trap_templates WHERE 1=1';
-    const values = [];
-    let paramIndex = 1;
+    const values: any[] = [];
+    let paramCount = 1;
 
     if (filters.category) {
-      query += ` AND category = $${paramIndex++}`;
+      query += ` AND category = $${paramCount}`;
       values.push(filters.category);
+      paramCount++;
     }
 
     if (filters.complexity) {
-      query += ` AND complexity = $${paramIndex++}`;
+      query += ` AND complexity = $${paramCount}`;
       values.push(filters.complexity);
+      paramCount++;
     }
 
     if (filters.creator_address) {
-      query += ` AND creator_address = $${paramIndex++}`;
+      query += ` AND creator_address = $${paramCount}`;
       values.push(filters.creator_address);
+      paramCount++;
     }
 
     if (filters.is_public !== undefined) {
-      query += ` AND is_public = $${paramIndex++}`;
+      query += ` AND is_public = $${paramCount}`;
       values.push(filters.is_public);
+      paramCount++;
     }
 
     query += ' ORDER BY created_at DESC';
 
     if (options.limit) {
-      query += ` LIMIT $${paramIndex++}`;
+      query += ` LIMIT $${paramCount}`;
       values.push(options.limit);
+      paramCount++;
     }
 
     if (options.offset) {
-      query += ` OFFSET $${paramIndex++}`;
+      query += ` OFFSET $${paramCount}`;
       values.push(options.offset);
     }
 
@@ -541,198 +303,156 @@ export class DatabaseService {
     return result.rows;
   }
 
-  async updateTrapTemplate(templateId: string, updates: any): Promise<any> {
-    const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
-    const query = `UPDATE trap_templates SET ${fields} WHERE id = $1 RETURNING *`;
-    const values = [templateId, ...Object.values(updates)];
-    const result = await this.query(query, values);
-    return result.rows[0];
-  }
-
-  async deleteTrapTemplate(templateId: string): Promise<void> {
-    await this.query('DELETE FROM trap_templates WHERE id = $1', [templateId]);
-  }
-
-  async getTrapTemplateCategories(): Promise<any[]> {
-    const result = await this.query('SELECT DISTINCT category FROM trap_templates WHERE is_public = true ORDER BY category');
-    return result.rows.map(row => row.category);
-  }
-
-  async getTrapTemplateComplexities(): Promise<any[]> {
-    const result = await this.query('SELECT DISTINCT complexity FROM trap_templates WHERE is_public = true ORDER BY complexity');
-    return result.rows.map(row => row.complexity);
-  }
-
-  async getPopularTrapTemplates(limit: number = 10, timeframe: string = '30d'): Promise<any[]> {
-    const query = `
-      SELECT t.*, COUNT(r.id) as rating_count, AVG(r.rating) as avg_rating
-      FROM trap_templates t
-      LEFT JOIN template_ratings r ON t.id = r.template_id
-      WHERE t.is_public = true
-      GROUP BY t.id
-      ORDER BY rating_count DESC, avg_rating DESC
-      LIMIT $1
-    `;
-    const result = await this.query(query, [limit]);
-    return result.rows;
-  }
-
-  async getFeaturedTrapTemplates(limit: number = 10): Promise<any[]> {
-    const query = `
-      SELECT * FROM trap_templates 
-      WHERE is_public = true AND featured = true 
-      ORDER BY created_at DESC 
-      LIMIT $1
-    `;
-    const result = await this.query(query, [limit]);
-    return result.rows;
-  }
-
-  async getNewTrapTemplates(limit: number = 10, days: number = 7): Promise<any[]> {
-    const query = `
-      SELECT * FROM trap_templates 
-      WHERE is_public = true AND created_at >= NOW() - INTERVAL '${days} days'
-      ORDER BY created_at DESC 
-      LIMIT $1
-    `;
-    const result = await this.query(query, [limit]);
-    return result.rows;
-  }
-
-  async getTrendingTrapTemplates(limit: number = 10, timeframe: string = '7d'): Promise<any[]> {
-    const query = `
-      SELECT t.*, COUNT(d.id) as deployment_count
-      FROM trap_templates t
-      LEFT JOIN deployed_traps d ON t.id = d.template_id
-      WHERE t.is_public = true AND d.created_at >= NOW() - INTERVAL '${timeframe}'
-      GROUP BY t.id
-      ORDER BY deployment_count DESC
-      LIMIT $1
-    `;
-    const result = await this.query(query, [limit]);
-    return result.rows;
-  }
-
-  async searchTrapTemplates(filters: any, options: any = {}): Promise<any[]> {
-    let query = 'SELECT * FROM trap_templates WHERE is_public = true';
-    const values = [];
-    let paramIndex = 1;
+  async searchTrapTemplates(filters: any = {}, options: any = {}): Promise<any[]> {
+    let query = 'SELECT * FROM trap_templates WHERE 1=1';
+    const values: any[] = [];
+    let paramCount = 1;
 
     if (filters.query) {
-      query += ` AND (name ILIKE $${paramIndex} OR description ILIKE $${paramIndex})`;
+      query += ` AND (name ILIKE $${paramCount} OR description ILIKE $${paramCount})`;
       values.push(`%${filters.query}%`);
-      paramIndex++;
+      paramCount++;
     }
 
     if (filters.category) {
-      query += ` AND category = $${paramIndex++}`;
+      query += ` AND category = $${paramCount}`;
       values.push(filters.category);
+      paramCount++;
     }
 
     if (filters.complexity) {
-      query += ` AND complexity = $${paramIndex++}`;
+      query += ` AND complexity = $${paramCount}`;
       values.push(filters.complexity);
+      paramCount++;
     }
 
     if (filters.tags && filters.tags.length > 0) {
-      query += ` AND tags && $${paramIndex++}`;
+      query += ` AND tags && $${paramCount}`;
       values.push(filters.tags);
+      paramCount++;
     }
 
     query += ' ORDER BY created_at DESC';
 
     if (options.limit) {
-      query += ` LIMIT $${paramIndex++}`;
+      query += ` LIMIT $${paramCount}`;
       values.push(options.limit);
+      paramCount++;
+    }
+
+    if (options.offset) {
+      query += ` OFFSET $${paramCount}`;
+      values.push(options.offset);
     }
 
     const result = await this.query(query, values);
     return result.rows;
   }
 
-  async getTrapTemplatesByCreator(creatorId: string, options: any = {}): Promise<any[]> {
-    let query = 'SELECT * FROM trap_templates WHERE creator_address = $1';
-    const values = [creatorId];
-    let paramIndex = 2;
+  // =====================================================
+  // DEPLOYED TRAP MANAGEMENT
+  // =====================================================
 
-    if (options.is_public !== undefined) {
-      query += ` AND is_public = $${paramIndex++}`;
-      values.push(options.is_public);
-    }
+  async createDeployedTrap(deploymentData: any): Promise<any> {
+    const {
+      userId,
+      templateId,
+      network,
+      contractAddress,
+      deploymentTxHash,
+      status,
+      estimatedCost,
+      actualCost
+    } = deploymentData;
 
-    query += ' ORDER BY created_at DESC';
-
-    if (options.limit) {
-      query += ` LIMIT $${paramIndex++}`;
-      values.push(options.limit);
-    }
-
-    const result = await this.query(query, values);
-    return result.rows;
-  }
-
-  async getCreatorStats(creatorId: string): Promise<any> {
     const query = `
-      SELECT 
-        COUNT(*) as total_templates,
-        COUNT(CASE WHEN is_public = true THEN 1 END) as public_templates,
-        AVG(CASE WHEN r.rating IS NOT NULL THEN r.rating END) as avg_rating,
-        COUNT(DISTINCT d.id) as total_deployments
-      FROM trap_templates t
-      LEFT JOIN template_ratings r ON t.id = r.template_id
-      LEFT JOIN deployed_traps d ON t.id = d.template_id
-      WHERE t.creator_address = $1
-    `;
-    const result = await this.query(query, [creatorId]);
-    return result.rows[0];
-  }
-
-  // ===== DEPLOYED TRAP MANAGEMENT =====
-  async createDeployedTrap(trapData: any): Promise<any> {
-    const { user_address, template_id, contract_address, chain_id, deployment_tx_hash, deployment_cost } = trapData;
-    const query = `
-      INSERT INTO deployed_traps (user_address, template_id, contract_address, chain_id, deployment_tx_hash, deployment_cost, status)
-      VALUES ($1, $2, $3, $4, $5, $6, 'active')
+      INSERT INTO deployed_traps (
+        user_id, template_id, network, contract_address, 
+        deployment_tx_hash, status, estimated_cost, actual_cost,
+        created_at, updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
       RETURNING *
     `;
-    const result = await this.query(query, [user_address, template_id, contract_address, chain_id, deployment_tx_hash, deployment_cost]);
+
+    const result = await this.query(query, [
+      userId, templateId, network, contractAddress,
+      deploymentTxHash, status, estimatedCost, actualCost
+    ]);
+
     return result.rows[0];
   }
 
-  async getDeployedTrap(trapId: string): Promise<any> {
-    const result = await this.query('SELECT * FROM deployed_traps WHERE id = $1', [trapId]);
-    return result.rows[0];
+  async getDeployedTrap(id: string): Promise<any> {
+    const query = 'SELECT * FROM deployed_traps WHERE id = $1';
+    const result = await this.query(query, [id]);
+    return result.rows[0] || null;
   }
 
-  async getDeployedTraps(filters: any = {}, options: any = {}): Promise<any[]> {
-    let query = 'SELECT * FROM deployed_traps WHERE 1=1';
-    const values = [];
-    let paramIndex = 1;
+  async updateDeployedTrap(id: string, updates: any): Promise<any> {
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+    let paramCount = 1;
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== undefined) {
+        updateFields.push(`${key} = $${paramCount}`);
+        updateValues.push(value);
+        paramCount++;
+      }
+    });
+
+    if (updateFields.length === 0) {
+      return null;
+    }
+
+    updateFields.push(`updated_at = NOW()`);
+    updateValues.push(id);
+
+    const query = `
+      UPDATE deployed_traps 
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramCount}
+      RETURNING *
+    `;
+
+    const result = await this.query(query, updateValues);
+    return result.rows[0] || null;
+  }
+
+  async getDeployedTrapsByUser(userId: string, filters: any = {}, options: any = {}): Promise<any[]> {
+    let query = 'SELECT * FROM deployed_traps WHERE user_id = $1';
+    const values: any[] = [userId];
+    let paramCount = 2;
 
     if (filters.user_address) {
-      query += ` AND user_address = $${paramIndex++}`;
+      query += ` AND user_address = $${paramCount}`;
       values.push(filters.user_address);
+      paramCount++;
     }
 
     if (filters.chain_id) {
-      query += ` AND chain_id = $${paramIndex++}`;
+      query += ` AND chain_id = $${paramCount}`;
       values.push(filters.chain_id);
+      paramCount++;
     }
 
     if (filters.status) {
-      query += ` AND status = $${paramIndex++}`;
+      query += ` AND status = $${paramCount}`;
       values.push(filters.status);
+      paramCount++;
     }
 
     query += ' ORDER BY created_at DESC';
 
     if (options.limit) {
-      query += ` LIMIT $${paramIndex++}`;
+      query += ` LIMIT $${paramCount}`;
       values.push(options.limit);
+      paramCount++;
     }
 
     if (options.offset) {
-      query += ` OFFSET $${paramIndex++}`;
+      query += ` OFFSET $${paramCount}`;
       values.push(options.offset);
     }
 
@@ -740,51 +460,110 @@ export class DatabaseService {
     return result.rows;
   }
 
-  async updateDeployedTrap(trapId: string, updates: any): Promise<any> {
-    const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
-    const query = `UPDATE deployed_traps SET ${fields} WHERE id = $1 RETURNING *`;
-    const values = [trapId, ...Object.values(updates)];
-    const result = await this.query(query, values);
-    return result.rows[0];
-  }
+  // =====================================================
+  // ALERT MANAGEMENT
+  // =====================================================
 
-  async deleteDeployedTrap(trapId: string): Promise<void> {
-    await this.query('DELETE FROM deployed_traps WHERE id = $1', [trapId]);
-  }
+  async createAlert(alertData: any): Promise<any> {
+    const {
+      userId,
+      type,
+      severity,
+      title,
+      message,
+      data,
+      isRead = false
+    } = alertData;
 
-  // ===== TEMPLATE RATING MANAGEMENT =====
-  async createTemplateRating(ratingData: any): Promise<any> {
-    const { template_id, user_id, rating, comment } = ratingData;
     const query = `
-      INSERT INTO template_ratings (template_id, user_id, rating, comment)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (template_id, user_id) 
-      DO UPDATE SET rating = $3, comment = $4, updated_at = NOW()
+      INSERT INTO alerts (
+        user_id, type, severity, title, message, data, is_read, created_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
       RETURNING *
     `;
-    const result = await this.query(query, [template_id, user_id, rating, comment]);
+
+    const result = await this.query(query, [
+      userId, type, severity, title, message, JSON.stringify(data), isRead
+    ]);
+
     return result.rows[0];
   }
 
-  async getTemplateRating(templateId: string, userId: string): Promise<any> {
-    const result = await this.query('SELECT * FROM template_ratings WHERE template_id = $1 AND user_id = $2', [templateId, userId]);
-    return result.rows[0];
+  async getAlert(id: string): Promise<any> {
+    const query = 'SELECT * FROM alerts WHERE id = $1';
+    const result = await this.query(query, [id]);
+    return result.rows[0] || null;
   }
 
-  async getTemplateRatings(templateId: string, options: any = {}): Promise<any[]> {
-    let query = 'SELECT * FROM template_ratings WHERE template_id = $1';
-    const values = [templateId];
-    let paramIndex = 2;
+  async updateAlert(id: string, updates: any): Promise<any> {
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+    let paramCount = 1;
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== undefined) {
+        updateFields.push(`${key} = $${paramCount}`);
+        updateValues.push(value);
+        paramCount++;
+      }
+    });
+
+    if (updateFields.length === 0) {
+      return null;
+    }
+
+    updateValues.push(id);
+
+    const query = `
+      UPDATE alerts 
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramCount}
+      RETURNING *
+    `;
+
+    const result = await this.query(query, updateValues);
+    return result.rows[0] || null;
+  }
+
+  async deleteAlert(id: string): Promise<void> {
+    const query = 'DELETE FROM alerts WHERE id = $1';
+    await this.query(query, [id]);
+  }
+
+  async getAlertsByUser(userId: string, filters: any = {}, options: any = {}): Promise<any[]> {
+    let query = 'SELECT * FROM alerts WHERE user_id = $1';
+    const values: any[] = [userId];
+    let paramCount = 2;
+
+    if (filters.type) {
+      query += ` AND type = $${paramCount}`;
+      values.push(filters.type);
+      paramCount++;
+    }
+
+    if (filters.severity) {
+      query += ` AND severity = $${paramCount}`;
+      values.push(filters.severity);
+      paramCount++;
+    }
+
+    if (filters.isRead !== undefined) {
+      query += ` AND is_read = $${paramCount}`;
+      values.push(filters.isRead);
+      paramCount++;
+    }
 
     query += ' ORDER BY created_at DESC';
 
     if (options.limit) {
-      query += ` LIMIT $${paramIndex++}`;
+      query += ` LIMIT $${paramCount}`;
       values.push(options.limit);
+      paramCount++;
     }
 
     if (options.offset) {
-      query += ` OFFSET $${paramIndex++}`;
+      query += ` OFFSET $${paramCount}`;
       values.push(options.offset);
     }
 
@@ -792,39 +571,272 @@ export class DatabaseService {
     return result.rows;
   }
 
-  // ===== TRAP STATISTICS =====
-  async getTrapStats(userId: string): Promise<any> {
+  async markAlertAsRead(id: string): Promise<any> {
     const query = `
-      SELECT 
-        COUNT(*) as total_traps,
-        COUNT(CASE WHEN status = 'active' THEN 1 END) as active_traps,
-        COUNT(CASE WHEN status = 'inactive' THEN 1 END) as inactive_traps,
-        COUNT(CASE WHEN status = 'compromised' THEN 1 END) as compromised_traps,
-        SUM(deployment_cost) as total_deployment_cost,
-        AVG(deployment_cost) as avg_deployment_cost
-      FROM deployed_traps
-      WHERE user_address = $1
+      UPDATE alerts 
+      SET is_read = true, updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
     `;
+    
+    const result = await this.query(query, [id]);
+    return result.rows[0] || null;
+  }
+
+  async markAllAlertsAsRead(userId: string): Promise<void> {
+    const query = `
+      UPDATE alerts 
+      SET is_read = true, updated_at = NOW()
+      WHERE user_id = $1 AND is_read = false
+    `;
+    
+    await this.query(query, [userId]);
+  }
+
+  async getUnreadAlertCount(userId: string): Promise<number> {
+    const query = 'SELECT COUNT(*) FROM alerts WHERE user_id = $1 AND is_read = false';
     const result = await this.query(query, [userId]);
+    return parseInt(result.rows[0].count);
+  }
+
+  // =====================================================
+  // NOTIFICATION MANAGEMENT
+  // =====================================================
+
+  async createNotification(notificationData: any): Promise<any> {
+    const {
+      userId,
+      type,
+      title,
+      message,
+      data,
+      isRead = false
+    } = notificationData;
+
+    const query = `
+      INSERT INTO notifications (
+        user_id, type, title, message, data, is_read, created_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      RETURNING *
+    `;
+
+    const result = await this.query(query, [
+      userId, type, title, message, JSON.stringify(data), isRead
+    ]);
+
     return result.rows[0];
   }
 
-  // ===== PUSH SUBSCRIPTION MANAGEMENT =====
-  async getPushSubscription(userId: string): Promise<any> {
-    const result = await this.query('SELECT * FROM push_subscriptions WHERE user_id = $1', [userId]);
-    return result.rows[0];
+  async getNotification(id: string): Promise<any> {
+    const query = 'SELECT * FROM notifications WHERE id = $1';
+    const result = await this.query(query, [id]);
+    return result.rows[0] || null;
   }
+
+  async updateNotification(id: string, updates: any): Promise<any> {
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+    let paramCount = 1;
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== undefined) {
+        updateFields.push(`${key} = $${paramCount}`);
+        updateValues.push(value);
+        paramCount++;
+      }
+    });
+
+    if (updateFields.length === 0) {
+      return null;
+    }
+
+    updateValues.push(id);
+
+    const query = `
+      UPDATE notifications 
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramCount}
+      RETURNING *
+    `;
+
+    const result = await this.query(query, updateValues);
+    return result.rows[0] || null;
+  }
+
+  async deleteNotification(id: string): Promise<void> {
+    const query = 'DELETE FROM notifications WHERE id = $1';
+    await this.query(query, [id]);
+  }
+
+  async getNotificationsByUser(userId: string, filters: any = {}, options: any = {}): Promise<any[]> {
+    let query = 'SELECT * FROM notifications WHERE user_id = $1';
+    const values: any[] = [userId];
+    let paramCount = 2;
+
+    if (filters.type) {
+      query += ` AND type = $${paramCount}`;
+      values.push(filters.type);
+      paramCount++;
+    }
+
+    if (filters.isRead !== undefined) {
+      query += ` AND is_read = $${paramCount}`;
+      values.push(filters.isRead);
+      paramCount++;
+    }
+
+    query += ' ORDER BY created_at DESC';
+
+    if (options.limit) {
+      query += ` LIMIT $${paramCount}`;
+      values.push(options.limit);
+      paramCount++;
+    }
+
+    if (options.offset) {
+      query += ` OFFSET $${paramCount}`;
+      values.push(options.offset);
+    }
+
+    const result = await this.query(query, values);
+    return result.rows;
+  }
+
+  async markNotificationAsRead(id: string): Promise<any> {
+    const query = `
+      UPDATE notifications 
+      SET is_read = true, updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `;
+    
+    const result = await this.query(query, [id]);
+    return result.rows[0] || null;
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    const query = `
+      UPDATE notifications 
+      SET is_read = true, updated_at = NOW()
+      WHERE user_id = $1 AND is_read = false
+    `;
+    
+    await this.query(query, [userId]);
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const query = 'SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false';
+    const result = await this.query(query, [userId]);
+    return parseInt(result.rows[0].count);
+  }
+
+  // =====================================================
+  // PUSH SUBSCRIPTION MANAGEMENT
+  // =====================================================
 
   async createPushSubscription(subscriptionData: any): Promise<any> {
-    const { user_id, endpoint, p256dh, auth } = subscriptionData;
+    const {
+      userId,
+      endpoint,
+      p256dh,
+      auth,
+      isActive = true
+    } = subscriptionData;
+
     const query = `
-      INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (user_id) 
-      DO UPDATE SET endpoint = $2, p256dh = $3, auth = $4, updated_at = NOW()
+      INSERT INTO push_subscriptions (
+        user_id, endpoint, p256dh, auth, is_active, created_at
+      )
+      VALUES ($1, $2, $3, $4, $5, NOW())
       RETURNING *
     `;
-    const result = await this.query(query, [user_id, endpoint, p256dh, auth]);
+
+    const result = await this.query(query, [userId, endpoint, p256dh, auth, isActive]);
     return result.rows[0];
+  }
+
+  async getPushSubscription(userId: string): Promise<any> {
+    const query = 'SELECT * FROM push_subscriptions WHERE user_id = $1 AND is_active = true';
+    const result = await this.query(query, [userId]);
+    return result.rows[0] || null;
+  }
+
+  async updatePushSubscription(userId: string, updates: any): Promise<any> {
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+    let paramCount = 1;
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== undefined) {
+        updateFields.push(`${key} = $${paramCount}`);
+        updateValues.push(value);
+        paramCount++;
+      }
+    });
+
+    if (updateFields.length === 0) {
+      return null;
+    }
+
+    updateValues.push(userId);
+
+    const query = `
+      UPDATE push_subscriptions 
+      SET ${updateFields.join(', ')}
+      WHERE user_id = $${paramCount}
+      RETURNING *
+    `;
+
+    const result = await this.query(query, updateValues);
+    return result.rows[0] || null;
+  }
+
+  async deletePushSubscription(userId: string): Promise<void> {
+    const query = 'DELETE FROM push_subscriptions WHERE user_id = $1';
+    await this.query(query, [userId]);
+  }
+
+  // =====================================================
+  // UTILITY METHODS
+  // =====================================================
+
+  async getCategories(): Promise<string[]> {
+    const query = 'SELECT DISTINCT category FROM trap_templates WHERE category IS NOT NULL';
+    const result = await this.query(query);
+    return result.rows.map((row: any) => row.category);
+  }
+
+  async getComplexities(): Promise<string[]> {
+    const query = 'SELECT DISTINCT complexity FROM trap_templates WHERE complexity IS NOT NULL';
+    const result = await this.query(query);
+    return result.rows.map((row: any) => row.complexity);
+  }
+
+  async getStats(): Promise<any> {
+    const stats = {
+      totalUsers: 0,
+      totalTemplates: 0,
+      totalDeployments: 0,
+      totalAlerts: 0
+    };
+
+    try {
+      const userCount = await this.query('SELECT COUNT(*) FROM users');
+      stats.totalUsers = parseInt(userCount.rows[0].count);
+
+      const templateCount = await this.query('SELECT COUNT(*) FROM trap_templates');
+      stats.totalTemplates = parseInt(templateCount.rows[0].count);
+
+      const deploymentCount = await this.query('SELECT COUNT(*) FROM deployed_traps');
+      stats.totalDeployments = parseInt(deploymentCount.rows[0].count);
+
+      const alertCount = await this.query('SELECT COUNT(*) FROM alerts');
+      stats.totalAlerts = parseInt(alertCount.rows[0].count);
+    } catch (error) {
+      console.error('Error getting stats:', error);
+    }
+
+    return stats;
   }
 }

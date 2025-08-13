@@ -1,566 +1,461 @@
 import { Router } from 'express';
-import { authMiddleware, requireRole } from '../middleware/auth';
 import { DatabaseService } from '../services/database';
 import { BlockchainService } from '../services/blockchain';
-import { ContractAnalysisService } from '../services/contractAnalysis';
+import { NotificationService } from '../services/notification';
 import { asyncHandler } from '../middleware/errorHandler';
+import { requireRole } from '../middleware/auth';
 
 const router = Router();
 const db = new DatabaseService();
-const blockchain = new BlockchainService(db, {} as any); // Will be properly initialized
-const analysis = new ContractAnalysisService(db, blockchain);
+const blockchain = new BlockchainService(db, {} as any);
+const notification = new NotificationService(db);
 
-// Get all trap templates (public)
-router.get('/templates', asyncHandler(async (req, res) => {
-  const { category, complexity, search, sortBy = 'rating', order = 'desc', page = 1, limit = 20 } = req.query;
-  
-  const filters: any = {};
-  if (category) filters.category = category as string;
-  if (complexity) filters.complexity = complexity as string;
-  if (search) filters.search = search as string;
-  
-  const templates = await db.getTrapTemplates(filters, {
-    sortBy: sortBy as string,
-    order: order as 'asc' | 'desc',
-    page: parseInt(page as string),
-    limit: parseInt(limit as string),
-  });
-  
-  res.json({
-    success: true,
-    data: templates,
-    pagination: {
-      page: parseInt(page as string),
-      limit: parseInt(limit as string),
-      total: templates.length,
-    },
-  });
-}));
-
-// Get trap template by ID (public)
-router.get('/templates/:id', asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  
-  const template = await db.getTrapTemplate(id);
-  if (!template) {
-    return res.status(404).json({
-      success: false,
-      error: 'Template not found',
-    });
-  }
-  
-  res.json({
-    success: true,
-    data: template,
-  });
-}));
-
-// Create new trap template (admin only)
-router.post('/templates', authMiddleware, requireRole('admin'), asyncHandler(async (req, res) => {
-  const {
-    name,
-    description,
-    category,
-    complexity,
-    bytecode,
-    abi,
-    constructorArgs,
-    gasEstimate,
-    price,
-    tags,
-    auditStatus,
-    auditReport,
-  } = req.body;
-  
-  // Validate required fields
-  if (!name || !description || !category || !complexity || !bytecode) {
-    return res.status(400).json({
-      success: false,
-      error: 'Missing required fields',
-    });
-  }
-  
-  const template = await db.createTrapTemplate({
-    id: `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    name,
-    description,
-    category,
-    complexity,
-    bytecode,
-    abi: abi || [],
-    constructorArgs: constructorArgs || '',
-    gasEstimate: gasEstimate || 500000,
-    price: price || 0,
-    tags: tags || [],
-    auditStatus: auditStatus || 'pending',
-    auditReport: auditReport || '',
-    creatorId: req.user.id,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    deployments: 0,
-    rating: 0,
-    totalRatings: 0,
-  });
-  
-  res.status(201).json({
-    success: true,
-    data: template,
-  });
-}));
-
-// Update trap template (admin only)
-router.put('/templates/:id', authMiddleware, requireRole('admin'), asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const updateData = req.body;
-  
-  const template = await db.getTrapTemplate(id);
-  if (!template) {
-    return res.status(404).json({
-      success: false,
-      error: 'Template not found',
-    });
-  }
-  
-  updateData.updatedAt = new Date();
-  const updatedTemplate = await db.updateTrapTemplate(id, updateData);
-  
-  res.json({
-    success: true,
-    data: updatedTemplate,
-  });
-}));
-
-// Delete trap template (admin only)
-router.delete('/templates/:id', authMiddleware, requireRole('admin'), asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  
-  const template = await db.getTrapTemplate(id);
-  if (!template) {
-    return res.status(404).json({
-      success: false,
-      error: 'Template not found',
-    });
-  }
-  
-  await db.deleteTrapTemplate(id);
-  
-  res.json({
-    success: true,
-    message: 'Template deleted successfully',
-  });
-}));
-
-// Get user's deployed traps
-router.get('/deployed', authMiddleware, asyncHandler(async (req, res) => {
-  const { status, chainId, page = 1, limit = 20 } = req.query;
-  
-  const filters: any = { userId: req.user.id };
-  if (status) filters.status = status;
-  if (chainId) filters.chainId = parseInt(chainId as string);
-  
-  const traps = await db.getDeployedTraps(filters, {
-    page: parseInt(page as string),
-    limit: parseInt(limit as string),
-  });
-  
-  res.json({
-    success: true,
-    data: traps,
-    pagination: {
-      page: parseInt(page as string),
-      limit: parseInt(limit as string),
-      total: traps.length,
-    },
-  });
-}));
-
-// Get deployed trap by ID
-router.get('/deployed/:id', authMiddleware, asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  
-  const trap = await db.getDeployedTrap(id);
-  if (!trap) {
-    return res.status(404).json({
-      success: false,
-      error: 'Trap not found',
-    });
-  }
-  
-  // Check if user owns this trap
-  if (trap.userId !== req.user.id && req.user.role !== 'admin') {
-    return res.status(403).json({
-      success: false,
-      error: 'Access denied',
-    });
-  }
-  
-  res.json({
-    success: true,
-    data: trap,
-  });
-}));
-
-// Deploy new trap
-router.post('/deploy', authMiddleware, asyncHandler(async (req, res) => {
-  const { templateId, chainId, configuration, gasLimit, gasPrice } = req.body;
-  
-  // Validate required fields
-  if (!templateId || !chainId || !configuration) {
-    return res.status(400).json({
-      success: false,
-      error: 'Missing required fields',
-    });
-  }
-  
-  // Get template
-  const template = await db.getTrapTemplate(templateId);
-  if (!template) {
-    return res.status(404).json({
-      success: false,
-      error: 'Template not found',
-    });
-  }
-  
-  // Check if user has sufficient balance
-  const userBalance = await blockchain.getBalance(req.user.walletAddress, chainId);
-  const estimatedCost = await blockchain.calculateDeploymentCost(
-    gasLimit || template.gasEstimate,
-    chainId
-  );
-  
-  if (parseFloat(userBalance) < parseFloat(estimatedCost)) {
-    return res.status(400).json({
-      success: false,
-      error: 'Insufficient balance for deployment',
-    });
-  }
-  
-  // Create deployment record
-  const deployment = await db.createDeployedTrap({
-    id: `trap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    userId: req.user.id,
-    templateId,
-    contractAddress: '',
-    chainId,
-    status: 'pending',
-    gasUsed: 0,
-    gasPrice: gasPrice || '0',
-    deploymentCost: '0',
-    deployedAt: new Date(),
-    lastActivity: new Date(),
-    configuration,
-  });
-  
-  // Start deployment process (this would be handled by a queue in production)
+// Get all deployed traps for the authenticated user
+router.get('/', asyncHandler(async (req, res) => {
   try {
-    // For now, simulate deployment
-    setTimeout(async () => {
-      await db.updateDeployedTrap(deployment.id, {
-        status: 'active',
-        contractAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
-        deployedAt: new Date(),
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'User not authenticated'
       });
-    }, 5000);
+      return;
+    }
+
+    const { 
+      status, 
+      chainId, 
+      limit = '50', 
+      offset = '0',
+      sortBy = 'created_at',
+      sortOrder = 'desc'
+    } = req.query;
+
+    const filters: any = {};
+    if (status) filters.status = status;
+    if (chainId) filters.chain_id = parseInt(chainId as string);
+
+    const options = {
+      limit: parseInt(limit as string),
+      offset: parseInt(offset as string),
+      sortBy: sortBy as string,
+      sortOrder: sortOrder as 'asc' | 'desc'
+    };
+
+    const traps = await db.getDeployedTrapsByUser(userId, filters, options);
     
     res.json({
       success: true,
-      data: {
-        deploymentId: deployment.id,
-        status: 'pending',
-        message: 'Deployment started',
-      },
+      data: traps,
+      pagination: {
+        limit: options.limit,
+        offset: options.offset,
+        total: traps.length
+      }
     });
   } catch (error) {
-    await db.updateDeployedTrap(deployment.id, { status: 'error' });
-    throw error;
+    console.error('Failed to get deployed traps:', error);
+    res.status(500).json({
+      error: 'Failed to get deployed traps',
+      message: 'An error occurred while retrieving deployed traps'
+    });
   }
 }));
 
-// Update deployed trap
-router.put('/deployed/:id', authMiddleware, asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const updateData = req.body;
-  
-  const trap = await db.getDeployedTrap(id);
-  if (!trap) {
-    return res.status(404).json({
-      success: false,
-      error: 'Trap not found',
+// Get a specific deployed trap
+router.get('/:id', asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'User not authenticated'
+      });
+      return;
+    }
+
+    const trap = await db.getDeployedTrap(id);
+    
+    if (!trap) {
+      res.status(404).json({
+        error: 'Not Found',
+        message: 'Deployed trap not found'
+      });
+      return;
+    }
+
+    // Check if user owns this trap
+    if (trap.user_id !== userId && req.user?.role !== 'admin') {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'You do not have permission to access this trap'
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: trap
+    });
+  } catch (error) {
+    console.error('Failed to get deployed trap:', error);
+    res.status(500).json({
+      error: 'Failed to get deployed trap',
+      message: 'An error occurred while retrieving the trap'
     });
   }
-  
-  // Check if user owns this trap
-  if (trap.userId !== req.user.id && req.user.role !== 'admin') {
-    return res.status(403).json({
-      success: false,
-      error: 'Access denied',
-    });
-  }
-  
-  updateData.lastActivity = new Date();
-  const updatedTrap = await db.updateDeployedTrap(id, updateData);
-  
-  res.json({
-    success: true,
-    data: updatedTrap,
-  });
 }));
 
-// Pause deployed trap
-router.post('/deployed/:id/pause', authMiddleware, asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  
-  const trap = await db.getDeployedTrap(id);
-  if (!trap) {
-    return res.status(404).json({
-      success: false,
-      error: 'Trap not found',
+// Deploy a new trap
+router.post('/deploy', asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'User not authenticated'
+      });
+      return;
+    }
+
+    const { 
+      templateId, 
+      constructorArgs = [], 
+      chainId = 560048
+    } = req.body;
+
+    if (!templateId) {
+      res.status(400).json({
+        error: 'Missing template ID',
+        message: 'Template ID is required'
+      });
+      return;
+    }
+
+    // Get user's wallet address
+    const user = await db.getUser(userId);
+    if (!user) {
+      res.status(404).json({
+        error: 'User not found',
+        message: 'User not found'
+      });
+      return;
+    }
+
+    // Get user balance and estimate deployment cost
+    const userBalance = await blockchain.getBalance(user.wallet_address, chainId);
+    const estimatedCost = await blockchain.calculateDeploymentCost(
+      templateId,
+      constructorArgs,
+      chainId
+    );
+
+    // Check if user has sufficient balance
+    const balanceInEth = parseFloat(userBalance);
+    const estimatedCostInEth = parseFloat(estimatedCost.replace(' ETH', ''));
+    
+    if (balanceInEth < estimatedCostInEth) {
+      res.status(400).json({
+        error: 'Insufficient balance',
+        message: `Insufficient balance. Required: ${estimatedCost}, Available: ${userBalance}`
+      });
+      return;
+    }
+
+    // Deploy the trap
+    const deployment = await blockchain.deploySecurityTrap(
+      userId,
+      templateId,
+      constructorArgs,
+      chainId
+    );
+
+    res.json({
+      success: true,
+      data: deployment,
+      message: 'Trap deployment initiated successfully'
+    });
+  } catch (error) {
+    console.error('Failed to deploy trap:', error);
+    res.status(500).json({
+      error: 'Failed to deploy trap',
+      message: 'An error occurred while deploying the trap'
     });
   }
-  
-  // Check if user owns this trap
-  if (trap.userId !== req.user.id && req.user.role !== 'admin') {
-    return res.status(403).json({
-      success: false,
-      error: 'Access denied',
-    });
-  }
-  
-  if (trap.status !== 'active') {
-    return res.status(400).json({
-      success: false,
-      error: 'Trap is not active',
-    });
-  }
-  
-  const updatedTrap = await db.updateDeployedTrap(id, {
-    status: 'paused',
-    lastActivity: new Date(),
-  });
-  
-  res.json({
-    success: true,
-    data: updatedTrap,
-    message: 'Trap paused successfully',
-  });
 }));
 
-// Resume deployed trap
-router.post('/deployed/:id/resume', authMiddleware, asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  
-  const trap = await db.getDeployedTrap(id);
-  if (!trap) {
-    return res.status(404).json({
-      success: false,
-      error: 'Trap not found',
+// Update deployed trap status
+router.patch('/:id/status', asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'User not authenticated'
+      });
+      return;
+    }
+
+    if (!['active', 'inactive', 'compromised'].includes(status)) {
+      res.status(400).json({
+        error: 'Invalid status',
+        message: 'Status must be one of: active, inactive, compromised'
+      });
+      return;
+    }
+
+    const trap = await db.getDeployedTrap(id);
+    
+    if (!trap) {
+      res.status(404).json({
+        error: 'Not Found',
+        message: 'Deployed trap not found'
+      });
+      return;
+    }
+
+    if (trap.user_id !== userId && req.user?.role !== 'admin') {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'You do not have permission to update this trap'
+      });
+      return;
+    }
+
+    const updatedTrap = await db.updateDeployedTrap(id, { status });
+    
+    res.json({
+      success: true,
+      data: updatedTrap,
+      message: 'Trap status updated successfully'
+    });
+  } catch (error) {
+    console.error('Failed to update trap status:', error);
+    res.status(500).json({
+      error: 'Failed to update trap status',
+      message: 'An error occurred while updating the trap status'
     });
   }
-  
-  // Check if user owns this trap
-  if (trap.userId !== req.user.id && req.user.role !== 'admin') {
-    return res.status(403).json({
-      success: false,
-      error: 'Access denied',
-    });
-  }
-  
-  if (trap.status !== 'paused') {
-    return res.status(400).json({
-      success: false,
-      error: 'Trap is not paused',
-    });
-  }
-  
-  const updatedTrap = await db.updateDeployedTrap(id, {
-    status: 'active',
-    lastActivity: new Date(),
-  });
-  
-  res.json({
-    success: true,
-    data: updatedTrap,
-    message: 'Trap resumed successfully',
-  });
 }));
 
 // Delete deployed trap
-router.delete('/deployed/:id', authMiddleware, asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  
-  const trap = await db.getDeployedTrap(id);
-  if (!trap) {
-    return res.status(404).json({
-      success: false,
-      error: 'Trap not found',
+router.delete('/:id', asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'User not authenticated'
+      });
+      return;
+    }
+
+    const trap = await db.getDeployedTrap(id);
+    
+    if (!trap) {
+      res.status(404).json({
+        error: 'Not Found',
+        message: 'Deployed trap not found'
+      });
+      return;
+    }
+
+    if (trap.user_id !== userId && req.user?.role !== 'admin') {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'You do not have permission to delete this trap'
+      });
+      return;
+    }
+
+    await db.query('DELETE FROM deployed_traps WHERE id = $1', [id]);
+    
+    res.json({
+      success: true,
+      message: 'Trap deleted successfully'
+    });
+  } catch (error) {
+    console.error('Failed to delete trap:', error);
+    res.status(500).json({
+      error: 'Failed to delete trap',
+      message: 'An error occurred while deleting the trap'
     });
   }
-  
-  // Check if user owns this trap
-  if (trap.userId !== req.user.id && req.user.role !== 'admin') {
-    return res.status(403).json({
-      success: false,
-      error: 'Access denied',
-    });
-  }
-  
-  await db.deleteDeployedTrap(id);
-  
-  res.json({
-    success: true,
-    message: 'Trap deleted successfully',
-  });
 }));
 
-// Rate trap template
-router.post('/templates/:id/rate', authMiddleware, asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { rating, comment } = req.body;
-  
-  if (!rating || rating < 1 || rating > 5) {
-    return res.status(400).json({
-      success: false,
-      error: 'Rating must be between 1 and 5',
+// Rate a trap template
+router.post('/:id/rate', asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rating, comment } = req.body;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'User not authenticated'
+      });
+      return;
+    }
+
+    if (!rating || rating < 1 || rating > 5) {
+      res.status(400).json({
+        error: 'Invalid rating',
+        message: 'Rating must be between 1 and 5'
+      });
+      return;
+    }
+
+    // Check if user has already rated this template
+    const existingRating = await db.query(
+      'SELECT * FROM template_ratings WHERE template_id = $1 AND user_id = $2',
+      [id, userId]
+    );
+
+    if (existingRating.rows.length > 0) {
+      res.status(400).json({
+        error: 'Already rated',
+        message: 'You have already rated this template'
+      });
+      return;
+    }
+
+    // Create the rating
+    await db.query(
+      'INSERT INTO template_ratings (template_id, user_id, rating, comment, created_at) VALUES ($1, $2, $3, $4, NOW())',
+      [id, userId, rating, comment || '']
+    );
+    
+    res.json({
+      success: true,
+      message: 'Rating submitted successfully'
+    });
+  } catch (error) {
+    console.error('Failed to submit rating:', error);
+    res.status(500).json({
+      error: 'Failed to submit rating',
+      message: 'An error occurred while submitting the rating'
     });
   }
-  
-  const template = await db.getTrapTemplate(id);
-  if (!template) {
-    return res.status(404).json({
-      success: false,
-      error: 'Template not found',
+}));
+
+// Get trap template ratings
+router.get('/:id/ratings', asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { limit = '20', offset = '0' } = req.query;
+
+    const ratings = await db.query(
+      'SELECT r.*, u.wallet_address FROM template_ratings r JOIN users u ON r.user_id = u.id WHERE r.template_id = $1 ORDER BY r.created_at DESC LIMIT $2 OFFSET $3',
+      [id, parseInt(limit as string), parseInt(offset as string)]
+    );
+    
+    res.json({
+      success: true,
+      data: ratings.rows,
+      pagination: {
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+        total: ratings.rows.length
+      }
+    });
+  } catch (error) {
+    console.error('Failed to get template ratings:', error);
+    res.status(500).json({
+      error: 'Failed to get template ratings',
+      message: 'An error occurred while retrieving ratings'
     });
   }
-  
-  // Check if user has already rated this template
-  const existingRating = await db.getTemplateRating(id, req.user.id);
-  if (existingRating) {
-    return res.status(400).json({
-      success: false,
-      error: 'You have already rated this template',
+}));
+
+// Get user's trap statistics
+router.get('/stats/overview', asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'User not authenticated'
+      });
+      return;
+    }
+
+    const stats = await db.getStats();
+    
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Failed to get trap statistics:', error);
+    res.status(500).json({
+      error: 'Failed to get trap statistics',
+      message: 'An error occurred while retrieving statistics'
     });
   }
-  
-  // Create rating
-  await db.createTemplateRating({
-    id: `rating_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    templateId: id,
-    userId: req.user.id,
-    rating,
-    comment: comment || '',
-    createdAt: new Date(),
-  });
-  
-  // Update template rating
-  const newRating = (template.rating * template.totalRatings + rating) / (template.totalRatings + 1);
-  await db.updateTrapTemplate(id, {
-    rating: newRating,
-    totalRatings: template.totalRatings + 1,
-  });
-  
-  res.json({
-    success: true,
-    message: 'Rating submitted successfully',
-    data: { rating: newRating, totalRatings: template.totalRatings + 1 },
-  });
 }));
 
-// Get template ratings
-router.get('/templates/:id/ratings', asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { page = 1, limit = 20 } = req.query;
-  
-  const ratings = await db.getTemplateRatings(id, {
-    page: parseInt(page as string),
-    limit: parseInt(limit as string),
-  });
-  
-  res.json({
-    success: true,
-    data: ratings,
-    pagination: {
-      page: parseInt(page as string),
-      limit: parseInt(limit as string),
-      total: ratings.length,
-    },
-  });
-}));
-
-// Get deployment statistics
-router.get('/stats', authMiddleware, asyncHandler(async (req, res) => {
-  const userId = req.user.role === 'admin' ? undefined : req.user.id;
-  
-  const stats = await db.getTrapStats(userId);
-  
-  res.json({
-    success: true,
-    data: stats,
-  });
-}));
-
-// Get popular templates
+// Get popular trap templates
 router.get('/templates/popular', asyncHandler(async (req, res) => {
-  const { limit = 10 } = req.query;
-  
-  const templates = await db.getPopularTrapTemplates(parseInt(limit as string));
-  
-  res.json({
-    success: true,
-    data: templates,
-  });
-}));
+  try {
+    const { limit = '10' } = req.query;
 
-// Search templates
-router.get('/templates/search', asyncHandler(async (req, res) => {
-  const { q, category, complexity, minRating, maxPrice, page = 1, limit = 20 } = req.query;
-  
-  if (!q) {
-    return res.status(400).json({
-      success: false,
-      error: 'Search query is required',
+    const templates = await db.getTrapTemplates({}, { limit: parseInt(limit as string) });
+    
+    res.json({
+      success: true,
+      data: templates
+    });
+  } catch (error) {
+    console.error('Failed to get popular templates:', error);
+    res.status(500).json({
+      error: 'Failed to get popular templates',
+      message: 'An error occurred while retrieving templates'
     });
   }
-  
-  const filters: any = { search: q as string };
-  if (category) filters.category = category;
-  if (complexity) filters.complexity = complexity;
-  if (minRating) filters.minRating = parseFloat(minRating as string);
-  if (maxPrice) filters.maxPrice = parseFloat(maxPrice as string);
-  
-  const templates = await db.searchTrapTemplates(filters, {
-    page: parseInt(page as string),
-    limit: parseInt(limit as string),
-  });
-  
-  res.json({
-    success: true,
-    data: templates,
-    pagination: {
-      page: parseInt(page as string),
-      limit: parseInt(limit as string),
-      total: templates.length,
-    },
-  });
 }));
 
-// Get template categories
-router.get('/categories', asyncHandler(async (req, res) => {
-  const categories = await db.getTrapTemplateCategories();
-  
-  res.json({
-    success: true,
-    data: categories,
-  });
+// Get trap template categories
+router.get('/templates/categories', asyncHandler(async (req, res) => {
+  try {
+    const categories = await db.getCategories();
+    
+    res.json({
+      success: true,
+      data: categories
+    });
+  } catch (error) {
+    console.error('Failed to get template categories:', error);
+    res.status(500).json({
+      error: 'Failed to get template categories',
+      message: 'An error occurred while retrieving categories'
+    });
+  }
 }));
 
-// Get template complexities
-router.get('/complexities', asyncHandler(async (req, res) => {
-  const complexities = await db.getTrapTemplateComplexities();
-  
-  res.json({
-    success: true,
-    data: complexities,
-  });
+// Get trap template complexities
+router.get('/templates/complexities', asyncHandler(async (req, res) => {
+  try {
+    const complexities = await db.getComplexities();
+    
+    res.json({
+      success: true,
+      data: complexities
+    });
+  } catch (error) {
+    console.error('Failed to get template complexities:', error);
+    res.status(500).json({
+      error: 'Failed to get template complexities',
+      message: 'An error occurred while retrieving complexities'
+    });
+  }
 }));
 
 export default router;

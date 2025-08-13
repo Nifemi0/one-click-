@@ -20,7 +20,7 @@ export const errorHandler = (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): void => {
   console.error('Error occurred:', error);
 
   // Default error values
@@ -45,11 +45,12 @@ export const errorHandler = (
 
   // Don't send error details in production
   if (process.env.NODE_ENV === 'production' && !isOperational) {
-    return res.status(500).json({
+    res.status(500).json({
       error: 'Internal Server Error',
       message: 'Something went wrong',
       timestamp: new Date().toISOString(),
     });
+    return;
   }
 
   // Send error response
@@ -66,7 +67,7 @@ export const errorHandler = (
 };
 
 // 404 handler for undefined routes
-export const notFoundHandler = (req: Request, res: Response) => {
+export const notFoundHandler = (req: Request, res: Response): void => {
   res.status(404).json({
     error: 'Not Found',
     message: `Route ${req.originalUrl} not found`,
@@ -80,14 +81,15 @@ export const validationErrorHandler = (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): void => {
   if (error.name === 'ValidationError') {
-    return res.status(400).json({
+    res.status(400).json({
       error: 'Validation Error',
       message: 'Invalid input data',
       details: error.details || error.message,
       timestamp: new Date().toISOString(),
     });
+    return;
   }
   next(error);
 };
@@ -98,29 +100,32 @@ export const databaseErrorHandler = (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): void => {
   if (error.code === '23505') { // Unique constraint violation
-    return res.status(409).json({
+    res.status(409).json({
       error: 'Conflict',
       message: 'Resource already exists',
       timestamp: new Date().toISOString(),
     });
+    return;
   }
   
   if (error.code === '23503') { // Foreign key constraint violation
-    return res.status(400).json({
+    res.status(400).json({
       error: 'Bad Request',
       message: 'Referenced resource does not exist',
       timestamp: new Date().toISOString(),
     });
+    return;
   }
   
   if (error.code === '42P01') { // Undefined table
-    return res.status(500).json({
+    res.status(500).json({
       error: 'Database Error',
       message: 'Database schema error',
       timestamp: new Date().toISOString(),
     });
+    return;
   }
   
   next(error);
@@ -132,21 +137,23 @@ export const jwtErrorHandler = (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): void => {
   if (error.name === 'JsonWebTokenError') {
-    return res.status(401).json({
+    res.status(401).json({
       error: 'Invalid Token',
       message: 'Token is invalid',
       timestamp: new Date().toISOString(),
     });
+    return;
   }
   
   if (error.name === 'TokenExpiredError') {
-    return res.status(401).json({
+    res.status(401).json({
       error: 'Token Expired',
       message: 'Token has expired',
       timestamp: new Date().toISOString(),
     });
+    return;
   }
   
   next(error);
