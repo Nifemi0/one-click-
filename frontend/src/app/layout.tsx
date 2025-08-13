@@ -68,6 +68,8 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {/* Fallback CSS link for Netlify compatibility */}
+        <link rel="stylesheet" href="/fallback.css" />
       </head>
       <body className="antialiased">
         {children}
