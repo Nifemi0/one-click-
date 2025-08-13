@@ -7,8 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "export": "next build && next export",
-    "netlify-build": "next build"
+    "export": "next build",
+    "netlify-build": "next build",
+    "build:css": "tailwindcss -i ./src/app/globals.css -o ./src/app/output.css --watch",
+    "build:production": "NODE_ENV=production next build"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.7",
@@ -16,8 +18,11 @@
     "@rainbow-me/rainbowkit": "^2.2.8",
     "@tanstack/react-query": "^5.84.2",
     "@wagmi/core": "^2.19.0",
+    "autoprefixer": "^10.4.21",
     "clsx": "^2.1.1",
     "connectkit": "^1.9.1",
+    "critters": "^0.0.23",
+    "cssnano": "^7.1.0",
     "ethers": "^6.15.0",
     "lucide-react": "^0.539.0",
     "next": "15.4.6",
@@ -30,7 +35,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/postcss": "^4.1.11",
     "@types/next": "^8.0.7",
     "@types/node": "^20.19.10",
     "@types/react": "^18.3.23",
