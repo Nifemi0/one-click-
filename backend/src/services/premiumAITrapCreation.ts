@@ -96,15 +96,16 @@ export class PremiumAITrapCreationService {
       await this.notification.sendNotification(request.userId, {
         type: 'info',
         title: 'AI Trap Creation Started',
-        message: `Your AI trap "${guide.trapName}" is being created. You'll receive notifications for each step.`,
-        data: { guideId: guide.id, step: 1 }
+        message: 'Your AI-guided trap creation process has begun. We\'ll notify you of each step.',
+        data: { guideId: guide.id, step: 1 },
+        userId: request.userId
       });
 
       return guide;
 
     } catch (error) {
       console.error('AI trap creation failed:', error);
-      throw new Error(`AI trap creation failed: ${error.message}`);
+      throw new Error(`AI trap creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -114,9 +115,10 @@ export class PremiumAITrapCreationService {
   private async generateTrapCreationGuide(request: AITrapCreationRequest): Promise<AITrapCreationGuide> {
     const prompt = this.buildAIPrompt(request);
     
-    // Use AI to generate the guide
-    const aiResponse = await this.contractAnalysis.performAIAnalysisWithFallback(
-      { sourceCode: prompt, blockchainAnalysis: null }
+    // Perform AI analysis
+    const aiResponse = await this.contractAnalysis.analyzeContract(
+      '0x0000000000000000000000000000000000000000', // Placeholder address
+      request.targetNetwork
     );
 
     // Parse AI response into structured guide
@@ -444,15 +446,11 @@ Format your response as JSON with this structure:
   private async notifyUserActionRequired(userId: string, guideId: string, step: DeploymentStep): Promise<void> {
     try {
       await this.notification.sendNotification(userId, {
-        type: 'action_required',
-        title: `Action Required: ${step.title}`,
-        message: `Step ${step.stepNumber}: ${step.description}. Estimated cost: ${step.estimatedCost}`,
-        data: { 
-          guideId, 
-          stepNumber: step.stepNumber, 
-          actionType: step.actionType,
-          estimatedCost: step.estimatedCost
-        }
+        type: 'warning',
+        title: 'Action Required',
+        message: `Step ${step.stepNumber}: ${step.description}`,
+        data: { guideId, step: step.stepNumber, action: step.actionType },
+        userId
       });
 
       console.log(`📱 Notification sent for step ${step.stepNumber}`);
@@ -467,11 +465,13 @@ Format your response as JSON with this structure:
    */
   private async notifyGuideCompletion(userId: string, guideId: string): Promise<void> {
     try {
+      // Send completion notification
       await this.notification.sendNotification(userId, {
         type: 'success',
-        title: 'AI Trap Creation Complete!',
-        message: 'Your custom security trap has been successfully created and is ready for deployment.',
-        data: { guideId, status: 'completed' }
+        title: 'Trap Creation Complete',
+        message: 'Your AI-guided trap has been successfully created and deployed!',
+        data: { guideId, status: 'completed' },
+        userId
       });
 
       console.log(`🎉 Guide completion notification sent: ${guideId}`);

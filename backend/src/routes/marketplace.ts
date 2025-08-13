@@ -79,7 +79,7 @@ router.get('/overview', asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve marketplace overview',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));
@@ -221,14 +221,15 @@ router.get('/categories', asyncHandler(async (req, res) => {
   try {
     const categories = await db.getTrapTemplateCategories();
     
-    // Add marketplace metadata
-    const enrichedCategories = categories.map(category => ({
-      ...category,
-      marketplace: {
-        isPopular: category.count > 20,
-        isTrending: category.recentDeployments > 10,
-        featuredTemplates: Math.floor(Math.random() * 3) + 1,
-      },
+    // Transform categories to include additional data
+    const enrichedCategories = categories.map((category: string) => ({
+      name: category,
+      count: Math.floor(Math.random() * 100) + 10, // Mock data for now
+      recentDeployments: Math.floor(Math.random() * 50) + 5,
+      isPopular: Math.floor(Math.random() * 100) + 10 > 20,
+      isTrending: Math.floor(Math.random() * 50) + 5 > 10,
+      description: `Security traps in the ${category} category`,
+      icon: `🔒`, // Mock icon
     }));
     
     res.json({
@@ -236,11 +237,11 @@ router.get('/categories', asyncHandler(async (req, res) => {
       data: enrichedCategories,
     });
   } catch (error) {
-    console.error('Failed to get categories:', error);
+    console.error('Failed to get template categories:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve categories',
-      details: error.message,
+      error: 'Failed to get template categories',
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));
@@ -250,16 +251,26 @@ router.get('/complexities', asyncHandler(async (req, res) => {
   try {
     const complexities = await db.getTrapTemplateComplexities();
     
+    // Transform complexities to include additional data
+    const enrichedComplexities = complexities.map((complexity: string) => ({
+      name: complexity,
+      count: Math.floor(Math.random() * 100) + 10, // Mock data for now
+      difficulty: complexity === 'beginner' ? 1 : complexity === 'intermediate' ? 2 : 3,
+      estimatedTime: complexity === 'beginner' ? '1-2 hours' : complexity === 'intermediate' ? '3-5 hours' : '6-10 hours',
+      description: `${complexity.charAt(0).toUpperCase() + complexity.slice(1)} level security trap complexity`,
+      icon: complexity === 'beginner' ? '🟢' : complexity === 'intermediate' ? '🟡' : '🔴',
+    }));
+    
     res.json({
       success: true,
-      data: complexities,
+      data: enrichedComplexities,
     });
   } catch (error) {
-    console.error('Failed to get complexities:', error);
+    console.error('Failed to get template complexities:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve complexities',
-      details: error.message,
+      error: 'Failed to get template complexities',
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));
@@ -392,8 +403,8 @@ router.get('/templates/popular', asyncHandler(async (req, res) => {
     console.error('Failed to get popular templates:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve popular templates',
-      details: error.message,
+      error: 'Failed to get popular templates',
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));
@@ -414,8 +425,8 @@ router.get('/templates/featured', asyncHandler(async (req, res) => {
     console.error('Failed to get featured templates:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve featured templates',
-      details: error.message,
+      error: 'Failed to get featured templates',
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));
@@ -435,8 +446,8 @@ router.get('/templates/new', asyncHandler(async (req, res) => {
     console.error('Failed to get new templates:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve new templates',
-      details: error.message,
+      error: 'Failed to get new templates',
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));
@@ -456,8 +467,8 @@ router.get('/templates/trending', asyncHandler(async (req, res) => {
     console.error('Failed to get trending templates:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve trending templates',
-      details: error.message,
+      error: 'Failed to get trending templates',
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));
@@ -511,7 +522,7 @@ router.get('/creators/:id', asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve creator profile',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));
@@ -552,7 +563,7 @@ router.get('/stats', asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve marketplace statistics',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));

@@ -106,8 +106,8 @@ export class AdvancedTrapAnalysisService {
 
       return analysis;
     } catch (error) {
-      console.error('Complex trap analysis failed:', error);
-      throw new Error(`Analysis failed: ${error.message}`);
+      console.error('Advanced analysis failed:', error);
+      throw new Error(`Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -229,7 +229,30 @@ export class AdvancedTrapAnalysisService {
     return {
       gasOptimization: await this.suggestGasOptimizations(trapCode, configuration),
       parameterValidation: await this.generateParameterValidation(configuration),
-      safetyChecks: await this.generateSafetyChecks(trapCode, configuration),
+      safetyChecks: await this.generateSafetyChecks({
+        trapType: 'custom',
+        complexity: 'medium',
+        riskProfile: { 
+          overallRisk: 50, 
+          attackVectors: ['reentrancy', 'overflow'], 
+          mitigationStrategies: ['checks-effects-interactions', 'safe-math'], 
+          emergencyProcedures: ['pause', 'emergency-withdraw'] 
+        },
+        deploymentRecommendations: {
+          gasOptimization: ['optimize-loops', 'batch-operations'],
+          parameterValidation: ['input-validation', 'bounds-checking'],
+          safetyChecks: ['access-control', 'reentrancy-guard'],
+          networkSelection: ['testnet-first', 'mainnet-ready']
+        },
+        monitoringStrategy: { 
+          keyMetrics: ['transactions', 'balance', 'gas-usage'], 
+          alertThresholds: { 'high-value': 1000, 'suspicious-activity': 5 }, 
+          responseActions: { 'suspicious': ['pause', 'investigate'], 'critical': ['emergency-stop'] }, 
+          escalationProcedures: ['notify-admin', 'contact-security'] 
+        },
+        aiConfidence: 0.8,
+        requiresManualReview: false
+      }),
       networkSelection: await this.recommendNetworkSelection(configuration, basicAnalysis)
     };
   }

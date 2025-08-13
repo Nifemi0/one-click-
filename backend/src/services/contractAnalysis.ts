@@ -179,7 +179,7 @@ export class ContractAnalysisService {
       return enhancedAnalysis;
     } catch (error) {
       console.error('Contract analysis failed:', error);
-      throw new Error(`Analysis failed: ${error.message}`);
+      throw new Error(`Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

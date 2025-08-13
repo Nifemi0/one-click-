@@ -251,7 +251,7 @@ export class MultiRPCService {
       
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      this.updateProviderHealth(rpcProvider, false, responseTime, error.message);
+      this.updateProviderHealth(rpcProvider, false, responseTime, error instanceof Error ? error.message : 'Unknown error');
       throw error;
     }
   }
@@ -358,7 +358,7 @@ export class MultiRPCService {
         }
         
       } catch (error) {
-        this.updateProviderHealth(provider, false, 0, error.message);
+        this.updateProviderHealth(provider, false, 0, error instanceof Error ? error.message : 'Unknown error');
       }
     });
 
