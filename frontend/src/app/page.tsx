@@ -144,20 +144,46 @@ export default function Home() {
             Help us continue building One Click on Hoodi testnet. Your donations support development, 
             testing, and future mainnet features.
           </p>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 mb-10">
-            <h3 className="text-2xl font-bold mb-6 text-orange-400">Donate</h3>
-            <p className="text-gray-400 mb-6 text-base leading-relaxed">Send any amount to support One Click development</p>
-            <div className="bg-gray-800 border border-gray-700 rounded-lg p-5 mb-6">
-              <p className="text-sm text-gray-400 mb-3 font-medium">Wallet Address:</p>
-              <p className="text-sm font-mono text-orange-400 break-all leading-relaxed">0xa3B983c22c10Bb64bd812ACd9Eb15B13856aF3b7</p>
+          
+          {/* Donation and Social Media Row */}
+          <div className="flex flex-col lg:flex-row gap-8 mb-10">
+            {/* Donation Box */}
+            <div className="flex-1 bg-gray-900 border border-gray-800 rounded-xl p-8">
+              <h3 className="text-2xl font-bold mb-6 text-orange-400">Donate</h3>
+              <p className="text-gray-400 mb-6 text-base leading-relaxed">Send any amount to support One Click development</p>
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-5 mb-6">
+                <p className="text-sm text-gray-400 mb-3 font-medium">Wallet Address:</p>
+                <p className="text-sm font-mono text-orange-400 break-all leading-relaxed">0xa3B983c22c10Bb64bd812ACd9Eb15B13856aF3b7</p>
+              </div>
+              <button 
+                className="btn-primary text-sm px-6 py-3"
+                onClick={copyAddress}
+              >
+                📋 Copy Address
+              </button>
             </div>
-            <button 
-              className="btn-primary text-sm px-6 py-3"
-              onClick={copyAddress}
-            >
-              📋 Copy Address
-            </button>
+
+            {/* Social Media Box */}
+            <div className="flex-1 bg-gray-900 border border-gray-800 rounded-xl p-8">
+              <h3 className="text-2xl font-bold mb-6 text-orange-400">Connect With Us</h3>
+              <p className="text-gray-400 mb-6 text-base leading-relaxed">Follow us for updates, news, and community updates</p>
+              <div className="space-y-4">
+                <a 
+                  href="https://x.com/Love_Light_11" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
+                >
+                  <span className="mr-2">🐦</span>
+                  Follow on X (Twitter)
+                </a>
+                <div className="text-center">
+                  <p className="text-sm text-gray-400">More social platforms coming soon!</p>
+                </div>
+              </div>
+            </div>
           </div>
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button className="btn-primary text-lg px-8 py-4 glow-orange">🚀 Get Started Now</button>
             <button className="btn-secondary text-lg px-8 py-4">📖 Read Documentation</button>
@@ -198,7 +224,6 @@ export default function Home() {
               <h4 className="text-white font-semibold mb-6">Community</h4>
               <ul className="space-y-3 text-gray-400">
                 <li><a className="hover:text-white transition-colors" href="#">Discord</a></li>
-                <li><a className="hover:text-white transition-colors" href="https://x.com/Love_Light_11" target="_blank" rel="noopener noreferrer">X (Twitter)</a></li>
                 <li><a className="hover:text-white transition-colors" href="#">GitHub</a></li>
               </ul>
             </div>
