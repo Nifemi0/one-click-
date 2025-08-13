@@ -1,49 +1,54 @@
 #!/usr/bin/env node
 
-const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-console.log('🚀 Starting Netlify build...');
+console.log('🚀 Starting Netlify build process...');
 
-try {
-  // Clean previous build
-  console.log('🧹 Cleaning previous build...');
-  if (fs.existsSync('.next')) {
-    fs.rmSync('.next', { recursive: true, force: true });
-  }
-  if (fs.existsSync('out')) {
-    fs.rmSync('out', { recursive: true, force: true });
-  }
-
-  // Install dependencies
-  console.log('📦 Installing dependencies...');
-  execSync('npm install', { stdio: 'inherit' });
-
-  // Build the application
-  console.log('🔨 Building application...');
-  execSync('npm run build', { stdio: 'inherit' });
-
-  // Copy static files
-  console.log('📁 Copying static files...');
-  if (!fs.existsSync('out')) {
-    fs.mkdirSync('out');
-  }
-
-  // Copy public files
-  if (fs.existsSync('public')) {
-    execSync('cp -r public/* out/', { stdio: 'inherit' });
-  }
-
-  // Copy .next files for static export
-  if (fs.existsSync('.next')) {
-    execSync('cp -r .next out/', { stdio: 'inherit' });
-  }
-
-  console.log('✅ Netlify build completed successfully!');
-  console.log('📁 Build output directory: out/');
-
-} catch (error) {
-  console.error('❌ Build failed:', error);
-  process.exit(1);
+// Clean previous builds
+console.log('🧹 Cleaning previous builds...');
+if (fs.existsSync('out')) {
+  fs.rmSync('out', { recursive: true, force: true });
 }
+
+// Install dependencies
+console.log('📦 Installing dependencies...');
+const { execSync } = require('child_process');
+execSync('npm install', { stdio: 'inherit' });
+
+// Build the project
+console.log('🔨 Building project...');
+execSync('npm run build', { stdio: 'inherit' });
+
+// Verify build output
+console.log('✅ Build completed!');
+console.log('📁 Build output contents:');
+execSync('ls -la out/', { stdio: 'inherit' });
+
+console.log('📁 CSS files:');
+execSync('ls -la out/_next/static/css/', { stdio: 'inherit' });
+
+console.log('📁 JS files:');
+execSync('ls -la out/_next/static/chunks/', { stdio: 'inherit' });
+
+// Copy CSS to root for easier access (backup)
+console.log('📋 Creating CSS backup in root...');
+if (fs.existsSync('out/_next/static/css')) {
+  const cssFiles = fs.readdirSync('out/_next/static/css');
+  cssFiles.forEach(file => {
+    if (file.endsWith('.css')) {
+      const sourcePath = path.join('out/_next/static/css', file);
+      const destPath = path.join('out', file);
+      const fallbackPath = path.join('out', 'fallback.css');
+      fs.copyFileSync(sourcePath, destPath);
+      fs.copyFileSync(sourcePath, fallbackPath);
+      console.log(`📄 Copied ${file} to root and created fallback.css`);
+    }
+  });
+}
+
+console.log('🎉 Netlify build process completed successfully!');
+console.log('📝 Next steps:');
+console.log('   1. Deploy the "out" folder to Netlify');
+console.log('   2. Check that CSS files are accessible');
+console.log('   3. Verify routing works correctly');

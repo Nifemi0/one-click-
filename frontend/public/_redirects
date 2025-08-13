@@ -1,1 +1,11 @@
-/*    /index.html   200
+# Redirect all routes to index.html for SPA routing
+/* /index.html 200
+
+# Ensure CSS files are accessible
+/_next/static/css/* /_next/static/css/:splat 200
+
+# Ensure JS files are accessible
+/_next/static/chunks/* /_next/static/chunks/:splat 200
+
+# Ensure font files are accessible
+/_next/static/media/* /_next/static/media/:splat 200
