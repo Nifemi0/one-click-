@@ -5,29 +5,29 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Drosera - DeFi Security Made Simple",
-  description: "Deploy sophisticated security traps across multiple blockchains with AI-powered analysis. Protect your assets with enterprise-grade security made simple.",
-  keywords: ["DeFi", "security", "blockchain", "smart contracts", "cryptocurrency", "Ethereum", "Polygon", "Arbitrum", "Base"],
-  authors: [{ name: "Drosera Network" }],
-  creator: "Drosera Network",
-  publisher: "Drosera Network",
+  title: "One Click - DeFi Security Made Simple",
+  description: "Deploy sophisticated security traps on Hoodi testnet with AI-powered analysis. Protect your assets with enterprise-grade security made simple.",
+  keywords: ["DeFi", "security", "blockchain", "smart contracts", "cryptocurrency", "Hoodi", "testnet", "one click"],
+  authors: [{ name: "One Click Network" }],
+  creator: "One Click Network",
+  publisher: "One Click Network",
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://drosera.network'),
+  metadataBase: new URL('https://oneclick.network'),
   openGraph: {
-    title: "Drosera - DeFi Security Made Simple",
-    description: "Deploy sophisticated security traps across multiple blockchains with AI-powered analysis.",
-    url: 'https://drosera.network',
-    siteName: 'Drosera Network',
+    title: "One Click - DeFi Security Made Simple",
+    description: "Deploy sophisticated security traps on Hoodi testnet with AI-powered analysis.",
+    url: 'https://oneclick.network',
+    siteName: 'One Click Network',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Drosera Network - DeFi Security Platform',
+        alt: 'One Click Network - DeFi Security Platform',
       },
     ],
     locale: 'en_US',
@@ -35,8 +35,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: "Drosera - DeFi Security Made Simple",
-    description: "Deploy sophisticated security traps across multiple blockchains with AI-powered analysis.",
+    title: "One Click - DeFi Security Made Simple",
+    description: "Deploy sophisticated security traps on Hoodi testnet with AI-powered analysis.",
     images: ['/og-image.png'],
   },
   robots: {
