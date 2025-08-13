@@ -45,9 +45,12 @@ export default function Home() {
               <br />
               <span className="gradient-text">One Click</span>
             </h1>
-            <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed mb-4">
               Deploy sophisticated security traps across multiple blockchains with AI-powered analysis. 
               Protect your assets with enterprise-grade security made simple.
+            </p>
+            <p className="text-lg text-orange-400 font-medium">
+              Protect assets across Ethereum, Polygon, Arbitrum, Base, and more.
             </p>
           </div>
           
@@ -58,6 +61,36 @@ export default function Home() {
             <button className="btn-secondary text-lg px-8 py-4">
               📚 View Templates
             </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-900/50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4 text-white">Multi-Chain Security Coverage</h2>
+            <p className="text-lg text-orange-400 font-medium mb-8">
+              Protect assets across Ethereum, Polygon, Arbitrum, Base, and more.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-orange-500 mb-2">5+</div>
+              <div className="text-gray-300">Blockchains</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-orange-500 mb-2">99.9%</div>
+              <div className="text-gray-300">Success Rate</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-orange-500 mb-2">24/7</div>
+              <div className="text-gray-300">Monitoring</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-orange-500 mb-2">50K+</div>
+              <div className="text-gray-300">Traps Deployed</div>
+            </div>
           </div>
         </div>
       </section>
