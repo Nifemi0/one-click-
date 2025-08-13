@@ -61,7 +61,7 @@ router.post('/analyze', optionalAuthMiddleware, asyncHandler(async (req, res) =>
     res.status(500).json({
       success: false,
       error: 'Analysis failed',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));
@@ -107,7 +107,7 @@ router.get('/analyze/:address/:chainId', asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve analysis',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));
@@ -157,7 +157,7 @@ router.get('/history/:address/:chainId', asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve analysis history',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));
@@ -221,7 +221,7 @@ router.post('/compare', optionalAuthMiddleware, asyncHandler(async (req, res) =>
     res.status(500).json({
       success: false,
       error: 'Comparison failed',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));
@@ -264,7 +264,7 @@ router.get('/stats', asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve analysis statistics',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));
@@ -330,7 +330,7 @@ router.get('/networks', asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve supported networks',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));
@@ -410,7 +410,7 @@ router.get('/features', asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve analysis features',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));
@@ -440,7 +440,7 @@ router.get('/health', asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Health check failed',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));
@@ -478,7 +478,7 @@ router.get('/rate-limit', asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve rate limit information',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));

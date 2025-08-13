@@ -291,4 +291,73 @@ export class NotificationService {
       };
     }
   }
+
+  // Add missing methods for user preferences
+  async getUserPreferences(userId: string): Promise<any> {
+    try {
+      const user = await this.db.getUser(userId);
+      if (!user) {
+        return {
+          email: false,
+          push: true,
+          telegram: false,
+          discord: false
+        };
+      }
+
+      return user.preferences?.notifications || {
+        email: false,
+        push: true,
+        telegram: false,
+        discord: false
+      };
+    } catch (error) {
+      console.error('Failed to get user preferences:', error);
+      return {
+        email: false,
+        push: true,
+        telegram: false,
+        discord: false
+      };
+    }
+  }
+
+  async updateUserPreferences(userId: string, preferences: any): Promise<void> {
+    try {
+      await this.db.updateUser(userId, {
+        preferences: {
+          notifications: preferences
+        }
+      });
+    } catch (error) {
+      console.error('Failed to update user preferences:', error);
+      throw error;
+    }
+  }
+
+  // Add missing method for channel health
+  async checkChannelHealth(): Promise<Record<string, boolean>> {
+    const health: Record<string, boolean> = {};
+
+    try {
+      // Check webhook health
+      health.webhook = !!this.webhookUrl;
+
+      // Check push notification health
+      health.push = !!(this.pushVapidPublicKey && this.pushVapidPrivateKey);
+
+      // Check database health
+      const dbHealth = await this.db.query('SELECT NOW()');
+      health.database = dbHealth.rows.length > 0;
+
+      return health;
+    } catch (error) {
+      console.error('Failed to check channel health:', error);
+      return {
+        webhook: false,
+        push: false,
+        database: false
+      };
+    }
+  }
 }

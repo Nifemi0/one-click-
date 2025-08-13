@@ -155,56 +155,65 @@ router.get('/templates', optionalAuthMiddleware, asyncHandler(async (req, res) =
 router.get('/templates/:id', optionalAuthMiddleware, asyncHandler(async (req, res) => {
   const { id } = req.params;
   
-  const template = await db.getTrapTemplate(id);
-  if (!template) {
-    return res.status(404).json({
+  try {
+    const template = await db.getTrapTemplate(id);
+    if (!template) {
+      return res.status(404).json({
+        success: false,
+        error: 'Template not found',
+      });
+    }
+    
+    // Get creator profile
+    const creator = await db.getUser(template.creatorId);
+    
+    // Get deployment statistics
+    const deploymentStats = await db.getTemplateDeploymentStats(id);
+    
+    // Get user's deployment history if authenticated
+    let userDeployment = null;
+    if (req.user) {
+      userDeployment = await db.getUserTemplateDeployment(req.user.id, id);
+    }
+    
+    // Get related templates
+    const relatedTemplates = await db.getRelatedTemplates(id, template.category, 5);
+    
+    const enrichedTemplate = {
+      ...template,
+      creator: creator ? {
+        id: creator.id,
+        username: creator.username,
+        avatar: creator.avatar,
+        reputation: creator.reputation || 0,
+        totalTemplates: creator.totalTemplates || 0,
+        totalDeployments: creator.totalDeployments || 0,
+      } : null,
+      deploymentStats,
+      userDeployment,
+      relatedTemplates,
+      marketplace: {
+        isFeatured: Math.random() > 0.7,
+        isTrending: template.deployments > 50,
+        isNew: Date.now() - new Date(template.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000,
+        discount: Math.random() > 0.8 ? Math.floor(Math.random() * 30) + 10 : 0,
+        views: Math.floor(Math.random() * 1000) + 100,
+        favorites: Math.floor(Math.random() * 100) + 10,
+      },
+    };
+    
+    res.json({
+      success: true,
+      data: enrichedTemplate,
+    });
+  } catch (error) {
+    console.error('Failed to get template details:', error);
+    res.status(500).json({
       success: false,
-      error: 'Template not found',
+      error: 'Failed to get template details',
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
-  
-  // Get creator profile
-  const creator = await db.getUser(template.creatorId);
-  
-  // Get deployment statistics
-  const deploymentStats = await db.getTemplateDeploymentStats(id);
-  
-  // Get user's deployment history if authenticated
-  let userDeployment = null;
-  if (req.user) {
-    userDeployment = await db.getUserTemplateDeployment(req.user.id, id);
-  }
-  
-  // Get related templates
-  const relatedTemplates = await db.getRelatedTemplates(id, template.category, 5);
-  
-  const enrichedTemplate = {
-    ...template,
-    creator: creator ? {
-      id: creator.id,
-      username: creator.username,
-      avatar: creator.avatar,
-      reputation: creator.reputation || 0,
-      totalTemplates: creator.totalTemplates || 0,
-      totalDeployments: creator.totalDeployments || 0,
-    } : null,
-    deploymentStats,
-    userDeployment,
-    relatedTemplates,
-    marketplace: {
-      isFeatured: Math.random() > 0.7,
-      isTrending: template.deployments > 50,
-      isNew: Date.now() - new Date(template.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000,
-      discount: Math.random() > 0.8 ? Math.floor(Math.random() * 30) + 10 : 0,
-      views: Math.floor(Math.random() * 1000) + 100,
-      favorites: Math.floor(Math.random() * 100) + 10,
-    },
-  };
-  
-  res.json({
-    success: true,
-    data: enrichedTemplate,
-  });
 }));
 
 // Get template categories with counts

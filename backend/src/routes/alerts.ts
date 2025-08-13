@@ -373,33 +373,37 @@ router.post('/custom', authMiddleware, requireRole('admin'), asyncHandler(async 
     });
   }
   
-  const alert = await db.createAlert({
-    id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    userId,
-    type,
-    severity,
-    title,
-    message,
-    data: data || {},
-    chainId: chainId || null,
-    contractAddress: contractAddress || null,
-    createdAt: new Date(),
-    isRead: false,
-  });
-  
-  // Send notification
-  await notification.sendNotification(userId, {
-    type: severity === 'critical' ? 'error' : severity === 'high' ? 'warning' : 'info',
-    title,
-    message,
-    data: alert,
-  });
-  
-  res.status(201).json({
-    success: true,
-    data: alert,
-    message: 'Custom alert created and notification sent',
-  });
+  try {
+    const alert = await db.createAlert({
+      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      userId,
+      type,
+      severity,
+      title,
+      message,
+      data: data || {},
+      chainId: chainId || null,
+      contractAddress: contractAddress || null,
+      createdAt: new Date(),
+      isRead: false,
+    });
+    
+    // Send notification to user
+    await notification.sendNotification(userId, {
+      type,
+      title: `Alert: ${title}`,
+      message,
+      userId
+    });
+  } catch (error) {
+    console.error('Failed to create alert:', error);
+    res.status(500).json({
+      error: 'Failed to create alert',
+      message: 'An error occurred while creating the alert',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return;
+  }
 }));
 
 // Get system alerts (admin only)
@@ -553,6 +557,7 @@ router.post('/test-notification', authMiddleware, requireRole('admin'), asyncHan
       type,
       title,
       message,
+      userId
     });
     
     res.json({
@@ -563,7 +568,7 @@ router.post('/test-notification', authMiddleware, requireRole('admin'), asyncHan
     res.status(500).json({
       success: false,
       error: 'Failed to send test notification',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }));

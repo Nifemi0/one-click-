@@ -216,7 +216,8 @@ export class BlockchainService {
             type: 'success',
             title: 'Deployment Successful',
             message: 'Security trap deployed successfully',
-            data: { deploymentId: deployment.id, contractAddress: deployedAddress }
+            data: { deploymentId: deployment.id, contractAddress: deployedAddress },
+            userId
           });
 
           return {
@@ -240,7 +241,8 @@ export class BlockchainService {
           type: 'error',
           title: 'Deployment Failed',
           message: `Failed to deploy security trap: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          data: { deploymentId: deployment.id }
+          data: { deploymentId: deployment.id },
+          userId
         });
 
         throw new Error(`Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
