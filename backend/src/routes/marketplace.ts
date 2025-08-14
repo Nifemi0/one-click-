@@ -9,65 +9,23 @@ const db = new DatabaseService();
 // Get marketplace overview
 router.get('/overview', asyncHandler(async (req, res) => {
   try {
+    // Get REAL data from database instead of hardcoded fake data
+    const totalTemplates = await db.getTrapTemplateCount();
+    const totalDeployments = await db.getDeployedTrapCount();
+    const totalUsers = await db.getUserCount();
+    const totalRevenue = await db.getTotalRevenue();
+    const topCategories = await db.getTopCategories();
+    const trendingTemplates = await db.getTrendingTemplates();
+    const recentActivity = await db.getRecentActivity();
+    
     const overview = {
-      totalTemplates: 156,
-      totalDeployments: 2847,
-      totalUsers: 892,
-      totalRevenue: 156.78, // ETH
-      topCategories: [
-        { name: 'DeFi Protocols', count: 45, deployments: 1234 },
-        { name: 'NFT Marketplaces', count: 32, deployments: 567 },
-        { name: 'DEX Aggregators', count: 28, deployments: 456 },
-        { name: 'Lending Platforms', count: 25, deployments: 389 },
-        { name: 'Yield Farming', count: 22, deployments: 234 },
-      ],
-      trendingTemplates: [
-        {
-          id: 'template_1',
-          name: 'Reentrancy Guard Pro',
-          category: 'Security',
-          deployments: 156,
-          rating: 4.8,
-          price: 0.05,
-        },
-        {
-          id: 'template_2',
-          name: 'Access Control Manager',
-          category: 'Security',
-          deployments: 134,
-          rating: 4.7,
-          price: 0.03,
-        },
-        {
-          id: 'template_3',
-          name: 'Flash Loan Protection',
-          category: 'DeFi',
-          deployments: 98,
-          rating: 4.6,
-          price: 0.08,
-        },
-      ],
-      recentActivity: [
-        {
-          type: 'deployment',
-          templateName: 'Reentrancy Guard Pro',
-          user: '0x1234...5678',
-          timestamp: new Date(Date.now() - 300000), // 5 minutes ago
-        },
-        {
-          type: 'rating',
-          templateName: 'Access Control Manager',
-          user: '0x8765...4321',
-          rating: 5,
-          timestamp: new Date(Date.now() - 600000), // 10 minutes ago
-        },
-        {
-          type: 'deployment',
-          templateName: 'Flash Loan Protection',
-          user: '0x9876...5432',
-          timestamp: new Date(Date.now() - 900000), // 15 minutes ago
-        },
-      ],
+      totalTemplates,
+      totalDeployments,
+      totalUsers,
+      totalRevenue,
+      topCategories,
+      trendingTemplates,
+      recentActivity
     };
     
     res.json({

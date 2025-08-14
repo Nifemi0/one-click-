@@ -24,7 +24,8 @@ const basicTrapService = new BasicTrapDeploymentService(db, blockchain, notifica
  */
 router.get('/templates', async (req, res) => {
   try {
-    const templates = basicTrapService.getTrapTemplates();
+    // Get REAL templates from database instead of hardcoded
+    const templates = await basicTrapService.getTrapTemplates();
     
     res.json({
       success: true,

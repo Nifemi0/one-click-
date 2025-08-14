@@ -270,11 +270,10 @@ export class BasicTrapDeploymentService {
    */
   private async deployContract(template: TrapTemplate, trap: BasicTrap): Promise<any> {
     try {
-      console.log(`🔨 Deploying ${template.name} contract...`);
+      console.log(`🔨 Deploying ${template.name} contract to blockchain...`);
       
-      // This would integrate with your blockchain service
-      // For now, we'll simulate the deployment
-      const deploymentResult = await this.simulateContractDeployment(template, trap);
+      // Use REAL blockchain service instead of simulation
+      const deploymentResult = await this.deployRealContract(template, trap);
       
       return deploymentResult;
     } catch (error) {
@@ -284,30 +283,36 @@ export class BasicTrapDeploymentService {
   }
 
   /**
-   * Simulate contract deployment (replace with real deployment)
+   * REAL contract deployment using blockchain service
    */
-  private async simulateContractDeployment(template: TrapTemplate, trap: BasicTrap): Promise<any> {
-    // Simulate deployment delay based on complexity
-    const delay = template.complexity === 'simple' ? 3000 : 5000;
-    await new Promise(resolve => setTimeout(resolve, delay));
-    
-    // Generate random contract address and transaction hash
-    const address = `0x${Math.random().toString(16).substr(2, 40)}`;
-    const txHash = `0x${Math.random().toString(16).substr(2, 64)}`;
-    
-    // Calculate actual cost (slightly randomize for realism)
-    const costString = template.estimatedCost;
-    if (!costString) {
-      throw new Error('Template cost is undefined');
+  private async deployRealContract(template: TrapTemplate, trap: BasicTrap): Promise<any> {
+    try {
+      console.log(`🔨 Deploying REAL contract: ${template.name}`);
+      
+      // Validate template has contract code
+      if (!template.contractCode) {
+        throw new Error('Template contract code is missing');
+      }
+
+      // Deploy using the REAL blockchain service
+      const deploymentResult = await this.blockchain.deploySecurityTrap(
+        trap.userId,
+        template.id,
+        template.deploymentConfig?.constructorArgs || [],
+        trap.network
+      );
+
+      console.log(`✅ Real contract deployed: ${deploymentResult.contractAddress}`);
+      
+      return {
+        address: deploymentResult.contractAddress,
+        txHash: deploymentResult.transactionHash,
+        cost: template.estimatedCost // Use template cost since blockchain service doesn't return actual cost
+      };
+    } catch (error) {
+      console.error('Real deployment failed:', error);
+      throw new Error(`Blockchain deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-    const baseCost = parseFloat(costString.split(' ')[0]);
-    const actualCost = (baseCost * (0.9 + Math.random() * 0.2)).toFixed(4);
-    
-    return {
-      address,
-      txHash,
-      cost: `${actualCost} ETH`
-    };
   }
 
   /**
@@ -315,18 +320,21 @@ export class BasicTrapDeploymentService {
    */
   private async saveBasicTrap(trap: BasicTrap): Promise<void> {
     try {
-      await this.db.query(`
-        INSERT INTO basic_traps (
-          id, user_id, trap_type, trap_name, description, 
-          contract_address, deployment_tx_hash, network, status, 
-          estimated_cost, created_at, metadata
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-      `, [
-        trap.id, trap.userId, trap.trapType, trap.trapName,
-        trap.description || 'No description provided', trap.contractAddress, trap.deploymentTxHash,
-        trap.network, trap.status, trap.estimatedCost,
-        trap.createdAt, JSON.stringify(trap.metadata)
-      ]);
+      // Use REAL Supabase instead of fake SQL queries
+      const result = await this.db.createBasicTrap({
+        id: trap.id,
+        user_id: trap.userId,
+        trap_type: trap.trapType,
+        trap_name: trap.trapName,
+        description: trap.description || 'No description provided',
+        contract_address: trap.contractAddress,
+        deployment_tx_hash: trap.deploymentTxHash,
+        network: trap.network,
+        status: trap.status,
+        estimated_cost: trap.estimatedCost,
+        created_at: trap.createdAt,
+        metadata: trap.metadata
+      });
 
       console.log(`✅ Basic trap saved to database: ${trap.id}`);
     } catch (error) {
@@ -340,15 +348,14 @@ export class BasicTrapDeploymentService {
    */
   private async updateBasicTrap(trap: BasicTrap): Promise<void> {
     try {
-      await this.db.query(`
-        UPDATE basic_traps 
-        SET contract_address = $1, deployment_tx_hash = $2, 
-            status = $3, deployed_at = $4, actual_cost = $5
-        WHERE id = $6
-      `, [
-        trap.contractAddress, trap.deploymentTxHash,
-        trap.status, trap.deployedAt || null, trap.actualCost, trap.id
-      ]);
+      // Use REAL Supabase instead of fake SQL queries
+      const result = await this.db.updateBasicTrap(trap.id, {
+        contract_address: trap.contractAddress,
+        deployment_tx_hash: trap.deploymentTxHash,
+        status: trap.status,
+        deployed_at: trap.deployedAt || null,
+        actual_cost: trap.actualCost
+      });
 
       console.log(`✅ Basic trap updated in database: ${trap.id}`);
     } catch (error) {
@@ -362,12 +369,10 @@ export class BasicTrapDeploymentService {
    */
   async getUserTraps(userId: string): Promise<BasicTrap[]> {
     try {
-      const result = await this.db.query(
-        'SELECT * FROM basic_traps WHERE user_id = $1 ORDER BY created_at DESC',
-        [userId]
-      );
+      // Use REAL Supabase instead of fake SQL queries
+      const result = await this.db.getUserBasicTraps(userId);
 
-      return result.rows.map((row: any) => ({
+      return result.map((row: any) => ({
         id: row.id,
         userId: row.user_id,
         trapType: row.trap_type,
@@ -381,7 +386,7 @@ export class BasicTrapDeploymentService {
         actualCost: row.actual_cost,
         createdAt: new Date(row.created_at),
         deployedAt: row.deployed_at ? new Date(row.deployed_at) : undefined,
-        metadata: JSON.parse(row.metadata || '{}')
+        metadata: row.metadata
       }));
 
     } catch (error) {
@@ -395,29 +400,26 @@ export class BasicTrapDeploymentService {
    */
   async getTrapById(trapId: string): Promise<BasicTrap | null> {
     try {
-      const result = await this.db.query(
-        'SELECT * FROM basic_traps WHERE id = $1',
-        [trapId]
-      );
+      // Use REAL Supabase instead of fake SQL queries
+      const result = await this.db.getBasicTrap(trapId);
 
-      if (result.rows.length === 0) return null;
+      if (!result) return null;
 
-      const row = result.rows[0];
       return {
-        id: row.id,
-        userId: row.user_id,
-        trapType: row.trap_type,
-        trapName: row.trap_name,
-        description: row.description,
-        contractAddress: row.contract_address,
-        deploymentTxHash: row.deployment_tx_hash,
-        network: row.network,
-        status: row.status,
-        estimatedCost: row.estimated_cost,
-        actualCost: row.actual_cost,
-        createdAt: new Date(row.created_at),
-        deployedAt: row.deployed_at ? new Date(row.deployed_at) : undefined,
-        metadata: JSON.parse(row.metadata || '{}')
+        id: result.id,
+        userId: result.user_id,
+        trapType: result.trap_type,
+        trapName: result.trap_name,
+        description: result.description,
+        contractAddress: result.contract_address,
+        deploymentTxHash: result.deployment_tx_hash,
+        network: result.network,
+        status: result.status,
+        estimatedCost: result.estimated_cost,
+        actualCost: result.actual_cost,
+        createdAt: new Date(result.created_at),
+        deployedAt: result.deployed_at ? new Date(result.deployed_at) : undefined,
+        metadata: result.metadata
       } as BasicTrap;
 
     } catch (error) {
