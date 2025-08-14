@@ -6,34 +6,23 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 
+// Load environment variables FIRST
+dotenv.config();
+
 // Import services
 import { DatabaseService } from './services/database';
 import { BlockchainService } from './services/blockchain';
 import { NotificationService } from './services/notification';
 
-// Import routes
-import authRoutes from './routes/auth';
-import analysisRoutes from './routes/analysis';
-import rpcTestRoutes from './routes/rpcTest';
-import trapsRoutes from './routes/traps';
-import basicTrapsRoutes from './routes/basicTraps';
-import marketplaceRoutes from './routes/marketplace';
-import enhancedAITrapRoutes from './routes/enhancedAITrap';
-import alertsRoutes from './routes/alerts';
+console.log('🚀 Starting One Click Backend...');
 
-// Import service setters
-import { setServices as setRpcTestServices } from './routes/rpcTest';
-import { setAnalysisService } from './routes/analysis';
-import { setBasicTrapService } from './routes/basicTraps';
-import { setTrapsServices } from './routes/traps';
-import { setMarketplaceDatabaseService } from './routes/marketplace';
-import { setEnhancedAITrapService } from './routes/enhancedAITrap';
-import { setAlertsServices } from './routes/alerts';
-import { BasicTrapDeploymentService } from './services/basicTrapDeployment';
+// Initialize services FIRST
+console.log('📦 Initializing services...');
+const databaseService = new DatabaseService();
+const notificationService = new NotificationService(databaseService);
+const blockchainService = new BlockchainService(databaseService, notificationService);
 
-// Load environment variables
-dotenv.config();
-
+console.log('🔧 Setting up middleware...');
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
@@ -51,20 +40,6 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
-// Initialize services (in correct dependency order)
-const databaseService = new DatabaseService();
-const notificationService = new NotificationService(databaseService);
-const blockchainService = new BlockchainService(databaseService, notificationService);
-
-// Set the services in all routes BEFORE registering them
-setRpcTestServices(databaseService, blockchainService);
-setAnalysisService({} as any);
-setBasicTrapService(new BasicTrapDeploymentService(databaseService, blockchainService, notificationService));
-setTrapsServices(databaseService, blockchainService);
-setMarketplaceDatabaseService(databaseService);
-setEnhancedAITrapService({} as any);
-setAlertsServices(databaseService, notificationService);
-
 // Middleware
 app.use(helmet());
 app.use(cors({
@@ -80,23 +55,13 @@ app.use(cors({
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100
 });
 app.use(limiter);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Routes - Register AFTER setting services
-app.use('/api/auth', authRoutes);
-app.use('/api/analysis', analysisRoutes);
-app.use('/api/rpc-test', rpcTestRoutes);
-app.use('/api/traps', trapsRoutes);
-app.use('/api/basic-traps', basicTrapsRoutes);
-app.use('/api/marketplace', marketplaceRoutes);
-app.use('/api/enhanced-ai-trap', enhancedAITrapRoutes);
-app.use('/api/alerts', alertsRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -119,21 +84,60 @@ io.on('connection', (socket) => {
 // Initialize all services
 async function initializeServices() {
   try {
+    console.log('🔧 Connecting to database...');
     await databaseService.connect();
     console.log('✅ Database connected');
     
+    console.log('🔧 Initializing blockchain service...');
     await blockchainService.initialize();
     console.log('✅ Blockchain service initialized');
     
     console.log('✅ All services initialized successfully');
+    
+    // NOW set up routes AFTER services are ready
+    console.log('🔧 Setting up routes...');
+    await setupRoutes();
+    
   } catch (error) {
     console.error('❌ Failed to initialize services:', error);
-    process.exit(1);
+    // Don't exit, just log the error
+  }
+}
+
+// Function to set up routes after services are ready
+async function setupRoutes() {
+  try {
+    console.log('🔧 Importing route creators...');
+    
+    // Import route creators (ONLY the new approach)
+    const { createRpcTestRouter } = await import('./routes/rpcTest');
+    const { createMarketplaceRouter } = await import('./routes/marketplace');
+    
+    console.log('🔧 Creating route instances...');
+    
+    // Create route instances with injected services
+    const rpcTestRoutes = createRpcTestRouter(blockchainService, databaseService);
+    const marketplaceRoutes = createMarketplaceRouter(databaseService);
+    
+    console.log('🔧 Registering routes...');
+    
+    // Register routes
+    app.use('/api/rpc-test', rpcTestRoutes);
+    app.use('/api/marketplace', marketplaceRoutes);
+    
+    console.log('✅ Routes registered successfully!');
+    console.log('✅ RPC Test routes: /api/rpc-test/*');
+    console.log('✅ Marketplace routes: /api/marketplace/*');
+    
+  } catch (error) {
+    console.error('❌ Failed to set up routes:', error);
+    console.error('Error details:', error);
+    // Don't exit, just log the error
   }
 }
 
 // Start server
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
   console.log(`🚀 One Click API server running on http://${HOST}:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔌 WebSocket server ready`);
