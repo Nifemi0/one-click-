@@ -1,4 +1,4 @@
-// Main Express server for Drosera Security Traps API
+// Main Express server for One Click Security Traps API
 
 import express from 'express';
 import cors from 'cors';
@@ -177,7 +177,7 @@ const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || 'localhost';
 
 server.listen(PORT, () => {
-  console.log(`🚀 Drosera API server running on http://${HOST}:${PORT}`);
+  console.log(`🚀 One Click API server running on http://${HOST}:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔌 WebSocket server ready`);
 });
@@ -188,7 +188,7 @@ async function initializeServices() {
     await databaseService.connect();
     console.log('✅ Database connected');
     
-    // Note: BlockchainService doesn't have initialize method, skipping for now
+    await blockchainService.initialize();
     console.log('✅ Blockchain service initialized');
     
     console.log('✅ All services initialized successfully');
