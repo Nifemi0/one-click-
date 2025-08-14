@@ -129,13 +129,13 @@ export class NotificationService {
           createdAt: notification.createdAt
         },
         timestamp: new Date().toISOString(),
-        source: 'drosera-backend'
+        source: 'one-click-backend'
       };
 
       await axios.post(this.webhookUrl, webhookData, {
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'Drosera-Notification-Service/1.0'
+          'User-Agent': 'One-Click-Notification-Service/1.0'
         },
         timeout: 5000
       });

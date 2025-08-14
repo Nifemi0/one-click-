@@ -1,4 +1,4 @@
-// Core application types for Drosera One-Click Deployment System
+// Core application types for One Click Security Trap System
 
 export interface User {
   id: string;
