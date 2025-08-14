@@ -188,4 +188,4 @@ metrics-data/
 # ===== NOTIFICATION TOKENS =====
 notification-tokens.json
 webhook-tokens.json
-bot-tokens.json
+bot-tokens.jsonbackend/.env

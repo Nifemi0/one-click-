@@ -131,11 +131,13 @@ HOODI_BLOCK_EXPLORER=https://hoodi.etherscan.io
 HOODI_NATIVE_CURRENCY=ETH
 
 # Test Wallet (for development only - replace with real user wallet management)
-TEST_WALLET_PRIVATE_KEY=0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+TEST_WALLET_PRIVATE_KEY=your_test_wallet_private_key_here
 
-# AI Services (Optional)
-OPENAI_API_KEY=your-openai-api-key
-ANTHROPIC_API_KEY=your-anthropic-api-key
+# AI Services (Replace with your actual API keys)
+CURSOR_API_KEY=your_cursor_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+CLAUDE_API_KEY=your_claude_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
 EOF
     print_status ".env file created with your Supabase configuration"
 else
