@@ -127,6 +127,11 @@ JWT_EXPIRES_IN=24h
 # Hoodi Testnet Configuration
 HOODI_RPC_URL=https://eth-hoodi.g.alchemy.com/v2/ZETFuZOXiKo3Rg4GKKAyZ
 HOODI_CHAIN_ID=560048
+HOODI_BLOCK_EXPLORER=https://hoodi.etherscan.io
+HOODI_NATIVE_CURRENCY=ETH
+
+# Test Wallet (for development only - replace with real user wallet management)
+TEST_WALLET_PRIVATE_KEY=0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
 
 # AI Services (Optional)
 OPENAI_API_KEY=your-openai-api-key
