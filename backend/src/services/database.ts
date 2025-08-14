@@ -1639,4 +1639,204 @@ export class DatabaseService {
     const result = await this.supabase.from('trap_templates').select('complexity').eq('complexity', null).order('complexity', { ascending: true });
     return result.data?.map((row: any) => row.complexity) || [];
   }
+
+  // =====================================================
+  // REAL DATA METHODS (NEW)
+  // =====================================================
+
+  async getTrapTemplateCount(): Promise<number> {
+    try {
+      const { count, error } = await this.supabase
+        .from('trap_templates')
+        .select('*', { count: 'exact', head: true });
+      
+      if (error) throw error;
+      return count || 0;
+    } catch (error) {
+      console.error('Failed to get template count:', error);
+      return 0;
+    }
+  }
+
+  async getDeployedTrapCount(): Promise<number> {
+    try {
+      const { count, error } = await this.supabase
+        .from('deployed_traps')
+        .select('*', { count: 'exact', head: true });
+      
+      if (error) throw error;
+      return count || 0;
+    } catch (error) {
+      console.error('Failed to get deployment count:', error);
+      return 0;
+    }
+  }
+
+  async getUserCount(): Promise<number> {
+    try {
+      const { count, error } = await this.supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+      
+      if (error) throw error;
+      return count || 0;
+    } catch (error) {
+      console.error('Failed to get user count:', error);
+      return 0;
+    }
+  }
+
+  async getTotalRevenue(): Promise<number> {
+    try {
+      // For now, return 0 since we don't have revenue tracking yet
+      // This can be implemented later with real payment processing
+      return 0;
+    } catch (error) {
+      console.error('Failed to get total revenue:', error);
+      return 0;
+    }
+  }
+
+  async getTopCategories(): Promise<any[]> {
+    try {
+      const result = await this.supabase
+        .from('trap_templates')
+        .select('category, estimated_cost')
+        .eq('is_public', true);
+      
+      if (result.error) throw result.error;
+      
+      // Group by category and count
+      const categories = result.data.reduce((acc: any, template: any) => {
+        const category = template.category || 'Uncategorized';
+        if (!acc[category]) {
+          acc[category] = { name: category, count: 0, deployments: 0, revenue: 0 };
+        }
+        acc[category].count++;
+        return acc;
+      }, {});
+      
+      return Object.values(categories).sort((a: any, b: any) => b.count - a.count).slice(0, 5);
+    } catch (error) {
+      console.error('Failed to get top categories:', error);
+      return [];
+    }
+  }
+
+  async getTrendingTemplates(): Promise<any[]> {
+    try {
+      const result = await this.supabase
+        .from('trap_templates')
+        .select('*')
+        .eq('is_public', true)
+        .order('created_at', { ascending: false })
+        .limit(3);
+      
+      if (result.error) throw result.error;
+      
+      return result.data.map((template: any) => ({
+        id: template.id,
+        name: template.name,
+        category: template.category,
+        deployments: 0, // Will be updated when we have real deployment data
+        rating: 4.5, // Will be updated when we have real rating data
+        price: template.estimated_cost
+      }));
+    } catch (error) {
+      console.error('Failed to get trending templates:', error);
+      return [];
+    }
+  }
+
+  async getRecentActivity(): Promise<any[]> {
+    try {
+      // Get recent deployments
+      const deployments = await this.supabase
+        .from('deployed_traps')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(3);
+      
+      if (deployments.error) throw deployments.error;
+      
+      return deployments.data.map((deployment: any) => ({
+        type: 'deployment',
+        templateName: deployment.template_id, // Will be enhanced with template name
+        user: deployment.user_id,
+        timestamp: deployment.created_at
+      }));
+    } catch (error) {
+      console.error('Failed to get recent activity:', error);
+      return [];
+    }
+  }
+
+  // =====================================================
+  // BASIC TRAPS METHODS (NEW)
+  // =====================================================
+
+  async createBasicTrap(trapData: any): Promise<any> {
+    try {
+      const result = await this.supabase
+        .from('basic_traps')
+        .insert(trapData)
+        .select()
+        .single();
+      
+      if (result.error) throw result.error;
+      return result.data;
+    } catch (error) {
+      console.error('Failed to create basic trap:', error);
+      throw error;
+    }
+  }
+
+  async getBasicTrap(id: string): Promise<any> {
+    try {
+      const result = await this.supabase
+        .from('basic_traps')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (result.error) throw result.error;
+      return result.data;
+    } catch (error) {
+      console.error('Failed to get basic trap:', error);
+      return null;
+    }
+  }
+
+  async updateBasicTrap(id: string, updates: any): Promise<any> {
+    try {
+      const result = await this.supabase
+        .from('basic_traps')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (result.error) throw result.error;
+      return result.data;
+    } catch (error) {
+      console.error('Failed to update basic trap:', error);
+      throw error;
+    }
+  }
+
+  async getUserBasicTraps(userId: string): Promise<any[]> {
+    try {
+      const result = await this.supabase
+        .from('basic_traps')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      
+      if (result.error) throw result.error;
+      return result.data;
+    } catch (error) {
+      console.error('Failed to get user basic traps:', error);
+      return [];
+    }
+  }
 }
