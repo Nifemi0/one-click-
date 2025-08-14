@@ -137,7 +137,7 @@ async function setupRoutes() {
 }
 
 // Start server
-server.listen(PORT, HOST, () => {
+server.listen(PORT, () => {
   console.log(`🚀 One Click API server running on http://${HOST}:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔌 WebSocket server ready`);

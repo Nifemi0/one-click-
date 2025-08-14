@@ -1,60 +1,83 @@
-import express from 'express';
-import { BlockchainService } from '../services/blockchain';
-import { DatabaseService } from '../services/database';
+import * as express from 'express';
+import { asyncHandler } from '../middleware/errorHandler';
 
-const router = express.Router();
+// Create a function that returns the router with injected services
+export function createRpcTestRouter(blockchainService: any, databaseService: any) {
+  const router = express.Router();
+  
+  console.log('🔧 Creating RPC Test router with services:', !!blockchainService, !!databaseService);
+  
+  // Test Hoodi testnet connection
+  router.get('/test', asyncHandler(async (req, res) => {
+    console.log('🔧 RPC Test /test endpoint called');
+    try {
+      const networkInfo = await blockchainService.getHoodiNetworkInfo();
+      res.json({
+        success: true,
+        message: 'Hoodi testnet connection test',
+        status: 'Connected',
+        networkInfo
+      });
+    } catch (error) {
+      console.error('❌ RPC Test /test error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to test Hoodi connection',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }));
 
-// Simple route handlers
-router.get('/test', async (req, res) => {
-  try {
-    // Get services from the main app (we'll handle this)
-    res.json({
-      success: true,
-      message: 'RPC Test endpoint working!',
-      status: 'Connected'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'RPC Test failed',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
+  // Get Hoodi testnet status
+  router.get('/status', asyncHandler(async (req, res) => {
+    console.log('🔧 RPC Test /status endpoint called');
+    try {
+      const networkInfo = await blockchainService.getHoodiNetworkInfo();
+      const gasPrice = await blockchainService.getGasPrice();
+      
+      res.json({
+        success: true,
+        message: 'Hoodi testnet status',
+        status: 'Operational',
+        network: 'Hoodi Testnet',
+        chainId: 560048,
+        networkInfo,
+        gasPrice
+      });
+    } catch (error) {
+      console.error('❌ RPC Test /status error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get Hoodi status',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }));
 
-router.get('/status', async (req, res) => {
-  try {
-    res.json({
-      success: true,
-      message: 'RPC Status endpoint working!',
-      status: 'Operational',
-      network: 'Hoodi Testnet',
-      chainId: 560048
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'RPC Status failed',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
+  // Get gas price
+  router.get('/gas-price', asyncHandler(async (req, res) => {
+    console.log('🔧 RPC Test /gas-price endpoint called');
+    try {
+      const gasPrice = await blockchainService.getGasPrice();
+      res.json({
+        success: true,
+        message: 'Hoodi testnet gas price',
+        gasPrice,
+        network: 'Hoodi Testnet'
+      });
+    } catch (error) {
+      console.error('❌ RPC Test /gas-price error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get gas price',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }));
 
-router.get('/gas-price', async (req, res) => {
-  try {
-    res.json({
-      success: true,
-      message: 'Gas price endpoint working!',
-      gasPrice: '1000000000',
-      network: 'Hoodi Testnet'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Gas price failed',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
+  console.log('✅ RPC Test router created with endpoints:', router.stack.length);
+  return router;
+}
 
-export default router;
+// Keep the old export for backward compatibility
+export default express.Router();

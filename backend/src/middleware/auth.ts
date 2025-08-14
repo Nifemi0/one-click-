@@ -1,12 +1,6 @@
-// Authentication routes for wallet connection and user management
-
-import { Router, Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { ethers } from 'ethers';
-import { DatabaseService } from '../services/database';
-import { verifyWalletSignature } from '../middleware/auth';
-import { createRateLimiter } from '../middleware/rateLimiter';
-import { asyncHandler } from '../middleware/errorHandler';
 
 // Extend Request interface to include user
 declare global {
@@ -21,86 +15,121 @@ declare global {
   }
 }
 
-const router = Router();
-
-// Create rate limiter for login attempts
-const authRateLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5 // limit each IP to 5 requests per windowMs
-});
-
-// Wallet connection endpoint
-router.post('/connect', authRateLimiter, asyncHandler(async (req: Request, res: Response) => {
+// Verify wallet signature function
+export function verifyWalletSignature(walletAddress: string, message: string, signature: string): boolean {
   try {
-    const { walletAddress, signature, message } = req.body;
-    
-    if (!walletAddress || !signature || !message) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields: walletAddress, signature, message'
-      });
-    }
-
-    // Verify the signature
-    const isValidSignature = verifyWalletSignature(walletAddress, message, signature);
-    
-    if (!isValidSignature) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid signature'
-      });
-    }
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { walletAddress, role: 'user' },
-      process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: '24h' }
-    );
-
-    res.json({
-      success: true,
-      message: 'Wallet connected successfully',
-      token,
-      user: {
-        walletAddress,
-        role: 'user'
-      }
-    });
-
+    const recoveredAddress = ethers.verifyMessage(message, signature);
+    return recoveredAddress.toLowerCase() === walletAddress.toLowerCase();
   } catch (error) {
-    console.error('Wallet connection error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to connect wallet',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
+    console.error('Signature verification error:', error);
+    return false;
   }
-}));
+}
 
-// Get user profile
-router.get('/profile', asyncHandler(async (req: Request, res: Response) => {
+// Auth middleware
+export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
   try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+      res.status(401).json({
+        success: false,
+        message: 'No token provided'
+      });
+      return;
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    req.user = {
+      id: decoded.id || decoded.walletAddress,
+      walletAddress: decoded.walletAddress,
+      role: decoded.role || 'user'
+    };
+    
+    next();
+  } catch (error) {
+    res.status(401).json({
+      success: false,
+      message: 'Invalid token'
+    });
+    return;
+  }
+}
+
+// Optional auth middleware
+export function optionalAuthMiddleware(req: Request, res: Response, next: NextFunction): void {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+      req.user = {
+        id: decoded.id || decoded.walletAddress,
+        walletAddress: decoded.walletAddress,
+        role: decoded.role || 'user'
+      };
+    }
+    
+    next();
+  } catch (error) {
+    // Continue without user if token is invalid
+    next();
+  }
+}
+
+// Require role middleware
+export function requireRole(requiredRole: string): (req: Request, res: Response, next: NextFunction) => void {
+  return function(req: Request, res: Response, next: NextFunction): void {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
-        message: 'User not authenticated'
+        message: 'Authentication required'
       });
+      return;
     }
 
-    res.json({
-      success: true,
-      user: req.user
-    });
+    if (req.user.role !== requiredRole && req.user.role !== 'admin') {
+      res.status(403).json({
+        success: false,
+        message: 'Insufficient permissions'
+      });
+      return;
+    }
 
-  } catch (error) {
-    console.error('Profile fetch error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch profile',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-}));
+    next();
+  };
+}
 
-export default router;
+// Create rate limiter function
+export function createRateLimiter(options: { windowMs: number; max: number; message?: string }): (req: Request, res: Response, next: NextFunction) => void {
+  const { windowMs, max, message = 'Too many requests' } = options;
+  
+  const requests = new Map();
+  
+  return function(req: Request, res: Response, next: NextFunction): void {
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    const now = Date.now();
+    const windowStart = now - windowMs;
+    
+    // Clean old entries
+    if (requests.has(ip)) {
+      const userRequests = requests.get(ip).filter((timestamp: number) => timestamp > windowStart);
+      requests.set(ip, userRequests);
+    }
+    
+    const userRequests = requests.get(ip) || [];
+    
+    if (userRequests.length >= max) {
+      res.status(429).json({
+        success: false,
+        message: message
+      });
+      return;
+    }
+    
+    userRequests.push(now);
+    requests.set(ip, userRequests);
+    
+    next();
+  };
+}

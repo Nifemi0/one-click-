@@ -1,11 +1,8 @@
-// Authentication routes for wallet connection and user management
-
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { ethers } from 'ethers';
 import { DatabaseService } from '../services/database';
-import { verifyWalletSignature } from '../middleware/auth';
-import { createRateLimiter } from '../middleware/rateLimiter';
+import { verifyWalletSignature, createRateLimiter } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 
 const router = Router();
@@ -14,52 +11,81 @@ const router = Router();
 const authRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // limit each IP to 5 requests per windowMs
-  message: 'Too many login attempts, please try again later'
+  message: 'Too many login attempts'
 });
 
-// Don't instantiate services here - they'll be passed from the main app
-let databaseService: DatabaseService;
+// Wallet connection endpoint
+router.post('/connect', authRateLimiter, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { walletAddress, signature, message } = req.body;
+    
+    if (!walletAddress || !signature || !message) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: walletAddress, signature, message'
+      });
+    }
 
-// Function to set the database service (called from main app)
-export const setDatabaseService = (db: DatabaseService) => {
-  databaseService = db;
-};
+    // Verify the signature
+    const isValidSignature = verifyWalletSignature(walletAddress, message, signature);
+    
+    if (!isValidSignature) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid signature'
+      });
+    }
 
-// Wallet connection and authentication
-router.use('/login', verifyWalletSignature);
-router.use('/login', authRateLimiter);
+    // Generate JWT token
+    const token = jwt.sign(
+      { walletAddress, role: 'user' },
+      process.env.JWT_SECRET || 'fallback-secret',
+      { expiresIn: '24h' }
+    );
 
-router.post('/login', asyncHandler(async (req, res) => {
-  // Your login logic here
-  res.json({ success: true, message: 'Login endpoint' });
+    return res.json({
+      success: true,
+      message: 'Wallet connected successfully',
+      token,
+      user: {
+        walletAddress,
+        role: 'user'
+      }
+    });
+
+  } catch (error) {
+    console.error('Wallet connection error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to connect wallet',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 }));
 
-router.put('/profile', asyncHandler(async (req, res) => {
-  // Your profile update logic here
-  res.json({ success: true, message: 'Profile update endpoint' });
-}));
+// Get user profile
+router.get('/profile', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
 
-router.get('/profile/:walletAddress', asyncHandler(async (req, res) => {
-  // Your profile get logic here
-  res.json({ success: true, message: 'Profile get endpoint' });
-}));
+    return res.json({
+      success: true,
+      user: req.user
+    });
 
-router.post('/logout', asyncHandler(async (req, res) => {
-  // Your logout logic here
-  res.json({ success: true, message: 'Logout endpoint' });
-}));
-
-router.post('/refresh', asyncHandler(async (req, res) => {
-  // Your token refresh logic here
-  res.json({ success: true, message: 'Token refresh endpoint' });
-}));
-
-router.get('/health', asyncHandler(async (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    service: 'Auth Service',
-    timestamp: new Date().toISOString()
-  });
+  } catch (error) {
+    console.error('Profile fetch error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch profile',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 }));
 
 export default router;
