@@ -1,7 +1,7 @@
-{{
-  "name": "drosera-backend",
+{
+  "name": "one-click-backend",
   "version": "1.0.0",
-  "description": "Backend API server for Drosera Security Traps",
+  "description": "Backend API server for One Click Security Traps",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
