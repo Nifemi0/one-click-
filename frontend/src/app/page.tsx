@@ -1,5 +1,7 @@
 'use client';
 
+import BackendConnectionTest from '@/components/BackendConnectionTest';
+
 export default function Home() {
   const copyAddress = () => {
     if (typeof navigator !== 'undefined') {
@@ -133,6 +135,17 @@ export default function Home() {
               <p className="text-gray-400 leading-relaxed">Contribute templates, share strategies, and earn rewards.</p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Backend Connection Test Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-900">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl font-bold mb-8 text-white">Backend Connection Status</h2>
+          <p className="text-xl text-gray-300 mb-10 leading-relaxed">
+            Test the connection between your frontend and backend to ensure everything is working properly.
+          </p>
+          <BackendConnectionTest />
         </div>
       </section>
 
