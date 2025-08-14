@@ -144,12 +144,11 @@ router.post('/deploy', asyncHandler(async (req, res) => {
       return;
     }
 
-    // Get user balance and estimate deployment cost
-    const userBalance = await blockchain.getBalance(user.wallet_address, chainId);
-    const estimatedCost = await blockchain.calculateDeploymentCost(
+    // Get user balance and estimate deployment cost (Hoodi testnet only)
+    const userBalance = await blockchain.getContractBalance(user.wallet_address);
+    const estimatedCost = await blockchain.estimateDeploymentCost(
       templateId,
-      constructorArgs,
-      chainId
+      constructorArgs
     );
 
     // Check if user has sufficient balance
