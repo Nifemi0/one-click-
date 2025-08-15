@@ -1,12 +1,36 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { ConnectKitButton } from 'connectkit';
 import BackendConnectionTest from '@/components/BackendConnectionTest';
 
 export default function Home() {
+  const router = useRouter();
+
   const copyAddress = () => {
     if (typeof navigator !== 'undefined') {
       navigator.clipboard.writeText('0xa3B983c22c10Bb64bd812ACd9Eb15B13856aF3b7');
     }
+  };
+
+  const handleDeployTrap = () => {
+    router.push('/deploy');
+  };
+
+  const handleViewTemplates = () => {
+    router.push('/marketplace');
+  };
+
+  const handleGetStarted = () => {
+    router.push('/deploy');
+  };
+
+  const handleReadDocumentation = () => {
+    router.push('/documentation');
+  };
+
+  const handleLaunchApp = () => {
+    router.push('/dashboard');
   };
 
   return (
@@ -28,8 +52,8 @@ export default function Home() {
               <a className="text-gray-300 hover:text-white transition-colors" href="#about">About</a>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="btn-outline">Connect Wallet</button>
-              <button className="btn-primary">Launch App</button>
+              <ConnectKitButton />
+              <button className="btn-primary" onClick={handleLaunchApp}>Launch App</button>
             </div>
           </div>
         </div>
@@ -50,8 +74,18 @@ export default function Home() {
             <p className="text-lg text-orange-400 font-medium mb-8">Currently supporting Hoodi testnet for testing and development</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-            <button className="btn-primary text-lg px-8 py-4 glow-orange">🚀 Deploy Security Trap</button>
-            <button className="btn-secondary text-lg px-8 py-4">📚 View Templates</button>
+            <button 
+              className="btn-primary text-lg px-8 py-4 glow-orange"
+              onClick={handleDeployTrap}
+            >
+              🚀 Deploy Security Trap
+            </button>
+            <button 
+              className="btn-secondary text-lg px-8 py-4"
+              onClick={handleViewTemplates}
+            >
+              📚 View Templates
+            </button>
           </div>
         </div>
       </section>
@@ -198,8 +232,18 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="btn-primary text-lg px-8 py-4 glow-orange">🚀 Get Started Now</button>
-            <button className="btn-secondary text-lg px-8 py-4">📖 Read Documentation</button>
+            <button 
+              className="btn-primary text-lg px-8 py-4 glow-orange"
+              onClick={handleGetStarted}
+            >
+              🚀 Get Started Now
+            </button>
+            <button 
+              className="btn-secondary text-lg px-8 py-4"
+              onClick={handleReadDocumentation}
+            >
+              📖 Read Documentation
+            </button>
           </div>
         </div>
       </section>
@@ -220,24 +264,24 @@ export default function Home() {
             <div>
               <h4 className="text-white font-semibold mb-6">Product</h4>
               <ul className="space-y-3 text-gray-400">
-                <li><a className="hover:text-white transition-colors" href="#">Features</a></li>
-                <li><a className="hover:text-white transition-colors" href="#">Pricing</a></li>
-                <li><a className="hover:text-white transition-colors" href="#">API</a></li>
+                <li><button className="hover:text-white transition-colors" onClick={() => router.push('/deploy')}>Features</button></li>
+                <li><button className="hover:text-white transition-colors" onClick={() => router.push('/pricing')}>Pricing</button></li>
+                <li><button className="hover:text-white transition-colors" onClick={() => router.push('/documentation')}>API</button></li>
               </ul>
             </div>
             <div>
               <h4 className="text-white font-semibold mb-6">Resources</h4>
               <ul className="space-y-3 text-gray-400">
-                <li><a className="hover:text-white transition-colors" href="#">Documentation</a></li>
-                <li><a className="hover:text-white transition-colors" href="#">Tutorials</a></li>
-                <li><a className="hover:text-white transition-colors" href="#">Support</a></li>
+                <li><button className="hover:text-white transition-colors" onClick={() => router.push('/documentation')}>Documentation</button></li>
+                <li><button className="hover:text-white transition-colors" onClick={() => router.push('/documentation')}>Tutorials</button></li>
+                <li><button className="hover:text-white transition-colors" onClick={() => router.push('/support')}>Support</button></li>
               </ul>
             </div>
             <div>
               <h4 className="text-white font-semibold mb-6">Community</h4>
               <ul className="space-y-3 text-gray-400">
-                <li><a className="hover:text-white transition-colors" href="#">Discord</a></li>
-                <li><a className="hover:text-white transition-colors" href="#">GitHub</a></li>
+                <li><a href="https://discord.gg/oneclick" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Discord</a></li>
+                <li><a href="https://github.com/oneclick" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">GitHub</a></li>
               </ul>
             </div>
           </div>
