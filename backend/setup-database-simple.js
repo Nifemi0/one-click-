@@ -149,19 +149,19 @@ async function setupDatabase() {
       console.log('❌ users table not accessible');
     }
 
-    // Try to get deployed traps count
+    // Try to get security traps count
     try {
       const { count: trapCount, error: trapError } = await supabase
-        .from('deployed_traps')
+        .from('security_traps')
         .select('*', { count: 'exact', head: true });
       
       if (trapError) {
-        console.log('⚠️  deployed_traps table error:', trapError.message);
+        console.log('⚠️  security_traps table error:', trapError.message);
       } else {
-        console.log(`✅ deployed_traps table working - count: ${trapCount || 0}`);
+        console.log(`✅ security_traps table working - count: ${trapCount || 0}`);
       }
     } catch (error) {
-      console.log('❌ deployed_traps table not accessible');
+      console.log('❌ security_traps table not accessible');
     }
 
     console.log('\n🎉 Database setup check completed!');

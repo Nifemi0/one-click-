@@ -1618,7 +1618,7 @@ export class DatabaseService {
       if (!templateError) stats.totalTemplates = templateCount || 0;
 
       const { count: deploymentCount, error: deploymentError } = await this.supabase
-        .from('basic_traps')
+        .from('security_traps')
         .select('*', { count: 'exact', head: true });
       if (!deploymentError) stats.totalDeployments = deploymentCount || 0;
 
@@ -1666,7 +1666,7 @@ export class DatabaseService {
   async getDeployedTrapCount(): Promise<number> {
     try {
       const { count, error } = await this.supabase
-        .from('basic_traps')
+        .from('security_traps')
         .select('*', { count: 'exact', head: true });
       
       if (error) throw error;
@@ -1757,7 +1757,7 @@ export class DatabaseService {
     try {
       // Get recent deployments
       const deployments = await this.supabase
-        .from('basic_traps')
+        .from('security_traps')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(3);
@@ -1766,7 +1766,7 @@ export class DatabaseService {
       
       return deployments.data.map((deployment: any) => ({
         type: 'deployment',
-        templateName: deployment.template_id, // Will be enhanced with template name
+        templateName: deployment.trap_type, // Use trap_type instead of template_id
         user: deployment.user_id,
         timestamp: deployment.created_at
       }));
