@@ -446,18 +446,17 @@ export class BlockchainService {
   private async saveDeployment(deploymentData: any): Promise<void> {
     try {
       const result = await this.db.getSupabase()
-        .from('deployed_traps')
+        .from('basic_traps')
         .insert({
           user_id: deploymentData.userId,
-          template_id: deploymentData.templateId,
+          trap_type: deploymentData.templateId,
+          trap_name: deploymentData.templateName || 'Unknown Trap',
           contract_address: deploymentData.contractAddress,
-          transaction_hash: deploymentData.transactionHash,
+          deployment_tx_hash: deploymentData.transactionHash,
           network: deploymentData.network,
-          gas_used: deploymentData.gasUsed,
-          cost: deploymentData.cost,
-          block_number: deploymentData.blockNumber,
-          status: 'active',
-          deployed_at: new Date()
+          estimated_cost: deploymentData.cost,
+          status: 'deployed',
+          created_at: new Date()
         });
 
       if (result.error) throw result.error;

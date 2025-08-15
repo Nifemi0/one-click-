@@ -161,25 +161,29 @@ export class DatabaseService {
       );
     `;
 
-    const createDeployedTrapsTable = `
-      CREATE TABLE IF NOT EXISTS deployed_traps (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_address VARCHAR(42) NOT NULL,
-        contract_address VARCHAR(42) NOT NULL,
-        template_id UUID REFERENCES trap_templates(id),
-        chain_id INTEGER NOT NULL,
-        deployment_tx VARCHAR(66),
-        configuration JSONB DEFAULT '{}',
-        is_active BOOLEAN DEFAULT TRUE,
-        deployed_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
+    const createBasicTrapsTable = `
+      CREATE TABLE IF NOT EXISTS basic_traps (
+        id VARCHAR(255) PRIMARY KEY,
+        user_id VARCHAR(255) NOT NULL,
+        trap_type VARCHAR(50) NOT NULL,
+        trap_name VARCHAR(255) NOT NULL,
+        description TEXT,
+        contract_address VARCHAR(42),
+        deployment_tx_hash VARCHAR(66),
+        network INTEGER NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'deploying',
+        estimated_cost VARCHAR(50),
+        actual_cost VARCHAR(50),
+        created_at TIMESTAMP DEFAULT NOW(),
+        deployed_at TIMESTAMP,
+        metadata JSONB
       );
     `;
 
     const createAlertsTable = `
       CREATE TABLE IF NOT EXISTS alerts (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        trap_id UUID REFERENCES deployed_traps(id),
+        trap_id VARCHAR(255) REFERENCES basic_traps(id),
         alert_type VARCHAR(50) NOT NULL,
         severity VARCHAR(20) NOT NULL,
         message TEXT NOT NULL,
@@ -203,9 +207,9 @@ export class DatabaseService {
 
     const createIndexes = `
       CREATE INDEX IF NOT EXISTS idx_users_wallet_address ON users(wallet_address);
-      CREATE INDEX IF NOT EXISTS idx_traps_user_address ON deployed_traps(user_address);
-      CREATE INDEX IF NOT EXISTS idx_traps_contract_address ON deployed_traps(contract_address);
-      CREATE INDEX IF NOT EXISTS idx_traps_chain_id ON deployed_traps(chain_id);
+      CREATE INDEX IF NOT EXISTS idx_traps_user_id ON basic_traps(user_id);
+      CREATE INDEX IF NOT EXISTS idx_traps_contract_address ON basic_traps(contract_address);
+      CREATE INDEX IF NOT EXISTS idx_traps_network ON basic_traps(network);
       CREATE INDEX IF NOT EXISTS idx_alerts_trap_id ON alerts(trap_id);
       CREATE INDEX IF NOT EXISTS idx_alerts_created_at ON alerts(created_at);
       CREATE INDEX IF NOT EXISTS idx_templates_category ON trap_templates(category);
@@ -217,7 +221,7 @@ export class DatabaseService {
     try {
       await this.query(createUsersTable);
       await this.query(createTrapTemplatesTable);
-      await this.query(createDeployedTrapsTable);
+      await this.query(createBasicTrapsTable);
       await this.query(createAlertsTable);
       await this.query(createContractAnalysisTable);
       await this.query(createIndexes);
@@ -233,7 +237,7 @@ export class DatabaseService {
       // Enable RLS on all tables
       const enableRLS = `
         ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE deployed_traps ENABLE ROW LEVEL SECURITY;
+        ALTER TABLE basic_traps ENABLE ROW LEVEL SECURITY;
         ALTER TABLE alerts ENABLE ROW LEVEL SECURITY;
         ALTER TABLE trap_templates ENABLE ROW LEVEL SECURITY;
         ALTER TABLE contract_analysis ENABLE ROW LEVEL SECURITY;
@@ -249,21 +253,21 @@ export class DatabaseService {
           FOR UPDATE USING (wallet_address = current_setting('request.jwt.claims')::json->>'wallet_address');
         
         -- Users can only access their own traps
-        CREATE POLICY "Users can read own traps" ON deployed_traps
-          FOR SELECT USING (user_address = current_setting('request.jwt.claims')::json->>'wallet_address');
+        CREATE POLICY "Users can read own traps" ON basic_traps
+          FOR SELECT USING (user_id = current_setting('request.jwt.claims')::json->>'user_id');
         
-        CREATE POLICY "Users can insert own traps" ON deployed_traps
-          FOR INSERT WITH CHECK (user_address = current_setting('request.jwt.claims')::json->>'wallet_address');
+        CREATE POLICY "Users can insert own traps" ON basic_traps
+          FOR INSERT WITH CHECK (user_id = current_setting('request.jwt.claims')::json->>'user_id');
         
-        CREATE POLICY "Users can update own traps" ON deployed_traps
-          FOR UPDATE USING (user_address = current_setting('request.jwt.claims')::json->>'wallet_address');
+        CREATE POLICY "Users can update own traps" ON basic_traps
+          FOR UPDATE USING (user_id = current_setting('request.jwt.claims')::json->>'user_id');
         
         -- Users can only access alerts for their traps
         CREATE POLICY "Users can read own alerts" ON alerts
           FOR SELECT USING (
             trap_id IN (
-              SELECT id FROM deployed_traps 
-              WHERE user_address = current_setting('request.jwt.claims')::json->>'wallet_address'
+              SELECT id FROM basic_traps 
+              WHERE user_id = current_setting('request.jwt.claims')::json->>'user_id'
             )
           );
         
@@ -603,7 +607,7 @@ export class DatabaseService {
     const query = `
       SELECT t.*, COUNT(d.id) as deployment_count
       FROM trap_templates t
-      LEFT JOIN deployed_traps d ON t.id = d.template_id
+      LEFT JOIN basic_traps d ON t.category = d.trap_type
       WHERE t.is_public = true AND d.created_at >= NOW() - INTERVAL '${timeframe}'
       GROUP BY t.id
       ORDER BY deployment_count DESC
@@ -680,43 +684,43 @@ export class DatabaseService {
         COUNT(DISTINCT d.id) as total_deployments
       FROM trap_templates t
       LEFT JOIN template_ratings r ON t.id = r.template_id
-      LEFT JOIN deployed_traps d ON t.id = d.template_id
+      LEFT JOIN basic_traps d ON t.category = d.trap_type
       WHERE t.creator_address = $1
     `;
     const result = await this.query(query, [creatorId]);
     return result.rows[0];
   }
 
-  // ===== DEPLOYED TRAP MANAGEMENT =====
-  async createDeployedTrap(trapData: any): Promise<any> {
-    const { user_address, template_id, contract_address, chain_id, deployment_tx_hash, deployment_cost } = trapData;
+  // ===== BASIC TRAP MANAGEMENT =====
+  async createBasicTrap(trapData: any): Promise<any> {
+    const { user_id, trap_type, trap_name, contract_address, network, deployment_tx_hash, estimated_cost } = trapData;
     const query = `
-      INSERT INTO deployed_traps (user_address, template_id, contract_address, chain_id, deployment_tx_hash, deployment_cost, status)
-      VALUES ($1, $2, $3, $4, $5, $6, 'active')
+      INSERT INTO basic_traps (user_id, trap_type, trap_name, contract_address, network, deployment_tx_hash, estimated_cost, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 'deployed')
       RETURNING *
     `;
-    const result = await this.query(query, [user_address, template_id, contract_address, chain_id, deployment_tx_hash, deployment_cost]);
+          const result = await this.query(query, [user_id, trap_type, trap_name, contract_address, network, deployment_tx_hash, estimated_cost]);
     return result.rows[0];
   }
 
-  async getDeployedTrap(trapId: string): Promise<any> {
-    const result = await this.query('SELECT * FROM deployed_traps WHERE id = $1', [trapId]);
+  async getBasicTrap(trapId: string): Promise<any> {
+    const result = await this.query('SELECT * FROM basic_traps WHERE id = $1', [trapId]);
     return result.rows[0];
   }
 
-  async getDeployedTraps(filters: any = {}, options: any = {}): Promise<any[]> {
-    let query = 'SELECT * FROM deployed_traps WHERE 1=1';
+  async getBasicTraps(filters: any = {}, options: any = {}): Promise<any[]> {
+    let query = 'SELECT * FROM basic_traps WHERE 1=1';
     const values = [];
     let paramIndex = 1;
 
-    if (filters.user_address) {
-      query += ` AND user_address = $${paramIndex++}`;
-      values.push(filters.user_address);
+    if (filters.user_id) {
+      query += ` AND user_id = $${paramIndex++}`;
+      values.push(filters.user_id);
     }
 
-    if (filters.chain_id) {
-      query += ` AND chain_id = $${paramIndex++}`;
-      values.push(filters.chain_id);
+    if (filters.network) {
+      query += ` AND network = $${paramIndex++}`;
+      values.push(filters.network);
     }
 
     if (filters.status) {
@@ -740,16 +744,16 @@ export class DatabaseService {
     return result.rows;
   }
 
-  async updateDeployedTrap(trapId: string, updates: any): Promise<any> {
+  async updateBasicTrap(trapId: string, updates: any): Promise<any> {
     const fields = Object.keys(updates).map((key, index) => `${key} = $${index + 2}`).join(', ');
-    const query = `UPDATE deployed_traps SET ${fields} WHERE id = $1 RETURNING *`;
+    const query = `UPDATE basic_traps SET ${fields} WHERE id = $1 RETURNING *`;
     const values = [trapId, ...Object.values(updates)];
     const result = await this.query(query, values);
     return result.rows[0];
   }
 
-  async deleteDeployedTrap(trapId: string): Promise<void> {
-    await this.query('DELETE FROM deployed_traps WHERE id = $1', [trapId]);
+  async deleteBasicTrap(trapId: string): Promise<void> {
+    await this.query('DELETE FROM basic_traps WHERE id = $1', [trapId]);
   }
 
   // ===== TEMPLATE RATING MANAGEMENT =====
@@ -802,8 +806,8 @@ export class DatabaseService {
         COUNT(CASE WHEN status = 'compromised' THEN 1 END) as compromised_traps,
         SUM(deployment_cost) as total_deployment_cost,
         AVG(deployment_cost) as avg_deployment_cost
-      FROM deployed_traps
-      WHERE user_address = $1
+      FROM basic_traps
+      WHERE user_id = $1
     `;
     const result = await this.query(query, [userId]);
     return result.rows[0];

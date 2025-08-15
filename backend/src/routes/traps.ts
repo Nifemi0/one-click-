@@ -274,7 +274,7 @@ router.delete('/:id', asyncHandler(async (req, res) => {
       return;
     }
 
-    await db.query('DELETE FROM deployed_traps WHERE id = $1', [id]);
+    await db.query('DELETE FROM basic_traps WHERE id = $1', [id]);
     
     res.json({
       success: true,

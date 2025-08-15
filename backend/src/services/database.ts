@@ -376,16 +376,21 @@ export class DatabaseService {
     } = deploymentData;
 
     const query = `
-      INSERT INTO deployed_traps (
-        user_id, template_id, network, contract_address, 
-        deployment_tx_hash, status, estimated_cost, actual_cost,
-        created_at, updated_at
+      INSERT INTO basic_traps (
+        user_id, trap_type, trap_name, contract_address, 
+        deployment_tx_hash, estimated_cost, network, status, created_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
       RETURNING *
     `;
 
-    const result = await this.supabase.from('deployed_traps').insert({
+    // Get template info for trap_name and trap_type
+    const template = await this.supabase.from('trap_templates').select('name, category').eq('id', templateId).single();
+    if (template.error) {
+      throw template.error;
+    }
+
+    const result = await this.supabase.from('basic_traps').insert({
       user_id: userId,
       template_id: templateId,
       network,
@@ -405,8 +410,8 @@ export class DatabaseService {
   }
 
   async getDeployedTrap(id: string): Promise<any> {
-    const query = 'SELECT * FROM deployed_traps WHERE id = $1';
-    const result = await this.supabase.from('deployed_traps').select('*').eq('id', id).single();
+    const query = 'SELECT * FROM basic_traps WHERE id = $1';
+    const result = await this.supabase.from('basic_traps').select('*').eq('id', id).single();
     return result.data || null;
   }
 
@@ -431,13 +436,13 @@ export class DatabaseService {
     updateValues.push(id);
 
     const query = `
-      UPDATE deployed_traps 
+      UPDATE basic_traps 
       SET ${updateFields.join(', ')}
       WHERE id = $${paramCount}
       RETURNING *
     `;
 
-    const result = await this.supabase.from('deployed_traps').update({
+    const result = await this.supabase.from('basic_traps').update({
       [updateFields[0]]: updateValues[0], // Use the first update field as the key
       updated_at: new Date(),
     }).eq('id', id).select().single();
@@ -449,7 +454,7 @@ export class DatabaseService {
   }
 
   async getDeployedTrapsByUser(userId: string, filters: any = {}, options: any = {}): Promise<any[]> {
-    let query = 'SELECT * FROM deployed_traps WHERE user_id = $1';
+    let query = 'SELECT * FROM basic_traps WHERE user_id = $1';
     const values: any[] = [userId];
     let paramCount = 2;
 
@@ -484,7 +489,7 @@ export class DatabaseService {
       values.push(options.offset);
     }
 
-    const result = await this.supabase.from('deployed_traps').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    const result = await this.supabase.from('basic_traps').select('*').eq('user_id', userId).order('created_at', { ascending: false });
     return result.data || [];
   }
 
@@ -1039,7 +1044,7 @@ export class DatabaseService {
           COUNT(*) as count,
           COUNT(CASE WHEN severity = 'critical' THEN 1 END) as critical_count
         FROM alerts a
-        LEFT JOIN deployed_traps dt ON a.deployment_id = dt.id
+        LEFT JOIN basic_traps dt ON a.deployment_id = dt.id
         WHERE a.user_id = $1 AND a.created_at >= $2
         GROUP BY COALESCE(chain_id, 'unknown')
         ORDER BY count DESC
@@ -1057,8 +1062,8 @@ export class DatabaseService {
     try {
       let query = `
         SELECT a.* FROM alerts a
-        JOIN deployed_traps dt ON a.deployment_id = dt.id
-        WHERE dt.contract_address = $1 AND dt.chain_id = $2 AND a.user_id = $3
+        JOIN basic_traps dt ON a.deployment_id = dt.id
+        WHERE dt.contract_address = $1 AND dt.network = $2 AND a.user_id = $3
       `;
       
       const values = [address, chainId, userId];
@@ -1320,7 +1325,7 @@ export class DatabaseService {
       const query = `
         SELECT t.*, COUNT(d.id) as deployment_count
         FROM trap_templates t
-        LEFT JOIN deployed_traps d ON t.id = d.template_id AND d.created_at >= $1
+        LEFT JOIN basic_traps d ON t.category = d.trap_type AND d.created_at >= $1
         WHERE t.is_public = true
         GROUP BY t.id
         ORDER BY deployment_count DESC, t.created_at DESC
@@ -1375,7 +1380,7 @@ export class DatabaseService {
       const query = `
         SELECT t.*, COUNT(d.id) as deployment_count
         FROM trap_templates t
-        LEFT JOIN deployed_traps d ON t.id = d.template_id AND d.created_at >= $1
+        LEFT JOIN basic_traps d ON t.category = d.trap_type AND d.created_at >= $1
         WHERE t.is_public = true
         GROUP BY t.id
         ORDER BY deployment_count DESC, t.created_at DESC
@@ -1428,7 +1433,7 @@ export class DatabaseService {
           COUNT(DISTINCT d.id) as total_deployments
         FROM trap_templates t
         LEFT JOIN template_ratings r ON t.id = r.template_id
-        LEFT JOIN deployed_traps d ON t.id = d.template_id
+        LEFT JOIN basic_traps d ON t.category = d.trap_type
         WHERE t.creator_address = $1
       `;
       
@@ -1448,11 +1453,11 @@ export class DatabaseService {
           COUNT(CASE WHEN status = 'active' THEN 1 END) as active_deployments,
           COUNT(CASE WHEN status = 'error' THEN 1 END) as failed_deployments,
           AVG(actual_cost::numeric) as avg_cost
-        FROM deployed_traps 
-        WHERE template_id = $1
+        FROM basic_traps 
+        WHERE trap_type = $1
       `;
       
-      const result = await this.supabase.from('deployed_traps').select('*').eq('template_id', templateId).order('created_at', { ascending: false });
+      const result = await this.supabase.from('basic_traps').select('*').eq('trap_type', templateId).order('created_at', { ascending: false });
       return result.data?.[0] || { total_deployments: 0, active_deployments: 0, failed_deployments: 0, avg_cost: 0 };
     } catch (error) {
       console.error('Failed to get template deployment stats:', error);
@@ -1463,13 +1468,13 @@ export class DatabaseService {
   async getUserTemplateDeployment(userId: string, templateId: string): Promise<any> {
     try {
       const query = `
-        SELECT * FROM deployed_traps 
-        WHERE user_id = $1 AND template_id = $2
+        SELECT * FROM basic_traps 
+        WHERE user_id = $1 AND trap_type = $2
         ORDER BY created_at DESC
         LIMIT 1
       `;
       
-      const result = await this.supabase.from('deployed_traps').select('*').eq('user_id', userId).eq('template_id', templateId).order('created_at', { ascending: false });
+      const result = await this.supabase.from('basic_traps').select('*').eq('user_id', userId).eq('trap_type', templateId).order('created_at', { ascending: false });
       return result.data?.[0] || null;
     } catch (error) {
       console.error('Failed to get user template deployment:', error);
@@ -1613,7 +1618,7 @@ export class DatabaseService {
       if (!templateError) stats.totalTemplates = templateCount || 0;
 
       const { count: deploymentCount, error: deploymentError } = await this.supabase
-        .from('deployed_traps')
+        .from('basic_traps')
         .select('*', { count: 'exact', head: true });
       if (!deploymentError) stats.totalDeployments = deploymentCount || 0;
 
@@ -1661,7 +1666,7 @@ export class DatabaseService {
   async getDeployedTrapCount(): Promise<number> {
     try {
       const { count, error } = await this.supabase
-        .from('deployed_traps')
+        .from('basic_traps')
         .select('*', { count: 'exact', head: true });
       
       if (error) throw error;
@@ -1752,7 +1757,7 @@ export class DatabaseService {
     try {
       // Get recent deployments
       const deployments = await this.supabase
-        .from('deployed_traps')
+        .from('basic_traps')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(3);
