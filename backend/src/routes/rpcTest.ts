@@ -54,11 +54,10 @@ router.get('/status', asyncHandler(async (req, res) => {
     const hoodiInfo = await blockchainService.getHoodiNetworkInfo();
     const currentProvider = blockchainService.getHoodiProvider();
     
-    // Get detailed status
-    const [latestBlock, gasPrice, peerCount] = await Promise.all([
+    // Get detailed status (without unsupported methods)
+    const [latestBlock, gasPrice] = await Promise.all([
       currentProvider.getBlockNumber(),
-      currentProvider.getFeeData(),
-      currentProvider.send('net_peerCount', [])
+      currentProvider.getFeeData()
     ]);
     
     const status = {
@@ -69,7 +68,7 @@ router.get('/status', asyncHandler(async (req, res) => {
       details: {
         latestBlock: latestBlock.toString(),
         gasPrice: gasPrice.gasPrice?.toString() || '0',
-        peerCount: peerCount.toString(),
+        peerCount: 'N/A', // Not available on Hoodi testnet
         blockExplorer: hoodiInfo.blockExplorer,
         nativeCurrency: hoodiInfo.nativeCurrency
       },
