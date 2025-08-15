@@ -9,7 +9,7 @@
     "lint": "next lint",
     "export": "next build",
     "netlify-build": "next build",
-    "build:css": "tailwindcss -i ./src/app/globals.css -o ./src/app/output.css --watch",
+    "build:css": "tailwindcss -i ./styles/globals.css -o ./styles/output.css --watch",
     "build:production": "NODE_ENV=production next build"
   },
   "dependencies": {
