@@ -34,9 +34,9 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
       {/* Navigation */}
-      <nav className="border-b border-gray-800 bg-black/50 backdrop-blur-sm">
+      <nav className="border-b border-gray-800 bg-black/20 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
@@ -91,7 +91,7 @@ export default function Home() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-900/50">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-900/30">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-6 text-white">Hoodi Testnet Security</h2>
@@ -119,49 +119,49 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-900">
+      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-900/50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-6 text-white">Why Choose One Click?</h2>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">Advanced security technology wrapped in a simple, intuitive interface</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="card group">
+            <div className="bg-white/5 backdrop-blur-md rounded-xl p-6 border border-white/10 group hover:border-purple-500/50 transition-all duration-200">
               <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-6 group-hover:bg-orange-500/30 transition-colors">
                 <span className="text-2xl">🔒</span>
               </div>
               <h3 className="text-xl font-semibold mb-4 text-white">One-Click Deployment</h3>
               <p className="text-gray-400 leading-relaxed">Deploy sophisticated security traps with a single click. No coding required.</p>
             </div>
-            <div className="card group">
+            <div className="bg-white/5 backdrop-blur-md rounded-xl p-6 border border-white/10 group hover:border-purple-500/50 transition-all duration-200">
               <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-6 group-hover:bg-orange-500/30 transition-colors">
                 <span className="text-2xl">🤖</span>
               </div>
               <h3 className="text-xl font-semibold mb-4 text-white">AI-Powered Analysis</h3>
               <p className="text-gray-400 leading-relaxed">Intelligent contract analysis that identifies vulnerabilities before they become threats.</p>
             </div>
-            <div className="card group">
+            <div className="bg-white/5 backdrop-blur-md rounded-xl p-6 border border-white/10 group hover:border-purple-500/50 transition-all duration-200">
               <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-6 group-hover:bg-orange-500/30 transition-colors">
                 <span className="text-2xl">🧪</span>
               </div>
               <h3 className="text-xl font-semibold mb-4 text-white">Testnet Ready</h3>
               <p className="text-gray-400 leading-relaxed">Perfect for testing security strategies on Hoodi testnet before mainnet deployment.</p>
             </div>
-            <div className="card group">
+            <div className="bg-white/5 backdrop-blur-md rounded-xl p-6 border border-white/10 group hover:border-purple-500/50 transition-all duration-200">
               <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-6 group-hover:bg-orange-500/30 transition-colors">
                 <span className="text-2xl">📊</span>
               </div>
               <h3 className="text-xl font-semibold mb-4 text-white">Real-Time Monitoring</h3>
               <p className="text-gray-400 leading-relaxed">24/7 monitoring with instant alerts when threats are detected.</p>
             </div>
-            <div className="card group">
+            <div className="bg-white/5 backdrop-blur-md rounded-xl p-6 border border-white/10 group hover:border-purple-500/50 transition-all duration-200">
               <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-6 group-hover:bg-orange-500/30 transition-colors">
                 <span className="text-2xl">🏪</span>
               </div>
               <h3 className="text-xl font-semibold mb-4 text-white">Template Marketplace</h3>
               <p className="text-gray-400 leading-relaxed">Browse and deploy from curated, audited security trap templates.</p>
             </div>
-            <div className="card group">
+            <div className="bg-white/5 backdrop-blur-md rounded-xl p-6 border border-white/10 group hover:border-purple-500/50 transition-all duration-200">
               <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-6 group-hover:bg-orange-500/30 transition-colors">
                 <span className="text-2xl">👥</span>
               </div>
@@ -173,7 +173,7 @@ export default function Home() {
       </section>
 
       {/* Backend Connection Test Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-900">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-900/50">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl font-bold mb-8 text-white">Backend Connection Status</h2>
           <p className="text-xl text-gray-300 mb-10 leading-relaxed">
@@ -184,7 +184,7 @@ export default function Home() {
       </section>
 
       {/* Donation Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-black">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-black/20 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl font-bold mb-8 text-white">Support Development</h2>
           <p className="text-xl text-gray-300 mb-10 leading-relaxed">

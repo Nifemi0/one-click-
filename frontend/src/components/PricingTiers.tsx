@@ -126,7 +126,7 @@ export default function PricingTiers() {
   };
 
   return (
-    <div className="py-20 px-4 sm:px-6 lg:px-8 bg-black">
+    <div className="py-20 px-4 sm:px-6 lg:px-8 bg-black/20 backdrop-blur-sm">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
