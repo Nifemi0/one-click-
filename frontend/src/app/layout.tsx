@@ -1,22 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ConnectKitProvider } from 'connectkit';
-import { WagmiProvider } from 'wagmi';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { wagmiConfig } from '../src/lib/web3';
 
 const inter = Inter({ subsets: ["latin"] });
-
-// Create a client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: 3,
-    },
-  },
-});
 
 export const metadata: Metadata = {
   title: "One Click - DeFi Security Made Simple",
@@ -86,13 +72,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="/standalone.css" />
       </head>
       <body className="antialiased">
-        <WagmiProvider config={wagmiConfig}>
-          <QueryClientProvider client={queryClient}>
-            <ConnectKitProvider>
-              {children}
-            </ConnectKitProvider>
-          </QueryClientProvider>
-        </WagmiProvider>
+        {children}
       </body>
     </html>
   );

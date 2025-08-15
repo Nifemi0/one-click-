@@ -1,7 +1,6 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ConnectKitButton } from 'connectkit';
 import BackendConnectionTest from '@/components/BackendConnectionTest';
 
 export default function Home() {
@@ -52,7 +51,7 @@ export default function Home() {
               <a className="text-gray-300 hover:text-white transition-colors" href="#about">About</a>
             </div>
             <div className="flex items-center space-x-4">
-              <ConnectKitButton />
+              <button className="btn-outline">Connect Wallet</button>
               <button className="btn-primary" onClick={handleLaunchApp}>Launch App</button>
             </div>
           </div>

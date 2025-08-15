@@ -6,7 +6,7 @@ import { API_ENDPOINTS } from '@/lib/constants';
 interface ConnectionStatus {
   endpoint: string;
   status: 'loading' | 'success' | 'error';
-  response?: any;
+  response?: unknown;
   error?: string;
 }
 
