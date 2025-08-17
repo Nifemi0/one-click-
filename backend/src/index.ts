@@ -109,9 +109,17 @@ async function setupRoutes() {
   try {
     console.log('🔧 Importing route creators...');
     
-    // Import route creators (ONLY the new approach)
+    // Import route creators
     const { createRpcTestRouter } = await import('./routes/rpcTest');
     const { createMarketplaceRouter } = await import('./routes/marketplace');
+    
+    // Import other route modules
+    const authRoutes = await import('./routes/auth');
+    const basicTrapsRoutes = await import('./routes/basicTraps');
+    const enhancedAITrapRoutes = await import('./routes/enhancedAITrap');
+    const analysisRoutes = await import('./routes/analysis');
+    const alertsRoutes = await import('./routes/alerts');
+    const trapsRoutes = await import('./routes/traps');
     
     console.log('🔧 Creating route instances...');
     
@@ -121,13 +129,25 @@ async function setupRoutes() {
     
     console.log('🔧 Registering routes...');
     
-    // Register routes
+    // Register all routes
     app.use('/api/rpc-test', rpcTestRoutes);
     app.use('/api/marketplace', marketplaceRoutes);
+    app.use('/api/auth', authRoutes.default);
+    app.use('/api/basic-traps', basicTrapsRoutes.default);
+    app.use('/api/enhanced-ai-trap', enhancedAITrapRoutes.default);
+    app.use('/api/analyze', analysisRoutes.default);
+    app.use('/api/alerts', alertsRoutes.default);
+    app.use('/api/traps', trapsRoutes.default);
     
     console.log('✅ Routes registered successfully!');
     console.log('✅ RPC Test routes: /api/rpc-test/*');
     console.log('✅ Marketplace routes: /api/marketplace/*');
+    console.log('✅ Auth routes: /api/auth/*');
+    console.log('✅ Basic Traps routes: /api/basic-traps/*');
+    console.log('✅ Enhanced AI Trap routes: /api/enhanced-ai-trap/*');
+    console.log('✅ Analysis routes: /api/analyze/*');
+    console.log('✅ Alerts routes: /api/alerts/*');
+    console.log('✅ Traps routes: /api/traps/*');
     
   } catch (error) {
     console.error('❌ Failed to set up routes:', error);
