@@ -1,0 +1,122 @@
+{
+  "demoType": "Basic Trap Deployment",
+  "timestamp": "2025-08-17T07:21:54.641Z",
+  "templates": [
+    {
+      "id": "honeypot_basic",
+      "name": "Basic Honeypot",
+      "description": "Simple honeypot that looks like a legitimate contract",
+      "type": "honeypot",
+      "complexity": "simple",
+      "estimatedCost": "0.008 ETH",
+      "estimatedGas": 300000,
+      "features": [
+        "Basic honeypot functionality",
+        "Simple withdrawal mechanism",
+        "Gas optimization",
+        "Basic security features"
+      ]
+    },
+    {
+      "id": "honeypot_advanced",
+      "name": "Advanced Honeypot",
+      "description": "Sophisticated honeypot with realistic DeFi interface",
+      "type": "honeypot",
+      "complexity": "medium",
+      "estimatedCost": "0.012 ETH",
+      "estimatedGas": 450000,
+      "features": [
+        "Realistic DeFi interface",
+        "APY calculation simulation",
+        "Withdrawal delay mechanisms",
+        "Advanced honeypot detection resistance",
+        "Gas optimization"
+      ]
+    },
+    {
+      "id": "sandbox_basic",
+      "name": "Security Sandbox",
+      "description": "Isolated environment for testing security concepts",
+      "type": "sandbox",
+      "complexity": "simple",
+      "estimatedCost": "0.006 ETH",
+      "estimatedGas": 250000,
+      "features": [
+        "Isolated execution environment",
+        "Resource limitations",
+        "Security testing capabilities",
+        "Basic monitoring"
+      ]
+    },
+    {
+      "id": "monitoring_basic",
+      "name": "Basic Monitor",
+      "description": "Simple monitoring contract for basic security tracking",
+      "type": "monitoring",
+      "complexity": "simple",
+      "estimatedCost": "0.005 ETH",
+      "estimatedGas": 200000,
+      "features": [
+        "Transaction monitoring",
+        "Basic alert system",
+        "Event logging",
+        "Gas usage tracking"
+      ]
+    },
+    {
+      "id": "monitoring_advanced",
+      "name": "Advanced Monitor",
+      "description": "Comprehensive monitoring with advanced analytics",
+      "type": "monitoring",
+      "complexity": "medium",
+      "estimatedCost": "0.010 ETH",
+      "estimatedGas": 400000,
+      "features": [
+        "Advanced transaction monitoring",
+        "Pattern detection",
+        "Risk assessment",
+        "Real-time alerts",
+        "Analytics dashboard",
+        "Gas optimization"
+      ]
+    },
+    {
+      "id": "basic_trap",
+      "name": "Basic Security Trap",
+      "description": "Simple security trap for basic protection",
+      "type": "basic",
+      "complexity": "simple",
+      "estimatedCost": "0.004 ETH",
+      "estimatedGas": 150000,
+      "features": [
+        "Basic security features",
+        "Simple access control",
+        "Event logging",
+        "Gas optimization"
+      ]
+    }
+  ],
+  "selectedTemplate": {
+    "id": "honeypot_advanced",
+    "name": "Advanced Honeypot",
+    "description": "Sophisticated honeypot with realistic DeFi interface",
+    "type": "honeypot",
+    "complexity": "medium",
+    "estimatedCost": "0.012 ETH",
+    "estimatedGas": 450000,
+    "features": [
+      "Realistic DeFi interface",
+      "APY calculation simulation",
+      "Withdrawal delay mechanisms",
+      "Advanced honeypot detection resistance",
+      "Gas optimization"
+    ]
+  },
+  "deploymentResult": {
+    "status": "success",
+    "contractAddress": "0xca4a973ecdcc",
+    "transactionHash": "0xfee85f87a1435",
+    "actualCost": "0.0118 ETH",
+    "network": "Hoodi Testnet (560048)"
+  }
+}

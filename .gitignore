@@ -1,0 +1,191 @@
+# =====================================================
+# DROSERA SECURITY TRAP SYSTEM - GIT IGNORE
+# =====================================================
+# ⚠️  CRITICAL: Never commit sensitive data to version control!
+
+# ===== ENVIRONMENT FILES (CONTAINS SECRETS) =====
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.staging
+.env.*.local
+
+# ===== BACKEND ENVIRONMENT =====
+backend/.env
+backend/.env.*
+backend/config/secrets.json
+backend/config/keys.json
+
+# ===== FRONTEND ENVIRONMENT =====
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.production.local
+frontend/.env.test.local
+
+# ===== DATABASE =====
+*.db
+*.sqlite
+*.sqlite3
+database/
+db/
+
+# ===== LOGS =====
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# ===== RUNTIME DATA =====
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ===== COVERAGE DIRECTORY =====
+coverage/
+*.lcov
+.nyc_output
+
+# ===== GRUNT INTERMEDIATE STORAGE =====
+.grunt
+
+# ===== BOWER DEPENDENCY DIRECTORY =====
+bower_components
+
+# ===== NODE MODULES =====
+node_modules/
+*/node_modules/
+
+# ===== NPM =====
+.npm
+.eslintcache
+
+# ===== YARN =====
+.yarn-integrity
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# ===== BUILD OUTPUTS =====
+dist/
+build/
+out/
+.next/
+.nuxt/
+.vuepress/dist
+.serverless/
+.fusebox/
+.dynamodb/
+
+# ===== IDE & EDITOR FILES =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===== OS GENERATED FILES =====
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ===== TEMPORARY FILES =====
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# ===== TEST FILES =====
+test-results/
+test-results.xml
+coverage/
+
+# ===== DOCKER =====
+.dockerignore
+docker-compose.override.yml
+
+# ===== KUBERNETES =====
+*.kubeconfig
+kubeconfig
+
+# ===== SSL CERTIFICATES =====
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+
+# ===== WALLET FILES =====
+*.keystore
+*.wallet
+wallets/
+keystores/
+
+# ===== CONTRACT ARTIFACTS =====
+artifacts/
+cache/
+typechain/
+typechain-types/
+
+# ===== HARDHAT =====
+.hardhat/
+hardhat.config.js
+hardhat.config.ts
+
+# ===== TRUFFLE =====
+truffle-config.js
+truffle.js
+
+# ===== FOUNDRY =====
+foundry.toml
+out/
+cache/
+
+# ===== ENCRYPTION =====
+*.enc
+*.encrypted
+encryption-keys/
+
+# ===== BACKUP FILES =====
+*.backup
+*.bak
+*.old
+*.orig
+
+# ===== PACKAGE LOCK FILES (OPTIONAL) =====
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ===== ENVIRONMENT TEMPLATES =====
+.env.example
+.env.template
+env.example
+env.template
+
+# ===== SECURITY SCAN RESULTS =====
+security-scan-results/
+vulnerability-reports/
+security-audit-reports/
+
+# ===== MONITORING & ANALYTICS =====
+monitoring-data/
+analytics-data/
+metrics-data/
+
+# ===== NOTIFICATION TOKENS =====
+notification-tokens.json
+webhook-tokens.json
+bot-tokens.jsonbackend/.env
