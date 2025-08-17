@@ -5,7 +5,7 @@ export const SUPPORTED_CHAINS = {
     chainId: 560048,
     name: 'Hoodi Testnet',
     rpcUrl: process.env.NEXT_PUBLIC_HOODI_RPC_URL || 'https://eth-hoodi.g.alchemy.com/v2/ZETFuZOXiKo3Rg4GKKAyZ',
-    blockExplorer: process.env.NEXT_PUBLIC_HOODI_BLOCK_EXPLORER || 'https://hoodi.etherscan.io',
+    blockExplorer: process.env.NEXT_PUBLIC_HOODI_BLOCK_EXPLORER || 'https://api-hoodi.etherscan.io',
     nativeCurrency: {
       name: 'Ether',
       symbol: 'ETH',
@@ -44,7 +44,7 @@ export const ALERT_SEVERITIES = {
 } as const;
 
 export const API_ENDPOINTS = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'https://one-click-c308.onrender.com',
   AUTH: {
     LOGIN: '/api/auth/login',
     LOGOUT: '/api/auth/logout',
