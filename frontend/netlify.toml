@@ -1,16 +1,14 @@
 [build]
   command = "npm run build"
-  publish = "out"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "18"
   NODE_ENV = "production"
 
-# Redirect all routes to index.html for SPA routing
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Next.js plugin configuration
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 # Ensure CSS files are served with correct headers
 [[headers]]
