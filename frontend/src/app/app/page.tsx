@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
+import { Badge } from "../../components/ui/badge";
 import { Shield, Zap, Target, TrendingUp, Users, Activity } from "lucide-react";
-import { useWallet } from "@/providers/WalletProvider";
+import { useWallet } from "../../providers/WalletProvider";
 
 export default function AppPage() {
   const { isConnected, address } = useWallet();
@@ -16,12 +16,8 @@ export default function AppPage() {
       alert("Please connect your wallet first!");
       return;
     }
-    setIsLoading(true);
-    // Simulate trap deployment
-    setTimeout(() => {
-      setIsLoading(false);
-      alert("Trap deployment initiated! Check your wallet for transaction.");
-    }, 2000);
+    // Navigate to deploy page
+    window.location.href = '/deploy';
   };
 
   const handleMarketplace = () => {
@@ -31,6 +27,15 @@ export default function AppPage() {
     }
     // Navigate to marketplace
     window.location.href = '/marketplace';
+  };
+
+  const handleViewAnalytics = () => {
+    if (!isConnected) {
+      alert("Please connect your wallet first!");
+      return;
+    }
+    // Navigate to analytics (you can create this page later)
+    alert("Analytics page coming soon!");
   };
 
   if (!isConnected) {
@@ -121,6 +126,7 @@ export default function AppPage() {
             </CardHeader>
             <CardContent>
               <Button 
+                onClick={handleViewAnalytics}
                 variant="outline"
                 className="w-full border-gray-600 text-gray-400 hover:bg-gray-800"
               >
@@ -205,6 +211,34 @@ export default function AppPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Quick Navigation */}
+        <div className="mt-8 text-center">
+          <p className="text-gray-400 mb-4">Quick Navigation</p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Button 
+              onClick={() => window.location.href = '/deploy'}
+              variant="outline"
+              className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10"
+            >
+              Deploy Traps
+            </Button>
+            <Button 
+              onClick={() => window.location.href = '/marketplace'}
+              variant="outline"
+              className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+            >
+              Browse Marketplace
+            </Button>
+            <Button 
+              onClick={() => window.location.href = '/'}
+              variant="outline"
+              className="border-gray-600 text-gray-400 hover:bg-gray-800"
+            >
+              Back to Home
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

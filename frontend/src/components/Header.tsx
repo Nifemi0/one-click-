@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Menu, X } from "lucide-react";
 import { useWallet } from "../providers/WalletProvider";
+import Link from "next/link";
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -49,22 +50,22 @@ export function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <a href="#features" className="text-gray-300 hover:text-white transition-all duration-200 border-b-2 border-transparent hover:border-orange-500 pb-1 relative group">
-              Features
+            <Link href="/" className="text-gray-300 hover:text-white transition-all duration-200 border-b-2 border-transparent hover:border-orange-500 pb-1 relative group">
+              Home
               <span className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-orange-500 to-red-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></span>
-            </a>
-            <a href="#security" className="text-gray-300 hover:text-white transition-all duration-200 border-b-2 border-transparent hover:border-orange-500 pb-1 relative group">
-              Security
+            </Link>
+            <Link href="/deploy" className="text-gray-300 hover:text-white transition-all duration-200 border-b-2 border-transparent hover:border-orange-500 pb-1 relative group">
+              Deploy
               <span className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-orange-500 to-red-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></span>
-            </a>
-            <a href="#marketplace" className="text-gray-300 hover:text-white transition-all duration-200 border-b-2 border-transparent hover:border-orange-500 pb-1 relative group">
+            </Link>
+            <Link href="/marketplace" className="text-gray-300 hover:text-white transition-all duration-200 border-b-2 border-transparent hover:border-orange-500 pb-1 relative group">
               Marketplace
               <span className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-orange-500 to-red-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></span>
-            </a>
-            <a href="#about" className="text-gray-300 hover:text-white transition-all duration-200 border-b-2 border-transparent hover:border-orange-500 pb-1 relative group">
-              About
+            </Link>
+            <Link href="/app" className="text-gray-300 hover:text-white transition-all duration-200 border-b-2 border-transparent hover:border-orange-500 pb-1 relative group">
+              Dashboard
               <span className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-orange-500 to-red-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></span>
-            </a>
+            </Link>
           </nav>
 
           {/* Desktop CTA Buttons */}
@@ -99,18 +100,18 @@ export function Header() {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-gray-800 bg-black/95 backdrop-blur-md">
             <div className="px-2 pt-2 pb-3 space-y-1">
-              <a href="#features" className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors duration-200">
-                Features
-              </a>
-              <a href="#security" className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors duration-200">
-                Security
-              </a>
-              <a href="#marketplace" className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors duration-200">
+              <Link href="/" className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors duration-200">
+                Home
+              </Link>
+              <Link href="/deploy" className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors duration-200">
+                Deploy
+              </Link>
+              <Link href="/marketplace" className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors duration-200">
                 Marketplace
-              </a>
-              <a href="#about" className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors duration-200">
-                About
-              </a>
+              </Link>
+              <Link href="/app" className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors duration-200">
+                Dashboard
+              </Link>
               <div className="pt-4 space-y-2">
                 <Button 
                   onClick={handleWalletAction}
