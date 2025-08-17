@@ -1,10 +1,10 @@
-# Stage 1: Build stage with TypeScript
-FROM node:18-alpine AS build
+# Use Node.js 18 Alpine for smaller image size
+FROM node:18-alpine
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better caching
 COPY package*.json ./
 
 # Install ALL dependencies (including dev dependencies for build)
@@ -16,20 +16,8 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Stage 2: Production stage
-FROM node:18-alpine AS production
-
-# Set working directory
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install only production dependencies
-RUN npm ci --only=production
-
-# Copy built application from build stage
-COPY --from=build /app/dist ./dist
+# Remove dev dependencies to keep image small
+RUN npm prune --production
 
 # Expose port
 EXPOSE 10000
