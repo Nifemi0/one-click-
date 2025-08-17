@@ -11,6 +11,21 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    rules: {
+      "no-console": "warn",
+      "no-debugger": "warn",
+      "no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-explicit-any": "warn",
+      "no-console": process.env.NODE_ENV === "production" ? "error" : "warn",
+    },
+    env: {
+      browser: true,
+      es2021: true,
+      node: true,
+    },
+  },
 ];
 
 export default eslintConfig;
