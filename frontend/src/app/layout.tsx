@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { WalletProvider } from "@/providers/WalletProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,11 +17,11 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://oneclick.network'),
+  metadataBase: new URL('https://oneclick1.netlify.app'),
   openGraph: {
     title: "One Click - DeFi Security Made Simple",
     description: "Deploy sophisticated security traps on Hoodi testnet with AI-powered analysis.",
-    url: 'https://oneclick.network',
+    url: 'https://oneclick1.netlify.app',
     siteName: 'One Click Network',
     images: [
       {
@@ -65,14 +66,13 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        {/* Standalone CSS for Netlify compatibility - moved to globals.css */}
-        {/* <link rel="stylesheet" href="/standalone.css" /> */}
       </head>
       <body className="antialiased">
-        {children}
+        <WalletProvider>
+          {children}
+        </WalletProvider>
       </body>
     </html>
   );

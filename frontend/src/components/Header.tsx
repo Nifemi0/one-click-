@@ -1,10 +1,14 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Menu, X } from "lucide-react";
+import { useWallet } from "../providers/WalletProvider";
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isConnected, address, connect, disconnect } = useWallet();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -13,6 +17,19 @@ export function Header() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleLaunchApp = () => {
+    // Navigate to the main app functionality
+    window.location.href = '/app';
+  };
+
+  const handleWalletAction = () => {
+    if (isConnected) {
+      disconnect();
+    } else {
+      connect();
+    }
+  };
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -53,12 +70,16 @@ export function Header() {
           {/* Desktop CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
             <Button 
+              onClick={handleWalletAction}
               variant="outline" 
               className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500 hover:text-orange-300 transition-all duration-200 backdrop-blur-sm"
             >
-              Connect Wallet
+              {isConnected ? `Connected: ${address?.slice(0, 6)}...${address?.slice(-4)}` : 'Connect Wallet'}
             </Button>
-            <Button className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white border-0 shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all duration-200 hover:scale-105">
+            <Button 
+              onClick={handleLaunchApp}
+              className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white border-0 shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all duration-200 hover:scale-105"
+            >
               Launch App
             </Button>
           </div>
@@ -92,12 +113,16 @@ export function Header() {
               </a>
               <div className="pt-4 space-y-2">
                 <Button 
+                  onClick={handleWalletAction}
                   variant="outline" 
                   className="w-full border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500 hover:text-orange-300"
                 >
-                  Connect Wallet
+                  {isConnected ? `Connected: ${address?.slice(0, 6)}...${address?.slice(-4)}` : 'Connect Wallet'}
                 </Button>
-                <Button className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white">
+                <Button 
+                  onClick={handleLaunchApp}
+                  className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
+                >
                   Launch App
                 </Button>
               </div>
