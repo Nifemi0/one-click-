@@ -32,6 +32,24 @@ router.get('/templates', async (req, res) => {
   }
 });
 
+// Health check endpoint
+router.get('/health', async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      message: 'Basic traps service is healthy',
+      timestamp: new Date().toISOString(),
+      service: 'Basic Traps'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Service health check failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 router.post('/deploy', authMiddleware, async (req, res) => {
   res.json({ success: true, message: 'Deploy endpoint' });
 });

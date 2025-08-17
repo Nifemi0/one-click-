@@ -127,6 +127,13 @@ async function setupRoutes() {
     const rpcTestRoutes = createRpcTestRouter(blockchainService, databaseService);
     const marketplaceRoutes = createMarketplaceRouter(databaseService);
     
+    // Initialize services for routes that need them
+    const { BasicTrapDeploymentService } = await import('./services/basicTrapDeployment');
+    const basicTrapService = new BasicTrapDeploymentService(databaseService, blockchainService, notificationService);
+    
+    // Set the service in the route module
+    basicTrapsRoutes.setBasicTrapService(basicTrapService);
+    
     console.log('🔧 Registering routes...');
     
     // Register all routes
