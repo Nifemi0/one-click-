@@ -29,7 +29,8 @@ const io = new Server(server, {
   cors: {
     origin: [
       process.env.FRONTEND_URL || "http://localhost:3000",
-      "https://your-frontend-domain.netlify.app",
+      "https://oneclick1.netlify.app",
+      "https://oneclick1.netlify.app",
       "http://localhost:3000"
     ],
     methods: ["GET", "POST"]
@@ -45,7 +46,8 @@ app.use(helmet());
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL || "http://localhost:3000",
-    "https://your-frontend-domain.netlify.app",
+    "https://oneclick1.netlify.app",
+    "https://oneclick1.netlify.app",
     "http://localhost:3000"
   ],
   credentials: true,
