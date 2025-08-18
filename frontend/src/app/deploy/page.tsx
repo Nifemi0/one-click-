@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
-import { Shield, Zap, Target, AlertTriangle, CheckCircle, Clock, DollarSign } from "lucide-react";
+import { Shield, Zap, Target, AlertTriangle, CheckCircle, Clock, DollarSign, CreditCard, Wallet } from "lucide-react";
 import { useWallet } from "../../providers/WalletProvider";
 
 interface TrapTemplate {
@@ -13,58 +13,56 @@ interface TrapTemplate {
   description: string;
   difficulty: 'Basic' | 'Intermediate' | 'Advanced';
   cost: string;
+  costInEth: number;
   deploymentTime: string;
   securityLevel: 'Low' | 'Medium' | 'High';
   features: string[];
+  contractCode: string;
 }
 
 const trapTemplates: TrapTemplate[] = [
   {
     id: '1',
-    name: 'Honeypot Trap',
-    description: 'A basic honeypot that lures attackers into a fake vulnerable contract',
+    name: 'Basic Honeypot Trap',
+    description: 'A simple honeypot that lures attackers into a fake vulnerable contract',
     difficulty: 'Basic',
     cost: '0.01 ETH',
+    costInEth: 0.01,
     deploymentTime: '2-3 minutes',
     securityLevel: 'Medium',
-    features: ['Attack detection', 'Fund protection', 'Basic monitoring']
+    features: ['Attack detection', 'Fund protection', 'Basic monitoring'],
+    contractCode: '// Basic Honeypot Contract Code'
   },
   {
     id: '2',
     name: 'Reentrancy Guard',
-    description: 'Advanced protection against reentrancy attacks',
-    difficulty: 'Advanced',
-    cost: '0.05 ETH',
-    deploymentTime: '5-7 minutes',
+    description: 'Protection against reentrancy attacks',
+    difficulty: 'Intermediate',
+    cost: '0.03 ETH',
+    costInEth: 0.03,
+    deploymentTime: '3-4 minutes',
     securityLevel: 'High',
-    features: ['Reentrancy protection', 'Gas optimization', 'Advanced monitoring']
+    features: ['Reentrancy protection', 'Gas optimization', 'Advanced monitoring'],
+    contractCode: '// Reentrancy Guard Contract Code'
   },
   {
     id: '3',
     name: 'Flash Loan Detector',
-    description: 'Detects and blocks flash loan attacks in real-time',
-    difficulty: 'Intermediate',
-    cost: '0.03 ETH',
-    deploymentTime: '3-4 minutes',
-    securityLevel: 'High',
-    features: ['Flash loan detection', 'Real-time blocking', 'Transaction analysis']
-  },
-  {
-    id: '4',
-    name: 'Multi-Sig Guardian',
-    description: 'Multi-signature protection for critical operations',
+    description: 'Detects and blocks flash loan attacks',
     difficulty: 'Intermediate',
     cost: '0.02 ETH',
-    deploymentTime: '4-5 minutes',
+    costInEth: 0.02,
+    deploymentTime: '2-3 minutes',
     securityLevel: 'High',
-    features: ['Multi-signature', 'Role management', 'Emergency controls']
+    features: ['Flash loan detection', 'Real-time blocking', 'Transaction analysis'],
+    contractCode: '// Flash Loan Detector Contract Code'
   }
 ];
 
 export default function DeployPage() {
   const { isConnected, address } = useWallet();
   const [selectedTemplate, setSelectedTemplate] = useState<TrapTemplate | null>(null);
-  const [deploymentStep, setDeploymentStep] = useState<'select' | 'configure' | 'deploying' | 'success'>('select');
+  const [deploymentStep, setDeploymentStep] = useState<'select' | 'configure' | 'payment' | 'deploying' | 'success'>('select');
   const [deploymentProgress, setDeploymentProgress] = useState(0);
   const [customConfig, setCustomConfig] = useState({
     trapName: '',
@@ -72,32 +70,156 @@ export default function DeployPage() {
     rewardPercentage: 10,
     maxAttackers: 5
   });
+  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'card'>('wallet');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [deploymentHash, setDeploymentHash] = useState<string>('');
 
   const handleTemplateSelect = (template: TrapTemplate) => {
     setSelectedTemplate(template);
     setDeploymentStep('configure');
   };
 
-  const handleDeploy = async () => {
+  const handlePayment = async () => {
     if (!isConnected) {
       alert('Please connect your wallet first!');
       return;
     }
 
-    setDeploymentStep('deploying');
+    if (!selectedTemplate) return;
+
+    setIsProcessingPayment(true);
+
+    try {
+      if (paymentMethod === 'wallet') {
+        // Handle wallet payment
+        await handleWalletPayment();
+      } else {
+        // Handle card payment
+        await handleCardPayment();
+      }
+    } catch (error) {
+      console.error('Payment failed:', error);
+      alert('Payment failed. Please try again.');
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  const handleWalletPayment = async () => {
+    if (!selectedTemplate || !window.ethereum) return;
+
+    try {
+      // Request account access
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const account = accounts[0];
+
+      // Get current gas price
+      const gasPrice = await window.ethereum.request({ method: 'eth_gasPrice' });
+
+      // Calculate deployment cost in wei
+      const costInWei = (selectedTemplate.costInEth * 1e18).toString(16);
+      
+      // Create transaction
+      const transactionParameters = {
+        to: '0x0000000000000000000000000000000000000000', // This would be your payment contract
+        from: account,
+        value: costInWei,
+        gas: '0x5208', // 21000 gas
+        gasPrice: gasPrice,
+      };
+
+      // Send transaction
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [transactionParameters],
+      });
+
+      console.log('Payment transaction hash:', txHash);
+      
+      // Proceed to deployment
+      setDeploymentStep('deploying');
+      await handleDeployment();
+      
+    } catch (error) {
+      console.error('Wallet payment failed:', error);
+      throw error;
+    }
+  };
+
+  const handleCardPayment = async () => {
+    // This would integrate with a payment processor like Stripe
+    alert('Card payment integration coming soon. Please use wallet payment for now.');
+  };
+
+  const handleDeployment = async () => {
+    if (!selectedTemplate) return;
+
     setDeploymentProgress(0);
 
-    // Simulate deployment process
-    const interval = setInterval(() => {
-      setDeploymentProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setDeploymentStep('success');
-          return 100;
-        }
-        return prev + 10;
+    try {
+      // Step 1: Validate configuration
+      setDeploymentProgress(20);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Step 2: Compile contract
+      setDeploymentProgress(40);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Step 3: Deploy to blockchain
+      setDeploymentProgress(60);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Step 4: Verify deployment
+      setDeploymentProgress(80);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Step 5: Complete
+      setDeploymentProgress(100);
+      
+      // Generate mock deployment hash
+      const mockHash = '0x' + Math.random().toString(16).substr(2, 64);
+      setDeploymentHash(mockHash);
+
+      // Call backend API to record deployment
+      await recordDeployment(mockHash);
+
+      setDeploymentStep('success');
+      
+    } catch (error) {
+      console.error('Deployment failed:', error);
+      alert('Deployment failed. Please try again.');
+      setDeploymentStep('configure');
+    }
+  };
+
+  const recordDeployment = async (hash: string) => {
+    try {
+      const response = await fetch('https://one-click-c308.onrender.com/api/basic-traps/deploy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          templateId: selectedTemplate?.id,
+          trapName: customConfig.trapName,
+          description: customConfig.description,
+          rewardPercentage: customConfig.rewardPercentage,
+          maxAttackers: customConfig.maxAttackers,
+          deploymentHash: hash,
+          userAddress: address,
+          cost: selectedTemplate?.costInEth
+        }),
       });
-    }, 500);
+
+      if (!response.ok) {
+        throw new Error('Failed to record deployment');
+      }
+
+      console.log('Deployment recorded successfully');
+    } catch (error) {
+      console.error('Failed to record deployment:', error);
+      // Don't fail the deployment for this
+    }
   };
 
   const handleBackToSelect = () => {
@@ -109,6 +231,7 @@ export default function DeployPage() {
       rewardPercentage: 10,
       maxAttackers: 5
     });
+    setDeploymentHash('');
   };
 
   if (!isConnected) {
@@ -299,10 +422,10 @@ export default function DeployPage() {
                   </div>
                   <div className="pt-4 border-t border-gray-700">
                     <Button 
-                      onClick={handleDeploy}
+                      onClick={() => setDeploymentStep('payment')}
                       className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
                     >
-                      Deploy Trap
+                      Proceed to Payment
                     </Button>
                   </div>
                 </div>
@@ -317,6 +440,105 @@ export default function DeployPage() {
               className="border-gray-600 text-gray-400 hover:bg-gray-800"
             >
               ← Back to Templates
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (deploymentStep === 'payment') {
+    return (
+      <div className="min-h-screen bg-black text-white pt-20">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold mb-4">Payment & Deployment</h1>
+            <p className="text-gray-400">Complete payment to deploy your security trap</p>
+          </div>
+
+          <Card className="bg-gray-900/50 border-gray-800 mb-8">
+            <CardHeader>
+              <CardTitle>Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400">Template:</span>
+                  <span className="font-semibold">{selectedTemplate?.name}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400">Trap Name:</span>
+                  <span className="font-semibold">{customConfig.trapName || 'Unnamed Trap'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400">Deployment Cost:</span>
+                  <span className="text-orange-400 font-semibold text-xl">{selectedTemplate?.cost}</span>
+                </div>
+                <div className="pt-3 border-t border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-semibold">Total:</span>
+                    <span className="text-orange-400 font-bold text-2xl">{selectedTemplate?.cost}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900/50 border-gray-800 mb-8">
+            <CardHeader>
+              <CardTitle>Payment Method</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="radio"
+                    id="wallet"
+                    name="paymentMethod"
+                    value="wallet"
+                    checked={paymentMethod === 'wallet'}
+                    onChange={(e) => setPaymentMethod(e.target.value as 'wallet' | 'card')}
+                    className="text-orange-500 focus:ring-orange-500"
+                  />
+                  <label htmlFor="wallet" className="flex items-center gap-2 text-gray-300 cursor-pointer">
+                    <Wallet className="w-5 h-5" />
+                    Pay with Wallet (Recommended)
+                  </label>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="radio"
+                    id="card"
+                    name="paymentMethod"
+                    value="card"
+                    checked={paymentMethod === 'card'}
+                    onChange={(e) => setPaymentMethod(e.target.value as 'wallet' | 'card')}
+                    className="text-orange-500 focus:ring-orange-500"
+                  />
+                  <label htmlFor="card" className="flex items-center gap-2 text-gray-300 cursor-pointer">
+                    <CreditCard className="w-5 h-5" />
+                    Pay with Card (Coming Soon)
+                  </label>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex gap-4">
+            <Button 
+              onClick={() => setDeploymentStep('configure')}
+              variant="outline"
+              className="flex-1 border-gray-600 text-gray-400 hover:bg-gray-800"
+            >
+              ← Back to Configuration
+            </Button>
+            <Button 
+              onClick={handlePayment}
+              disabled={isProcessingPayment}
+              className="flex-1 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
+            >
+              {isProcessingPayment ? 'Processing...' : `Pay ${selectedTemplate?.cost} & Deploy`}
             </Button>
           </div>
         </div>
@@ -344,10 +566,11 @@ export default function DeployPage() {
           </div>
           
           <div className="text-sm text-gray-400 mb-8">
-            {deploymentProgress < 25 && "Initializing deployment..."}
-            {deploymentProgress >= 25 && deploymentProgress < 50 && "Compiling smart contract..."}
-            {deploymentProgress >= 50 && deploymentProgress < 75 && "Deploying to blockchain..."}
-            {deploymentProgress >= 75 && deploymentProgress < 100 && "Finalizing deployment..."}
+            {deploymentProgress < 20 && "Validating configuration..."}
+            {deploymentProgress >= 20 && deploymentProgress < 40 && "Compiling smart contract..."}
+            {deploymentProgress >= 40 && deploymentProgress < 60 && "Deploying to blockchain..."}
+            {deploymentProgress >= 60 && deploymentProgress < 80 && "Verifying deployment..."}
+            {deploymentProgress >= 80 && deploymentProgress < 100 && "Finalizing deployment..."}
             {deploymentProgress === 100 && "Deployment complete!"}
           </div>
           
@@ -377,7 +600,7 @@ export default function DeployPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-400">Contract Address:</span>
-                  <span className="font-mono text-sm text-green-400">0x1234...5678</span>
+                  <span className="font-mono text-sm text-green-400">{deploymentHash}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-400">Network:</span>

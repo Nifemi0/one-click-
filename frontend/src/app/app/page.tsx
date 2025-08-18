@@ -4,12 +4,79 @@ import { useState, useEffect } from "react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
-import { Shield, Zap, Target, TrendingUp, Users, Activity } from "lucide-react";
+import { Shield, Zap, Target, TrendingUp, Users, Activity, AlertCircle, CheckCircle, Clock } from "lucide-react";
 import { useWallet } from "../../providers/WalletProvider";
+
+interface Deployment {
+  id: string;
+  name: string;
+  status: 'active' | 'inactive' | 'deploying' | 'failed';
+  contractAddress: string;
+  deployedAt: string;
+  cost: string;
+  template: string;
+}
+
+interface UserStats {
+  totalDeployments: number;
+  activeTraps: number;
+  totalSpent: number;
+  lastDeployment: string | null;
+}
 
 export default function AppPage() {
   const { isConnected, address } = useWallet();
   const [isLoading, setIsLoading] = useState(false);
+  const [userStats, setUserStats] = useState<UserStats>({
+    totalDeployments: 0,
+    activeTraps: 0,
+    totalSpent: 0,
+    lastDeployment: null
+  });
+  const [recentDeployments, setRecentDeployments] = useState<Deployment[]>([]);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+
+  useEffect(() => {
+    if (isConnected && address) {
+      loadUserData();
+    }
+  }, [isConnected, address]);
+
+  const loadUserData = async () => {
+    if (!address) return;
+    
+    setIsLoadingStats(true);
+    try {
+      // Load user deployments from backend
+      const response = await fetch(`https://one-click-c308.onrender.com/api/basic-traps/user-deployments?address=${address}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setRecentDeployments(data.deployments || []);
+          
+          // Calculate stats from deployments
+          const stats: UserStats = {
+            totalDeployments: data.deployments?.length || 0,
+            activeTraps: data.deployments?.filter((d: Deployment) => d.status === 'active').length || 0,
+            totalSpent: data.deployments?.reduce((sum: number, d: Deployment) => sum + parseFloat(d.cost), 0) || 0,
+            lastDeployment: data.deployments?.[0]?.deployedAt || null
+          };
+          setUserStats(stats);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+      // Set default stats for demo
+      setUserStats({
+        totalDeployments: 0,
+        activeTraps: 0,
+        totalSpent: 0,
+        lastDeployment: null
+      });
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
 
   const handleDeployTrap = () => {
     if (!isConnected) {
@@ -113,7 +180,7 @@ export default function AppPage() {
               >
                 Browse Templates
               </Button>
-            </CardContent>
+            </CardHeader>
           </Card>
 
           <Card className="bg-gray-900/50 border-gray-800 hover:border-orange-500/50 transition-all duration-300">
@@ -143,8 +210,10 @@ export default function AppPage() {
               <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Shield className="w-6 h-6 text-orange-500" />
               </div>
-              <div className="text-2xl font-bold text-white">12</div>
-              <div className="text-sm text-orange-400">Active Traps</div>
+              <div className="text-2xl font-bold text-white">
+                {isLoadingStats ? '...' : userStats.totalDeployments}
+              </div>
+              <div className="text-sm text-orange-400">Total Deployments</div>
             </CardContent>
           </Card>
 
@@ -153,8 +222,10 @@ export default function AppPage() {
               <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <TrendingUp className="w-6 h-6 text-blue-500" />
               </div>
-              <div className="text-2xl font-bold text-white">$2.4K</div>
-              <div className="text-sm text-blue-400">Protected Value</div>
+              <div className="text-2xl font-bold text-white">
+                {isLoadingStats ? '...' : userStats.activeTraps}
+              </div>
+              <div className="text-sm text-blue-400">Active Traps</div>
             </CardContent>
           </Card>
 
@@ -163,8 +234,10 @@ export default function AppPage() {
               <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users className="w-6 h-6 text-green-500" />
               </div>
-              <div className="text-2xl font-bold text-white">156</div>
-              <div className="text-sm text-green-400">Attacks Blocked</div>
+              <div className="text-2xl font-bold text-white">
+                {isLoadingStats ? '...' : `${userStats.totalSpent.toFixed(3)} ETH`}
+              </div>
+              <div className="text-sm text-green-400">Total Spent</div>
             </CardContent>
           </Card>
 
@@ -173,42 +246,64 @@ export default function AppPage() {
               <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Activity className="w-6 h-6 text-purple-500" />
               </div>
-              <div className="text-2xl font-bold text-white">99.8%</div>
-              <div className="text-sm text-purple-400">Success Rate</div>
+              <div className="text-2xl font-bold text-white">
+                {isLoadingStats ? '...' : userStats.lastDeployment ? 'Recent' : 'None'}
+              </div>
+              <div className="text-sm text-purple-400">Last Deployment</div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Recent Activity */}
-        <Card className="bg-gray-900/50 border-gray-800">
+        {/* Recent Deployments */}
+        <Card className="bg-gray-900/50 border-gray-800 mb-8">
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Your latest security deployments and alerts</CardDescription>
+            <CardTitle>Recent Deployments</CardTitle>
+            <CardDescription>Your latest security trap deployments</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span>Trap deployed successfully</span>
-                </div>
-                <span className="text-sm text-gray-400">2 hours ago</span>
+            {isLoadingStats ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
+                <p className="text-gray-400 mt-2">Loading deployments...</p>
               </div>
-              <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span>Attack blocked on Trap #7</span>
-                </div>
-                <span className="text-sm text-gray-400">5 hours ago</span>
+            ) : recentDeployments.length > 0 ? (
+              <div className="space-y-4">
+                {recentDeployments.slice(0, 5).map((deployment) => (
+                  <div key={deployment.id} className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${
+                        deployment.status === 'active' ? 'bg-green-500' :
+                        deployment.status === 'deploying' ? 'bg-yellow-500' :
+                        deployment.status === 'failed' ? 'bg-red-500' :
+                        'bg-gray-500'
+                      }`}></div>
+                      <div>
+                        <span className="font-medium">{deployment.name}</span>
+                        <div className="text-sm text-gray-400">
+                          {deployment.template} • {deployment.contractAddress.slice(0, 8)}...{deployment.contractAddress.slice(-6)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-gray-400">{deployment.cost}</div>
+                      <div className="text-xs text-gray-500">{deployment.deployedAt}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span>New template added to marketplace</span>
-                </div>
-                <span className="text-sm text-gray-400">1 day ago</span>
+            ) : (
+              <div className="text-center py-8">
+                <Shield className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400">No deployments yet</p>
+                <p className="text-gray-500 text-sm">Deploy your first security trap to get started</p>
+                <Button 
+                  onClick={handleDeployTrap}
+                  className="mt-4 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
+                >
+                  Deploy Your First Trap
+                </Button>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
