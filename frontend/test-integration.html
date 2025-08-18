@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One Click - Backend Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #000;
+            color: #fff;
+        }
+        .test-section {
+            background: #111;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .info { color: #60a5fa; }
+        button {
+            background: #f97316;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #ea580c;
+        }
+        .result {
+            background: #1f1f1f;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 One Click - Backend Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>🔗 Backend Connection Test</h2>
+        <p>Testing connection to your Render backend at: <span class="info">https://one-click-c308.onrender.com</span></p>
+        <button onclick="testBackendHealth()">Test Backend Health</button>
+        <button onclick="testMarketplaceAPI()">Test Marketplace API</button>
+        <button onclick="testAllEndpoints()">Test All Endpoints</button>
+        <div id="healthResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🌐 Frontend URLs</h2>
+        <p><strong>Production:</strong> <a href="https://oneclick1.netlify.app" target="_blank" class="success">https://oneclick1.netlify.app</a></p>
+        <p><strong>Backend API:</strong> <span class="info">https://one-click-c308.onrender.com</span></p>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Test Results</h2>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'https://one-click-c308.onrender.com';
+        const FRONTEND_URL = 'https://oneclick1.netlify.app';
+        
+        async function testBackendHealth() {
+            const resultDiv = document.getElementById('healthResult');
+            resultDiv.textContent = 'Testing...';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<span class="success">✅ Backend Health Check PASSED</span>\n\nStatus: ${data.status}\nService: ${data.service}\nTimestamp: ${data.timestamp}`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Backend Health Check FAILED</span>\n\nStatus: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Backend Health Check ERROR</span>\n\nError: ${error.message}`;
+            }
+        }
+
+        async function testMarketplaceAPI() {
+            const resultDiv = document.getElementById('healthResult');
+            resultDiv.textContent = 'Testing Marketplace API...';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/marketplace/categories`);
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `<span class="success">✅ Marketplace API PASSED</span>\n\nCategories Found: ${data.data.length}\n\nCategories:\n${data.data.map(cat => `• ${cat.name} (${cat.count} templates)`).join('\n')}`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Marketplace API FAILED</span>\n\nStatus: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Marketplace API ERROR</span>\n\nError: ${error.message}`;
+            }
+        }
+
+        async function testAllEndpoints() {
+            const resultDiv = document.getElementById('testResults');
+            resultDiv.innerHTML = '<h3>Testing All Backend Endpoints...</h3>';
+            
+            const endpoints = [
+                { name: 'Health Check', path: '/health' },
+                { name: 'Marketplace Categories', path: '/api/marketplace/categories' },
+                { name: 'Basic Traps Templates', path: '/api/basic-traps/templates' },
+                { name: 'Auth Health', path: '/api/auth/health' },
+                { name: 'Analysis Health', path: '/api/analyze/health' }
+            ];
+
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`${BACKEND_URL}${endpoint.path}`);
+                    const status = response.ok ? '✅ PASS' : '❌ FAIL';
+                    const statusClass = response.ok ? 'success' : 'error';
+                    
+                    resultDiv.innerHTML += `<p><span class="${statusClass}">${status}</span> ${endpoint.name}: ${endpoint.path}</p>`;
+                } catch (error) {
+                    resultDiv.innerHTML += `<p><span class="error">❌ ERROR</span> ${endpoint.name}: ${endpoint.path} - ${error.message}</p>`;
+                }
+            }
+            
+            resultDiv.innerHTML += '<p><strong>🎉 Integration Test Complete!</strong></p>';
+        }
+
+        // Auto-run health check on page load
+        window.onload = function() {
+            testBackendHealth();
+        };
+    </script>
+</body>
+</html>
