@@ -4,62 +4,67 @@ import { useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
-import { Shield, Zap, Target, AlertTriangle, CheckCircle, Clock, DollarSign, CreditCard, Wallet } from "lucide-react";
+import { Shield, Zap, Target, AlertTriangle, CheckCircle, Clock, DollarSign, CreditCard, Wallet, RefreshCw } from "lucide-react";
 import { useWallet } from "../../providers/WalletProvider";
-import { deploySecurityTrapContract } from "../../lib/contractDeployer";
+import { SmartContractDeploymentService } from "../../lib/smartContractDeployment";
+import { TrapTemplate, DeploymentConfig, DeploymentResult } from "../../types/deploy";
 
 // Disable SSR for this page since it uses wallet hooks
 export const dynamic = 'force-dynamic';
 
-interface TrapTemplate {
-  id: string;
-  name: string;
-  description: string;
-  difficulty: 'Basic' | 'Intermediate' | 'Advanced';
-  cost: string;
-  costInEth: number;
-  deploymentTime: string;
-  securityLevel: 'Low' | 'Medium' | 'High';
-  features: string[];
-  contractCode: string;
-}
+// Types are now imported from types/deploy.ts
 
 const trapTemplates: TrapTemplate[] = [
   {
     id: '1',
     name: 'Basic Honeypot Trap',
+    type: 'Honeypot',
     description: 'A simple honeypot that lures attackers into a fake vulnerable contract',
+    price: 0.01,
     difficulty: 'Basic',
-    cost: '0.01 ETH',
-    costInEth: 0.01,
     deploymentTime: '2-3 minutes',
     securityLevel: 'Medium',
     features: ['Attack detection', 'Fund protection', 'Basic monitoring'],
-    contractCode: '// Basic Honeypot Contract Code'
+    tags: ['Honeypot', 'Basic', 'Monitoring'],
+    contractCode: '// Basic Honeypot Contract Code',
+    preview: 'Simple honeypot protection',
+    author: 'SecurityMaster',
+    lastUpdated: '2 days ago',
+    gasEstimate: 300000
   },
   {
     id: '2',
     name: 'Reentrancy Guard',
+    type: 'ReentrancyGuard',
     description: 'Protection against reentrancy attacks',
+    price: 0.03,
     difficulty: 'Intermediate',
-    cost: '0.03 ETH',
-    costInEth: 0.03,
     deploymentTime: '3-4 minutes',
     securityLevel: 'High',
     features: ['Reentrancy protection', 'Gas optimization', 'Advanced monitoring'],
-    contractCode: '// Reentrancy Guard Contract Code'
+    tags: ['Reentrancy', 'Intermediate', 'Protection'],
+    contractCode: '// Reentrancy Guard Contract Code',
+    preview: 'Advanced reentrancy protection',
+    author: 'ShieldMaster',
+    lastUpdated: '1 week ago',
+    gasEstimate: 400000
   },
   {
     id: '3',
     name: 'Flash Loan Detector',
+    type: 'FlashLoanProtection',
     description: 'Detects and blocks flash loan attacks',
+    price: 0.02,
     difficulty: 'Intermediate',
-    cost: '0.02 ETH',
-    costInEth: 0.02,
     deploymentTime: '2-3 minutes',
     securityLevel: 'High',
     features: ['Flash loan detection', 'Real-time blocking', 'Transaction analysis'],
-    contractCode: '// Flash Loan Detector Contract Code'
+    tags: ['Flash Loan', 'Intermediate', 'Detection'],
+    contractCode: '// Flash Loan Detector Contract Code',
+    preview: 'Real-time flash loan protection',
+    author: 'DeFiGuard',
+    lastUpdated: '3 days ago',
+    gasEstimate: 350000
   }
 ];
 
@@ -119,24 +124,64 @@ export default function DeployPage() {
     if (!selectedTemplate) return;
 
     try {
-      // Simulate deployment progress
-      for (let i = 0; i <= 100; i += 10) {
-        setDeploymentProgress(i);
-        await new Promise(resolve => setTimeout(resolve, 200));
+      setDeploymentStep('deploying');
+      setDeploymentProgress(0);
+
+      // Initialize deployment service
+      const deploymentService = new SmartContractDeploymentService();
+      const initialized = await deploymentService.initialize();
+      
+      if (!initialized) {
+        throw new Error('Failed to initialize deployment service');
       }
 
-      // Generate mock deployment hash
-      const mockHash = '0x' + Math.random().toString(16).substr(2, 64);
-      setDeploymentHash(mockHash);
+      // Create deployment configuration
+      const config: DeploymentConfig = {
+        template: selectedTemplate,
+        customizations: {
+          name: customConfig.trapName || selectedTemplate.name,
+          description: customConfig.description || selectedTemplate.description,
+          securityLevel: selectedTemplate.securityLevel,
+        }
+      };
 
-      // Simulate contract deployment
-      const mockAddress = '0x' + Math.random().toString(16).substr(2, 40);
-      setUserContractAddress(mockAddress);
-      localStorage.setItem('userContractAddress', mockAddress);
+      // Estimate gas first
+      const gasEstimate = await deploymentService.estimateGas(config);
+      if (!gasEstimate) {
+        throw new Error('Failed to estimate gas costs');
+      }
 
-      setDeploymentStep('success');
+      // Update progress
+      setDeploymentProgress(30);
+
+      // Deploy the contract
+      const result: DeploymentResult = await deploymentService.deployContract(config);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Deployment failed');
+      }
+
+      // Update progress
+      setDeploymentProgress(80);
+
+      // Verify deployment
+      if (result.contractAddress) {
+        const verified = await deploymentService.verifyDeployment(result.contractAddress, selectedTemplate.type);
+        if (verified) {
+          setDeploymentProgress(100);
+          setDeploymentHash(result.transactionHash || '');
+          setUserContractAddress(result.contractAddress);
+          localStorage.setItem('userContractAddress', result.contractAddress);
+          setDeploymentStep('success');
+        } else {
+          throw new Error('Deployment verification failed');
+        }
+      } else {
+        throw new Error('No contract address returned');
+      }
     } catch (error) {
-      alert('Deployment failed. Please try again.');
+      console.error('Deployment failed:', error);
+      alert(`Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setDeploymentStep('configure');
     }
   };
@@ -202,9 +247,27 @@ export default function DeployPage() {
           <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 mb-8 border border-white/10">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-white">Deployment Progress</h2>
-              <Badge variant="outline" className="border-orange-500/30 text-orange-400">
-                Step {deploymentStep === 'configure' ? '1' : deploymentStep === 'payment' ? '2' : deploymentStep === 'deploying' ? '3' : '4'} of 4
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="border-orange-500/30 text-orange-400">
+                  Step {deploymentStep === 'configure' ? '1' : deploymentStep === 'payment' ? '2' : deploymentStep === 'deploying' ? '3' : '4'} of 4
+                </Badge>
+                {deploymentStep === 'deploying' && (
+                  <Button
+                    onClick={() => {
+                      setDeploymentStep('select');
+                      setDeploymentProgress(0);
+                      setDeploymentHash('');
+                      setUserContractAddress(null);
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="border-white/20 text-white hover:bg-white/10"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Reset
+                  </Button>
+                )}
+              </div>
             </div>
             
                          <div className="space-y-4">
@@ -242,6 +305,30 @@ export default function DeployPage() {
                  <span className="text-gray-300">Deployment</span>
                </div>
              </div>
+
+             {/* Progress Bar for Deploying Step */}
+             {deploymentStep === 'deploying' && (
+               <div className="mt-6">
+                 <div className="flex items-center justify-between mb-2">
+                   <span className="text-sm text-gray-300">Deployment Progress</span>
+                   <span className="text-sm text-orange-400 font-medium">{deploymentProgress}%</span>
+                 </div>
+                 <div className="w-full bg-gray-700 rounded-full h-3">
+                   <div 
+                     className="bg-gradient-to-r from-orange-500 to-red-600 h-3 rounded-full transition-all duration-500"
+                     style={{ width: `${deploymentProgress}%` }}
+                   ></div>
+                 </div>
+                 <div className="mt-3 text-center">
+                   <p className="text-gray-300 text-sm">
+                     {deploymentProgress < 30 && 'Initializing deployment service...'}
+                     {deploymentProgress >= 30 && deploymentProgress < 80 && 'Deploying smart contract...'}
+                     {deploymentProgress >= 80 && deploymentProgress < 100 && 'Verifying deployment...'}
+                     {deploymentProgress === 100 && 'Deployment successful!'}
+                   </p>
+                 </div>
+               </div>
+             )}
           </div>
         )}
 
@@ -265,7 +352,7 @@ export default function DeployPage() {
                         </CardDescription>
                       </div>
                       <div className="text-right ml-4">
-                        <div className="text-2xl font-bold text-orange-400 mb-1">{template.cost}</div>
+                        <div className="text-2xl font-bold text-orange-400 mb-1">{template.price} ETH</div>
                         <Badge variant="outline" className="border-orange-500/30 text-orange-400">
                           {template.deploymentTime}
                         </Badge>
@@ -419,7 +506,7 @@ export default function DeployPage() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-400">Cost:</span>
-                      <span className="text-orange-400 font-semibold">{selectedTemplate.cost}</span>
+                      <span className="text-orange-400 font-semibold">{selectedTemplate.price} ETH</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-400">Deployment Time:</span>
@@ -477,7 +564,7 @@ export default function DeployPage() {
                     disabled={isProcessingPayment}
                     className="flex-1 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
                   >
-                    {isProcessingPayment ? 'Processing...' : `Pay ${selectedTemplate.cost}`}
+                    {isProcessingPayment ? 'Processing...' : `Pay ${selectedTemplate.price} ETH`}
                   </Button>
                 </div>
               </CardContent>
