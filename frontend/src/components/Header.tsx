@@ -66,6 +66,10 @@ export function Header() {
               Dashboard
               <span className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-orange-500 to-red-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></span>
             </Link>
+            <Link href="/drosera-traps" className="text-gray-300 hover:text-white transition-all duration-200 border-b-2 border-transparent hover:border-orange-500 pb-1 relative group">
+              Drosera Traps
+              <span className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-orange-500 to-red-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-200"></span>
+            </Link>
           </nav>
 
           {/* Desktop CTA Buttons */}
@@ -111,6 +115,9 @@ export function Header() {
               </Link>
               <Link href="/app" className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors duration-200">
                 Dashboard
+              </Link>
+              <Link href="/drosera-traps" className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors duration-200">
+                Drosera Traps
               </Link>
               <div className="pt-4 space-y-2">
                 <Button 

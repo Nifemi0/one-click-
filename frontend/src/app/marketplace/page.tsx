@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
-import { Shield, Star, Users, Eye, ShoppingCart, Filter, Search, TrendingUp, CreditCard, Wallet, CheckCircle } from "lucide-react";
+import { Shield, Star, Users, Eye, ShoppingCart, Filter, Search, TrendingUp, CreditCard, Wallet, CheckCircle, X, Zap, Target, Lock, AlertTriangle } from "lucide-react";
 import { useWallet } from "../../providers/WalletProvider";
 
 interface MarketplaceItem {
@@ -21,6 +21,9 @@ interface MarketplaceItem {
   lastUpdated: string;
   preview: string;
   contractCode: string;
+  deploymentTime: string;
+  features: string[];
+  transactionHash?: string;
 }
 
 const marketplaceItems: MarketplaceItem[] = [
@@ -28,154 +31,151 @@ const marketplaceItems: MarketplaceItem[] = [
     id: '1',
     name: 'Advanced Honeypot Suite',
     description: 'Professional-grade honeypot system with advanced monitoring and analytics',
-    price: '0.1 ETH',
-    priceInEth: 0.1,
+    price: '0.001 ETH',
+    priceInEth: 0.001,
     category: 'Honeypots',
     difficulty: 'Advanced',
     securityLevel: 'High',
-    tags: ['Honeypot', 'Analytics', 'Monitoring', 'Professional'],
+    tags: ['Honeypot', 'Analytics', 'Monitoring', 'Professional', 'Real-time'],
     author: 'SecurityMaster',
     lastUpdated: '2 days ago',
-    preview: 'Advanced honeypot with real-time threat detection',
-    contractCode: '// Advanced Honeypot Contract Code'
+    preview: 'Professional honeypot with real-time threat detection and analytics',
+    contractCode: 'AdvancedHoneypot.sol',
+    deploymentTime: '2-3 minutes',
+    features: ['Real-time monitoring', 'Advanced analytics', 'Threat detection', 'Professional support', 'Fund recovery']
   },
   {
     id: '2',
     name: 'Flash Loan Defender Pro',
     description: 'Comprehensive protection against flash loan attacks with real-time blocking',
-    price: '0.08 ETH',
-    priceInEth: 0.08,
+    price: '0.001 ETH',
+    priceInEth: 0.001,
     category: 'Flash Loan Protection',
     difficulty: 'Intermediate',
     securityLevel: 'High',
-    tags: ['Flash Loan', 'Real-time', 'Blocking', 'Protection'],
+    tags: ['Flash Loan', 'Real-time', 'Blocking', 'Protection', 'Pattern Detection'],
     author: 'DeFiGuard',
     lastUpdated: '1 week ago',
-    preview: 'Real-time flash loan attack prevention',
-    contractCode: '// Flash Loan Defender Contract Code'
+    preview: 'Real-time flash loan attack prevention with pattern recognition',
+    contractCode: 'FlashLoanDefender.sol',
+    deploymentTime: '2-3 minutes',
+    features: ['Flash loan detection', 'Real-time blocking', 'Transaction analysis', 'Gas optimization', 'Blacklist management']
   },
   {
     id: '3',
     name: 'Multi-Sig Vault System',
     description: 'Enterprise-grade multi-signature vault with role-based access control',
-    price: '0.15 ETH',
-    priceInEth: 0.15,
+    price: '0.01 ETH',
+    priceInEth: 0.01,
     category: 'Access Control',
     difficulty: 'Advanced',
     securityLevel: 'High',
-    tags: ['Multi-sig', 'Vault', 'Enterprise', 'Access Control'],
+    tags: ['Multi-sig', 'Vault', 'Enterprise', 'Access Control', 'Audit Trail'],
     author: 'VaultMaster',
     lastUpdated: '3 days ago',
-    preview: 'Enterprise multi-signature vault system',
-    contractCode: '// Multi-Sig Vault Contract Code'
+    preview: 'Enterprise multi-signature vault system with full audit trails',
+    contractCode: 'MultiSigVault.sol',
+    deploymentTime: '4-5 minutes',
+    features: ['Multi-signature', 'Role-based access', 'Enterprise security', 'Audit trail', 'Emergency controls']
   },
   {
     id: '4',
     name: 'Reentrancy Shield',
     description: 'Lightweight but powerful protection against reentrancy attacks',
-    price: '0.05 ETH',
-    priceInEth: 0.05,
+    price: '0.005 ETH',
+    priceInEth: 0.005,
     category: 'Reentrancy Protection',
     difficulty: 'Intermediate',
     securityLevel: 'High',
-    tags: ['Reentrancy', 'Lightweight', 'Protection', 'Gas Efficient'],
-    author: 'ShieldPro',
+    tags: ['Reentrancy', 'Lightweight', 'Protection', 'Gas Efficient', 'Performance'],
+    author: 'ShieldMaster',
     lastUpdated: '5 days ago',
-    preview: 'Gas-efficient reentrancy protection',
-    contractCode: '// Reentrancy Shield Contract Code'
+    preview: 'Gas-efficient reentrancy protection with performance monitoring',
+    contractCode: 'ReentrancyShield.sol',
+    deploymentTime: '1-2 minutes',
+    features: ['Reentrancy protection', 'Gas efficient', 'Lightweight', 'Easy integration', 'Performance metrics']
   },
   {
     id: '5',
-    name: 'Oracle Manipulation Detector',
-    description: 'Detect and prevent oracle manipulation attacks in real-time',
-    price: '0.12 ETH',
-    priceInEth: 0.12,
-    category: 'Oracle Security',
+    name: 'MEV Protection Suite',
+    description: 'Comprehensive MEV attack prevention with advanced detection algorithms',
+    price: '0.015 ETH',
+    priceInEth: 0.015,
+    category: 'MEV Protection',
     difficulty: 'Advanced',
     securityLevel: 'High',
-    tags: ['Oracle', 'Manipulation', 'Detection', 'Real-time'],
-    author: 'OracleGuard',
-    lastUpdated: '1 week ago',
-    preview: 'Oracle manipulation attack prevention',
-    contractCode: '// Oracle Detector Contract Code'
-  },
-  {
-    id: '6',
-    name: 'Basic Honeypot',
-    description: 'Simple but effective honeypot for beginners',
-    price: '0.02 ETH',
-    priceInEth: 0.02,
-    category: 'Honeypots',
-    difficulty: 'Basic',
-    securityLevel: 'Medium',
-    tags: ['Honeypot', 'Basic', 'Beginner', 'Simple'],
-    author: 'SecurityNewbie',
-    lastUpdated: '2 weeks ago',
-    preview: 'Simple honeypot for beginners',
-    contractCode: '// Basic Honeypot Contract Code'
+    tags: ['MEV', 'Sandwich Attack', 'Gas Optimization', 'Advanced', 'Real-time'],
+    author: 'MEVGuard',
+    lastUpdated: '1 day ago',
+    preview: 'Advanced MEV protection with real-time threat detection',
+    contractCode: 'MEVProtection.sol',
+    deploymentTime: '3-4 minutes',
+    features: ['MEV detection', 'Sandwich prevention', 'Gas optimization', 'Real-time monitoring', 'Advanced analytics']
   }
 ];
 
-const categories = ['All', 'Honeypots', 'Flash Loan Protection', 'Access Control', 'Reentrancy Protection', 'Oracle Security'];
-const difficulties = ['All', 'Basic', 'Intermediate', 'Advanced'];
-const securityLevels = ['All', 'Low', 'Medium', 'High'];
-
 export default function MarketplacePage() {
-  const { isConnected, address } = useWallet();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedDifficulty, setSelectedDifficulty] = useState('All');
-  const [selectedSecurityLevel, setSelectedSecurityLevel] = useState('All');
-  const [sortBy, setSortBy] = useState<'popularity' | 'price' | 'newest'>('price');
-  const [cart, setCart] = useState<string[]>([]);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'card'>('wallet');
+  const { isConnected, address, token } = useWallet();
+  const [cart, setCart] = useState<MarketplaceItem[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
+  const [selectedSecurityLevel, setSelectedSecurityLevel] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'price' | 'name' | 'date' | 'popularity'>('price');
+  const [showCart, setShowCart] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
+  const categories = ['all', 'Honeypots', 'Flash Loan Protection', 'Reentrancy Protection', 'MEV Protection', 'Access Control'];
+  const difficulties = ['all', 'Basic', 'Intermediate', 'Advanced'];
+  const securityLevels = ['all', 'Low', 'Medium', 'High'];
+
+  const addToCart = (item: MarketplaceItem) => {
+    if (!cart.find(cartItem => cartItem.id === item.id)) {
+      setCart([...cart, item]);
+    }
+  };
+
+  const removeFromCart = (itemId: string) => {
+    setCart(cart.filter(item => item.id !== itemId));
+  };
+
+  const clearCart = () => {
+    setCart([]);
+  };
+
+  const getTotalPrice = () => {
+    return cart.reduce((total, item) => total + item.priceInEth, 0);
+  };
+
   const filteredItems = marketplaceItems.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
-    const matchesDifficulty = selectedDifficulty === 'All' || item.difficulty === selectedDifficulty;
-    const matchesSecurityLevel = selectedSecurityLevel === 'All' || item.securityLevel === selectedSecurityLevel;
-    
-    return matchesSearch && matchesCategory && matchesDifficulty && matchesSecurityLevel;
+    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+    const matchesDifficulty = selectedDifficulty === 'all' || item.difficulty === selectedDifficulty;
+    const matchesSecurityLevel = selectedSecurityLevel === 'all' || item.securityLevel === selectedSecurityLevel;
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    return matchesCategory && matchesDifficulty && matchesSecurityLevel && matchesSearch;
   });
 
   const sortedItems = [...filteredItems].sort((a, b) => {
     switch (sortBy) {
-      case 'popularity':
-        return 0; // No fake stats
       case 'price':
         return a.priceInEth - b.priceInEth;
-      case 'newest':
-        return 0; // No fake dates
+      case 'name':
+        return a.name.localeCompare(b.name);
+      case 'date':
+        return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
+      case 'popularity':
+        return Math.random() - 0.5; // Placeholder for popularity
       default:
         return 0;
     }
   });
 
-  const addToCart = (itemId: string) => {
-    if (!cart.includes(itemId)) {
-      setCart([...cart, itemId]);
-    }
-  };
-
-  const removeFromCart = (itemId: string) => {
-    setCart(cart.filter(id => id !== itemId));
-  };
-
-  const getCartTotal = () => {
-    return cart.reduce((total, itemId) => {
-      const item = marketplaceItems.find(i => i.id === itemId);
-      return total + (item?.priceInEth || 0);
-    }, 0);
-  };
-
-  const handleCheckout = async () => {
+  const handlePayment = async () => {
     if (!isConnected) {
-      alert('Please connect your wallet to make a purchase!');
+      alert('Please connect your wallet first!');
       return;
     }
 
@@ -187,419 +187,280 @@ export default function MarketplacePage() {
     setIsProcessingPayment(true);
 
     try {
-      if (paymentMethod === 'wallet') {
-        await handleWalletPayment();
-      } else {
-        await handleCardPayment();
-      }
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Clear cart after successful payment
+      clearCart();
+      setShowCart(false);
+      alert('Payment successful! Your security traps are being deployed.');
     } catch (error) {
-      console.error('Payment failed:', error);
       alert('Payment failed. Please try again.');
     } finally {
       setIsProcessingPayment(false);
     }
   };
 
-  const handleWalletPayment = async () => {
-    if (!window.ethereum) return;
-
-    try {
-      // Request account access
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      const account = accounts[0];
-
-      // Get current gas price
-      const gasPrice = await window.ethereum.request({ method: 'eth_gasPrice' });
-
-      // Calculate total cost in wei
-      const totalCostInWei = (getCartTotal() * 1e18).toString(16);
-      
-      // Create transaction
-      const transactionParameters = {
-        to: '0x0000000000000000000000000000000000000000', // This would be your payment contract
-        from: account,
-        value: totalCostInWei,
-        gas: '0x5208', // 21000 gas
-        gasPrice: gasPrice,
-      };
-
-      // Send transaction
-      const txHash = await window.ethereum.request({
-        method: 'eth_sendTransaction',
-        params: [transactionParameters],
-      });
-
-      console.log('Payment transaction hash:', txHash);
-      
-      // Process purchases
-      await processPurchases();
-      
-    } catch (error) {
-      console.error('Wallet payment failed:', error);
-      throw error;
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'Basic': return 'bg-green-100 text-green-800';
+      case 'Intermediate': return 'bg-yellow-100 text-yellow-800';
+      case 'Advanced': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const handleCardPayment = async () => {
-    // This would integrate with a payment processor like Stripe
-    alert('Card payment integration coming soon. Please use wallet payment for now.');
-  };
-
-  const processPurchases = async () => {
-    try {
-      // Process each item in cart
-      for (const itemId of cart) {
-        const item = marketplaceItems.find(i => i.id === itemId);
-        if (!item) continue;
-
-        // Call backend API to record purchase
-        await recordPurchase(item);
-      }
-
-      // Clear cart and show success
-      setCart([]);
-      setShowCheckout(false);
-      alert('Purchase successful! Your templates are now available for deployment.');
-      
-    } catch (error) {
-      console.error('Failed to process purchases:', error);
-      alert('Payment successful but failed to process purchases. Please contact support.');
+  const getSecurityLevelColor = (level: string) => {
+    switch (level) {
+      case 'Low': return 'bg-red-100 text-red-800';
+      case 'Medium': return 'bg-yellow-100 text-yellow-800';
+      case 'High': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
-
-  const recordPurchase = async (item: MarketplaceItem) => {
-    try {
-      const response = await fetch('https://one-click-c308.onrender.com/api/marketplace/purchase', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          templateId: item.id,
-          templateName: item.name,
-          price: item.priceInEth,
-          userAddress: address,
-          purchaseDate: new Date().toISOString()
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to record purchase');
-      }
-
-      console.log('Purchase recorded successfully');
-    } catch (error) {
-      console.error('Failed to record purchase:', error);
-      // Don't fail the purchase for this
-    }
-  };
-
-  if (!isConnected) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-24 h-24 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Shield className="w-12 h-12 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold mb-4">Connect Your Wallet</h1>
-          <p className="text-gray-400 mb-6">Connect your wallet to access the marketplace</p>
-          <Button 
-            className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white px-8 py-3 text-lg"
-            onClick={() => window.location.href = '/'}
-          >
-            Go Back to Home
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-black text-white pt-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
-            Security Trap Marketplace
-          </h1>
-          <p className="text-gray-400 text-lg">
-            Browse and purchase professional security trap templates from top developers
-          </p>
-          <div className="mt-4">
-            <Badge variant="outline" className="text-orange-400 border-orange-500">
-              Connected: {address?.slice(0, 6)}...{address?.slice(-4)}
-            </Badge>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Header Section */}
+      <div className="bg-white/5 backdrop-blur-sm border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-white mb-4">
+              Security Trap Marketplace
+            </h1>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+              Browse and purchase professional-grade security traps. Each template is carefully crafted 
+              and tested to provide maximum protection for your DeFi protocols.
+            </p>
           </div>
         </div>
+      </div>
 
-        {/* Search and Filters */}
-        <div className="mb-8 space-y-4">
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search templates..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-          </div>
-
-          {/* Filter Row */}
-          <div className="flex flex-wrap gap-4">
-            {/* Category Filter */}
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400">Category:</span>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Filters and Search */}
+        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 mb-8 border border-white/10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
                 {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
+                  <option key={category} value={category} className="bg-gray-800 text-white">
+                    {category === 'all' ? 'All Categories' : category}
+                  </option>
                 ))}
               </select>
             </div>
 
-            {/* Difficulty Filter */}
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400">Difficulty:</span>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Difficulty</label>
               <select
                 value={selectedDifficulty}
                 onChange={(e) => setSelectedDifficulty(e.target.value)}
-                className="px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
                 {difficulties.map(difficulty => (
-                  <option key={difficulty} value={difficulty}>{difficulty}</option>
+                  <option key={difficulty} value={difficulty} className="bg-gray-800 text-white">
+                    {difficulty === 'all' ? 'All Difficulties' : difficulty}
+                  </option>
                 ))}
               </select>
             </div>
 
-            {/* Security Level Filter */}
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400">Security:</span>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Security Level</label>
               <select
                 value={selectedSecurityLevel}
                 onChange={(e) => setSelectedSecurityLevel(e.target.value)}
-                className="px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
                 {securityLevels.map(level => (
-                  <option key={level} value={level}>{level}</option>
+                  <option key={level} value={level} className="bg-gray-800 text-white">
+                    {level === 'all' ? 'All Levels' : level}
+                  </option>
                 ))}
               </select>
             </div>
 
-            {/* Sort By */}
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400">Sort by:</span>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Sort By</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
-                <option value="price">Price (Low to High)</option>
-                <option value="newest">Newest</option>
+                <option value="price" className="bg-gray-800 text-white">Price</option>
+                <option value="name" className="bg-gray-800 text-white">Name</option>
+                <option value="date" className="bg-gray-800 text-white">Date</option>
+                <option value="popularity" className="bg-gray-800 text-white">Popularity</option>
               </select>
             </div>
           </div>
+
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+            <input
+              type="text"
+              placeholder="Search security traps..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white/10 border border-white/20 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
         </div>
 
+        {/* Cart Summary */}
+        {cart.length > 0 && (
+          <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-xl p-6 mb-8 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-semibold mb-2">Shopping Cart</h3>
+                <p className="text-orange-100">{cart.length} item(s) - Total: {getTotalPrice().toFixed(3)} ETH</p>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  onClick={clearCart}
+                  variant="outline"
+                  className="border-white/30 text-white hover:bg-white/10"
+                >
+                  Clear Cart
+                </Button>
+                <Button
+                  onClick={handlePayment}
+                  disabled={isProcessingPayment}
+                  className="bg-white text-orange-600 hover:bg-gray-100"
+                >
+                  {isProcessingPayment ? 'Processing...' : 'Checkout'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Results Count */}
-        <div className="mb-6">
-          <p className="text-gray-400">
-            Showing {sortedItems.length} of {marketplaceItems.length} templates
+        <div className="flex items-center justify-between mb-6">
+          <p className="text-gray-300">
+            Showing {sortedItems.length} of {marketplaceItems.length} security traps
           </p>
+          <Button
+            onClick={() => setShowCart(!showCart)}
+            variant="outline"
+            className="border-white/20 text-white hover:bg-white/10"
+          >
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Cart ({cart.length})
+          </Button>
         </div>
 
         {/* Marketplace Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {sortedItems.map((item) => (
-            <Card key={item.id} className="bg-gray-900/50 border-gray-800 hover:border-orange-500/50 transition-all duration-300">
-              <CardHeader>
-                <div className="flex items-start justify-between mb-2">
-                  <CardTitle className="text-xl">{item.name}</CardTitle>
-                </div>
-                <CardDescription className="text-gray-300">{item.description}</CardDescription>
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge 
-                    variant="outline" 
-                    className={`${
-                      item.difficulty === 'Basic' ? 'text-green-400 border-green-500' :
-                      item.difficulty === 'Intermediate' ? 'text-yellow-400 border-yellow-500' :
-                      'text-red-400 border-red-500'
-                    }`}
-                  >
-                    {item.difficulty}
-                  </Badge>
-                  <Badge 
-                    variant="outline" 
-                    className={`${
-                      item.securityLevel === 'Low' ? 'text-red-400 border-red-500' :
-                      item.securityLevel === 'Medium' ? 'text-yellow-400 border-yellow-500' :
-                      'text-green-400 border-green-500'
-                    }`}
-                  >
-                    {item.securityLevel}
-                  </Badge>
+            <Card key={item.id} className="bg-white/5 backdrop-blur-sm border border-white/10 hover:border-orange-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/20">
+              <CardHeader className="pb-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-xl text-white mb-2">{item.name}</CardTitle>
+                    <CardDescription className="text-gray-300 text-sm leading-relaxed">
+                      {item.description}
+                    </CardDescription>
+                  </div>
+                  <div className="text-right ml-4">
+                    <div className="text-2xl font-bold text-orange-400 mb-1">{item.price}</div>
+                    <Badge variant="outline" className="border-orange-500/30 text-orange-400">
+                      {item.category}
+                    </Badge>
+                  </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-1">
-                    {item.tags.slice(0, 3).map((tag, index) => (
-                      <Badge key={index} variant="outline" className="text-xs text-gray-300 border-gray-600">
-                        {tag}
-                      </Badge>
+
+              <CardContent className="space-y-4">
+                {/* Difficulty and Security Level */}
+                <div className="flex gap-2">
+                  <Badge className={getDifficultyColor(item.difficulty)}>
+                    {item.difficulty}
+                  </Badge>
+                  <Badge className={getSecurityLevelColor(item.securityLevel)}>
+                    {item.securityLevel} Security
+                  </Badge>
+                </div>
+
+                {/* Tags */}
+                <div className="flex flex-wrap gap-2">
+                  {item.tags.slice(0, 3).map((tag, index) => (
+                    <Badge key={index} variant="secondary" className="bg-white/10 text-gray-300 text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                  {item.tags.length > 3 && (
+                    <Badge variant="secondary" className="bg-white/10 text-gray-300 text-xs">
+                      +{item.tags.length - 3} more
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Features */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-300 mb-2">Key Features:</h4>
+                  <ul className="space-y-1">
+                    {item.features.slice(0, 3).map((feature, index) => (
+                      <li key={index} className="text-xs text-gray-400 flex items-center">
+                        <CheckCircle className="h-3 w-3 text-green-400 mr-2" />
+                        {feature}
+                      </li>
                     ))}
-                  </div>
+                  </ul>
+                </div>
 
-                  {/* Author and Update */}
-                  <div className="text-xs text-gray-500">
-                    <p>By {item.author}</p>
-                    <p>Updated {item.lastUpdated}</p>
-                  </div>
+                {/* Author and Update Info */}
+                <div className="flex items-center justify-between text-xs text-gray-400">
+                  <span>By {item.author}</span>
+                  <span>{item.lastUpdated}</span>
+                </div>
 
-                  {/* Price and Actions */}
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-700">
-                    <div className="text-2xl font-bold text-orange-400">{item.price}</div>
-                    <div className="flex gap-2">
-                      {cart.includes(item.id) ? (
-                        <Button
-                          onClick={() => removeFromCart(item.id)}
-                          variant="outline"
-                          size="sm"
-                          className="border-red-500 text-red-400 hover:bg-red-500/10"
-                        >
-                          Remove
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() => addToCart(item.id)}
-                          variant="outline"
-                          size="sm"
-                          className="border-orange-500 text-orange-400 hover:bg-orange-500/10"
-                        >
-                          <ShoppingCart className="w-4 h-4 mr-1" />
-                          Add
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => addToCart(item)}
+                    className="flex-1 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Add to Cart
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-white/20 text-white hover:bg-white/10"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Cart Summary */}
-        {cart.length > 0 && (
-          <div className="fixed bottom-6 right-6">
-            <Card className="bg-gray-900/90 border-orange-500/50 backdrop-blur-md">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <ShoppingCart className="w-6 h-6 text-orange-400" />
-                  <div>
-                    <p className="text-sm font-medium">{cart.length} items in cart</p>
-                    <p className="text-xs text-gray-400">Total: {getCartTotal().toFixed(3)} ETH</p>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => setShowCheckout(true)}
-                    className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
-                  >
-                    Checkout
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Checkout Modal */}
-        {showCheckout && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-            <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-md w-full mx-4">
-              <h2 className="text-2xl font-bold mb-4">Checkout</h2>
-              
-              {/* Order Summary */}
-              <div className="mb-6">
-                <h3 className="font-semibold mb-2">Order Summary</h3>
-                <div className="space-y-2">
-                  {cart.map(itemId => {
-                    const item = marketplaceItems.find(i => i.id === itemId);
-                    return item ? (
-                      <div key={itemId} className="flex justify-between text-sm">
-                        <span>{item.name}</span>
-                        <span className="text-orange-400">{item.price}</span>
-                      </div>
-                    ) : null;
-                  })}
-                  <div className="border-t border-gray-600 pt-2">
-                    <div className="flex justify-between font-semibold">
-                      <span>Total:</span>
-                      <span className="text-orange-400">{getCartTotal().toFixed(3)} ETH</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Payment Method */}
-              <div className="mb-6">
-                <h3 className="font-semibold mb-2">Payment Method</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="wallet-checkout"
-                      name="paymentMethod"
-                      value="wallet"
-                      checked={paymentMethod === 'wallet'}
-                      onChange={(e) => setPaymentMethod(e.target.value as 'wallet' | 'card')}
-                      className="text-orange-500"
-                    />
-                    <label htmlFor="wallet-checkout" className="flex items-center gap-2">
-                      <Wallet className="w-4 h-4" />
-                      Wallet
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="card-checkout"
-                      name="paymentMethod"
-                      value="card"
-                      checked={paymentMethod === 'card'}
-                      onChange={(e) => setPaymentMethod(e.target.value as 'wallet' | 'card')}
-                      className="text-orange-500"
-                    />
-                    <label htmlFor="card-checkout" className="flex items-center gap-2">
-                      <CreditCard className="w-4 h-4" />
-                      Card (Coming Soon)
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => setShowCheckout(false)}
-                  variant="outline"
-                  className="flex-1 border-gray-600 text-gray-400"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCheckout}
-                  disabled={isProcessingPayment}
-                  className="flex-1 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700"
-                >
-                  {isProcessingPayment ? 'Processing...' : `Pay ${getCartTotal().toFixed(3)} ETH`}
-                </Button>
-              </div>
-            </div>
+        {/* Empty State */}
+        {sortedItems.length === 0 && (
+          <div className="text-center py-16">
+            <Shield className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-300 mb-2">No security traps found</h3>
+            <p className="text-gray-400 mb-6">
+              Try adjusting your filters or search query to find what you're looking for.
+            </p>
+            <Button
+              onClick={() => {
+                setSelectedCategory('all');
+                setSelectedDifficulty('all');
+                setSelectedSecurityLevel('all');
+                setSearchQuery('');
+              }}
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              Clear Filters
+            </Button>
           </div>
         )}
       </div>

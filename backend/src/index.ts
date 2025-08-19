@@ -114,6 +114,7 @@ async function setupRoutes() {
     // Import route creators
     const { createRpcTestRouter } = await import('./routes/rpcTest');
     const { createMarketplaceRouter } = await import('./routes/marketplace');
+    const { createDroseraTrapsRouter } = await import('./routes/droseraTraps');
     
     // Import other route modules
     const authRoutes = await import('./routes/auth');
@@ -128,6 +129,7 @@ async function setupRoutes() {
     // Create route instances with injected services
     const rpcTestRoutes = createRpcTestRouter(blockchainService, databaseService);
     const marketplaceRoutes = createMarketplaceRouter(databaseService);
+    const droseraTrapsRoutes = createDroseraTrapsRouter(databaseService, blockchainService);
     
     // Initialize services for routes that need them
     const { BasicTrapDeploymentService } = await import('./services/basicTrapDeployment');
@@ -141,6 +143,7 @@ async function setupRoutes() {
     // Register all routes
     app.use('/api/rpc-test', rpcTestRoutes);
     app.use('/api/marketplace', marketplaceRoutes);
+    app.use('/api/drosera-traps', droseraTrapsRoutes);
     app.use('/api/auth', authRoutes.default);
     app.use('/api/basic-traps', basicTrapsRoutes.default);
     app.use('/api/enhanced-ai-trap', enhancedAITrapRoutes.default);
@@ -151,6 +154,7 @@ async function setupRoutes() {
     console.log('✅ Routes registered successfully!');
     console.log('✅ RPC Test routes: /api/rpc-test/*');
     console.log('✅ Marketplace routes: /api/marketplace/*');
+    console.log('✅ Drosera Traps routes: /api/drosera-traps/*');
     console.log('✅ Auth routes: /api/auth/*');
     console.log('✅ Basic Traps routes: /api/basic-traps/*');
     console.log('✅ Enhanced AI Trap routes: /api/enhanced-ai-trap/*');

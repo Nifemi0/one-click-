@@ -1,251 +1,207 @@
 'use client';
 
+import { useWallet } from '../providers/WalletProvider';
+import { useTheme } from '../providers/ThemeProvider';
+import { ThemeToggle } from '../components/ThemeToggle';
 import BackendConnectionTest from '@/components/BackendConnectionTest';
 
 export default function Home() {
+  const { isConnected, address, connect, walletError } = useWallet();
+  const { resolvedTheme } = useTheme();
+
   const copyAddress = () => {
     if (typeof navigator !== 'undefined') {
       navigator.clipboard.writeText('0xa3B983c22c10Bb64bd812ACd9Eb15B13856aF3b7');
     }
   };
 
+  const handleConnectWallet = () => {
+    if (!isConnected) {
+      connect();
+    }
+  };
+
+  const handleLaunchApp = () => {
+    if (isConnected) {
+      window.location.href = '/app';
+    } else {
+      connect();
+    }
+  };
+
+  const handleDeployTrap = () => {
+    if (isConnected) {
+      window.location.href = '/deploy';
+    } else {
+      connect();
+    }
+  };
+
+  const handleViewTemplates = () => {
+    if (isConnected) {
+      window.location.href = '/marketplace';
+    } else {
+      connect();
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Navigation */}
-      <nav className="border-b border-gray-800 bg-black/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">1</span>
-              </div>
-              <span className="text-xl font-bold gradient-text">One Click</span>
-            </div>
-            <div className="hidden md:flex items-center space-x-8">
-              <a className="text-gray-300 hover:text-white transition-colors" href="#features">Features</a>
-              <a className="text-gray-300 hover:text-white transition-colors" href="#security">Security</a>
-              <a className="text-gray-300 hover:text-white transition-colors" href="#marketplace">Marketplace</a>
-              <a className="text-gray-300 hover:text-white transition-colors" href="#about">About</a>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button className="btn-outline">Connect Wallet</button>
-              <button className="btn-primary">Launch App</button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
-      <section className="relative py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="mb-8">
-            <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight">
-              <span className="text-white">Secure Your DeFi with</span><br/>
-              <span className="gradient-text">One Click</span>
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-24 sm:py-32">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl">
+              <span className="bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">
+                Drosera
+              </span>
+              <br />
+              <span className="text-white">Security Traps</span>
             </h1>
-            <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed mb-6">
-              Deploy sophisticated security traps on Hoodi testnet with AI-powered analysis. 
-              Protect your assets with enterprise-grade security made simple.
+            <p className="mt-6 text-lg leading-8 text-gray-300">
+              Professional-grade DeFi security infrastructure. Deploy intelligent security traps 
+              with one-click automation to protect your protocols from attacks.
             </p>
-            <p className="text-lg text-orange-400 font-medium mb-8">Currently supporting Hoodi testnet for testing and development</p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-            <button className="btn-primary text-lg px-8 py-4 glow-orange">🚀 Deploy Security Trap</button>
-            <button className="btn-secondary text-lg px-8 py-4">📚 View Templates</button>
+            <div className="mt-10 flex items-center justify-center gap-x-6">
+              <button 
+                onClick={handleLaunchApp}
+                className="rounded-md bg-gradient-to-r from-orange-500 to-red-600 px-6 py-3 text-lg font-semibold text-white shadow-lg hover:from-orange-600 hover:to-red-700 transition-all duration-200 hover:scale-105"
+              >
+                {isConnected ? 'Launch App' : 'Get Started'}
+              </button>
+              <button 
+                onClick={handleViewTemplates}
+                className="text-lg font-semibold leading-6 text-white border-2 border-white/20 px-6 py-3 rounded-md hover:bg-white/10 transition-all duration-200"
+              >
+                View Templates
+              </button>
+            </div>
           </div>
         </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-900/50">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-6 text-white">Hoodi Testnet Security</h2>
-            <p className="text-lg text-orange-400 font-medium mb-8 leading-relaxed">Secure your testnet assets while we prepare for mainnet</p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-orange-500 mb-3">1</div>
-              <div className="text-gray-300 font-medium">Testnet</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-orange-500 mb-3">99.9%</div>
-              <div className="text-gray-300 font-medium">Success Rate</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-orange-500 mb-3">24/7</div>
-              <div className="text-gray-300 font-medium">Monitoring</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-orange-500 mb-3">Test</div>
-              <div className="text-gray-300 font-medium">Environment</div>
-            </div>
+        
+        {/* Background Elements */}
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute left-[max(50%,25rem)] top-0 h-[64rem] w-[128rem] -translate-x-1/2 stroke-gray-200/20 [mask-image:radial-gradient(64rem_64rem_at_center,white,transparent)]">
+            <defs>
+              <pattern id="hero-pattern" width="200" height="200" x="50%" y="-1" patternUnits="userSpaceOnUse">
+                <path d="M.5 200V.5H200" fill="none" />
+              </pattern>
+            </defs>
+            <svg x="50%" y="-1" className="overflow-visible fill-gray-800/20">
+              <path d="M-200 0h201v201h-201Z M600 0h201v201h-201Z M-400 600h201v201h-201Z M200 800h201v201h-201Z" strokeWidth="0" />
+            </svg>
+            <rect width="100%" height="100%" strokeWidth="0" fill="url(#hero-pattern)" />
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-900">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-6 text-white">Why Choose One Click?</h2>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">Advanced security technology wrapped in a simple, intuitive interface</p>
+      <section className="py-24 sm:py-32 bg-white dark:bg-gray-900">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl lg:text-center">
+            <h2 className="text-base font-semibold leading-7 text-orange-600 dark:text-orange-400">
+              Advanced Security
+            </h2>
+            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
+              Everything you need to protect your DeFi protocols
+            </p>
+            <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
+              From honeypot traps to MEV protection, our comprehensive security suite 
+              provides automated threat detection and response.
+            </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="card group">
-              <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-6 group-hover:bg-orange-500/30 transition-colors">
-                <span className="text-2xl">🔒</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-4 text-white">One-Click Deployment</h3>
-              <p className="text-gray-400 leading-relaxed">Deploy sophisticated security traps with a single click. No coding required.</p>
-            </div>
-            <div className="card group">
-              <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-6 group-hover:bg-orange-500/30 transition-colors">
-                <span className="text-2xl">🤖</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-4 text-white">AI-Powered Analysis</h3>
-              <p className="text-gray-400 leading-relaxed">Intelligent contract analysis that identifies vulnerabilities before they become threats.</p>
-            </div>
-            <div className="card group">
-              <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-6 group-hover:bg-orange-500/30 transition-colors">
-                <span className="text-2xl">🧪</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-4 text-white">Testnet Ready</h3>
-              <p className="text-gray-400 leading-relaxed">Perfect for testing security strategies on Hoodi testnet before mainnet deployment.</p>
-            </div>
-            <div className="card group">
-              <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-6 group-hover:bg-orange-500/30 transition-colors">
-                <span className="text-2xl">📊</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-4 text-white">Real-Time Monitoring</h3>
-              <p className="text-gray-400 leading-relaxed">24/7 monitoring with instant alerts when threats are detected.</p>
-            </div>
-            <div className="card group">
-              <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-6 group-hover:bg-orange-500/30 transition-colors">
-                <span className="text-2xl">🏪</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-4 text-white">Template Marketplace</h3>
-              <p className="text-gray-400 leading-relaxed">Browse and deploy from curated, audited security trap templates.</p>
-            </div>
-            <div className="card group">
-              <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-6 group-hover:bg-orange-500/30 transition-colors">
-                <span className="text-2xl">👥</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-4 text-white">Community Driven</h3>
-              <p className="text-gray-400 leading-relaxed">Contribute templates, share strategies, and earn rewards.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Backend Connection Test Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-900">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold mb-8 text-white">Backend Connection Status</h2>
-          <p className="text-xl text-gray-300 mb-10 leading-relaxed">
-            Test the connection between your frontend and backend to ensure everything is working properly.
-          </p>
-          <BackendConnectionTest />
-        </div>
-      </section>
-
-      {/* Donation Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-black">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold mb-8 text-white">Support Development</h2>
-          <p className="text-xl text-gray-300 mb-10 leading-relaxed">
-            Help us continue building One Click on Hoodi testnet. Your donations support development, 
-            testing, and future mainnet features.
-          </p>
           
-          {/* Donation and Social Media Row */}
-          <div className="flex flex-col lg:flex-row gap-8 mb-10">
-            {/* Donation Box */}
-            <div className="flex-1 bg-gray-900 border border-gray-800 rounded-xl p-8">
-              <h3 className="text-2xl font-bold mb-6 text-orange-400">Donate</h3>
-              <p className="text-gray-400 mb-6 text-base leading-relaxed">Send any amount to support One Click development</p>
-              <div className="bg-gray-800 border border-gray-700 rounded-lg p-5 mb-6">
-                <p className="text-sm text-gray-400 mb-3 font-medium">Wallet Address:</p>
-                <p className="text-sm font-mono text-orange-400 break-all leading-relaxed">0xa3B983c22c10Bb64bd812ACd9Eb15B13856aF3b7</p>
+          <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
+            <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-3">
+              <div className="flex flex-col">
+                <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900 dark:text-white">
+                  <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-orange-600">
+                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                    </svg>
+                  </div>
+                  One-Click Deployment
+                </dt>
+                <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600 dark:text-gray-300">
+                  <p className="flex-auto">
+                    Deploy professional security traps in minutes with our intuitive interface. 
+                    No coding required - just select, configure, and deploy.
+                  </p>
+                </dd>
               </div>
+              
+              <div className="flex flex-col">
+                <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900 dark:text-white">
+                  <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-orange-600">
+                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                    </svg>
+                  </div>
+                  AI-Powered Detection
+                </dt>
+                <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600 dark:text-gray-300">
+                  <p className="flex-auto">
+                    Advanced threat detection using machine learning algorithms. 
+                    Real-time monitoring and automated response to security threats.
+                  </p>
+                </dd>
+              </div>
+              
+              <div className="flex flex-col">
+                <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900 dark:text-white">
+                  <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-orange-600">
+                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  Multi-Chain Support
+                </dt>
+                <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600 dark:text-gray-300">
+                  <p className="flex-auto">
+                    Protect your assets across multiple blockchains. 
+                    Currently supporting Hoodi testnet with plans for mainnet expansion.
+                  </p>
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-24 sm:py-32 bg-gradient-to-r from-orange-600 to-red-600">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              Ready to secure your DeFi protocols?
+            </h2>
+            <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-orange-100">
+              Join the future of DeFi security with Drosera. Deploy your first trap today.
+            </p>
+            <div className="mt-10 flex items-center justify-center gap-x-6">
               <button 
-                className="btn-primary text-sm px-6 py-3"
-                onClick={copyAddress}
+                onClick={handleDeployTrap}
+                className="rounded-md bg-white px-6 py-3 text-lg font-semibold text-orange-600 shadow-lg hover:bg-gray-100 transition-all duration-200"
               >
-                📋 Copy Address
+                Deploy Security Trap
+              </button>
+              <button 
+                onClick={handleViewTemplates}
+                className="text-lg font-semibold leading-6 text-white border-2 border-white/30 px-6 py-3 rounded-md hover:bg-white/10 transition-all duration-200"
+              >
+                Browse Templates
               </button>
             </div>
-
-            {/* Social Media Box */}
-            <div className="flex-1 bg-gray-900 border border-gray-800 rounded-xl p-8">
-              <h3 className="text-2xl font-bold mb-6 text-orange-400">Connect With Us</h3>
-              <p className="text-gray-400 mb-6 text-base leading-relaxed">Follow us for updates, news, and community updates</p>
-              <div className="space-y-4">
-                <a 
-                  href="https://x.com/Love_Light_11" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
-                >
-                  <span className="mr-2">🐦</span>
-                  Follow on X (Twitter)
-                </a>
-                <div className="text-center">
-                  <p className="text-sm text-gray-400">More social platforms coming soon!</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="btn-primary text-lg px-8 py-4 glow-orange">🚀 Get Started Now</button>
-            <button className="btn-secondary text-lg px-8 py-4">📖 Read Documentation</button>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-800 bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-6">
-                <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">1</span>
-                </div>
-                <span className="text-xl font-bold gradient-text">One Click</span>
-              </div>
-              <p className="text-gray-400 leading-relaxed">Democratizing access to advanced DeFi security tools.</p>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-6">Product</h4>
-              <ul className="space-y-3 text-gray-400">
-                <li><a className="hover:text-white transition-colors" href="#">Features</a></li>
-                <li><a className="hover:text-white transition-colors" href="#">Pricing</a></li>
-                <li><a className="hover:text-white transition-colors" href="#">API</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-6">Resources</h4>
-              <ul className="space-y-3 text-gray-400">
-                <li><a className="hover:text-white transition-colors" href="#">Documentation</a></li>
-                <li><a className="hover:text-white transition-colors" href="#">Tutorials</a></li>
-                <li><a className="hover:text-white transition-colors" href="#">Support</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-6">Community</h4>
-              <ul className="space-y-3 text-gray-400">
-                <li><a className="hover:text-white transition-colors" href="#">Discord</a></li>
-                <li><a className="hover:text-white transition-colors" href="#">GitHub</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-10 pt-8 text-center text-gray-400">
-            <p>© 2024 One Click Network. All rights reserved.</p>
-          </div>
+      {/* Backend Connection Test (Hidden in production) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="py-8">
+          <BackendConnectionTest />
         </div>
-      </footer>
+      )}
     </div>
   );
 }

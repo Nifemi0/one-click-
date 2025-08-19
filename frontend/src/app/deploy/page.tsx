@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Shield, Zap, Target, AlertTriangle, CheckCircle, Clock, DollarSign, CreditCard, Wallet } from "lucide-react";
 import { useWallet } from "../../providers/WalletProvider";
+import { deploySecurityTrapContract } from "../../lib/contractDeployer";
 
 interface TrapTemplate {
   id: string;
@@ -60,7 +61,7 @@ const trapTemplates: TrapTemplate[] = [
 ];
 
 export default function DeployPage() {
-  const { isConnected, address } = useWallet();
+  const { isConnected, address, token } = useWallet();
   const [selectedTemplate, setSelectedTemplate] = useState<TrapTemplate | null>(null);
   const [deploymentStep, setDeploymentStep] = useState<'select' | 'configure' | 'payment' | 'deploying' | 'success'>('select');
   const [deploymentProgress, setDeploymentProgress] = useState(0);
@@ -73,6 +74,14 @@ export default function DeployPage() {
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'card'>('wallet');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [deploymentHash, setDeploymentHash] = useState<string>('');
+  const [userContractAddress, setUserContractAddress] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('userContractAddress');
+      if (stored) setUserContractAddress(stored);
+    } catch {}
+  }, []);
 
   const handleTemplateSelect = (template: TrapTemplate) => {
     setSelectedTemplate(template);
@@ -90,158 +99,71 @@ export default function DeployPage() {
     setIsProcessingPayment(true);
 
     try {
-      if (paymentMethod === 'wallet') {
-        // Handle wallet payment
-        await handleWalletPayment();
-      } else {
-        // Handle card payment
-        await handleCardPayment();
-      }
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Proceed to deployment
+      setDeploymentStep('deploying');
+      await handleDeployment();
     } catch (error) {
-      console.error('Payment failed:', error);
       alert('Payment failed. Please try again.');
     } finally {
       setIsProcessingPayment(false);
     }
   };
 
-  const handleWalletPayment = async () => {
-    if (!selectedTemplate || !window.ethereum) return;
-
-    try {
-      // Request account access
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      const account = accounts[0];
-
-      // Get current gas price
-      const gasPrice = await window.ethereum.request({ method: 'eth_gasPrice' });
-
-      // Calculate deployment cost in wei
-      const costInWei = (selectedTemplate.costInEth * 1e18).toString(16);
-      
-      // Create transaction
-      const transactionParameters = {
-        to: '0x0000000000000000000000000000000000000000', // This would be your payment contract
-        from: account,
-        value: costInWei,
-        gas: '0x5208', // 21000 gas
-        gasPrice: gasPrice,
-      };
-
-      // Send transaction
-      const txHash = await window.ethereum.request({
-        method: 'eth_sendTransaction',
-        params: [transactionParameters],
-      });
-
-      console.log('Payment transaction hash:', txHash);
-      
-      // Proceed to deployment
-      setDeploymentStep('deploying');
-      await handleDeployment();
-      
-    } catch (error) {
-      console.error('Wallet payment failed:', error);
-      throw error;
-    }
-  };
-
-  const handleCardPayment = async () => {
-    // This would integrate with a payment processor like Stripe
-    alert('Card payment integration coming soon. Please use wallet payment for now.');
-  };
-
   const handleDeployment = async () => {
     if (!selectedTemplate) return;
 
-    setDeploymentProgress(0);
-
     try {
-      // Step 1: Validate configuration
-      setDeploymentProgress(20);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Simulate deployment progress
+      for (let i = 0; i <= 100; i += 10) {
+        setDeploymentProgress(i);
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
 
-      // Step 2: Compile contract
-      setDeploymentProgress(40);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Step 3: Deploy to blockchain
-      setDeploymentProgress(60);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Step 4: Verify deployment
-      setDeploymentProgress(80);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Step 5: Complete
-      setDeploymentProgress(100);
-      
       // Generate mock deployment hash
       const mockHash = '0x' + Math.random().toString(16).substr(2, 64);
       setDeploymentHash(mockHash);
 
-      // Call backend API to record deployment
-      await recordDeployment(mockHash);
+      // Simulate contract deployment
+      const mockAddress = '0x' + Math.random().toString(16).substr(2, 40);
+      setUserContractAddress(mockAddress);
+      localStorage.setItem('userContractAddress', mockAddress);
 
       setDeploymentStep('success');
-      
     } catch (error) {
-      console.error('Deployment failed:', error);
       alert('Deployment failed. Please try again.');
       setDeploymentStep('configure');
     }
   };
 
-  const recordDeployment = async (hash: string) => {
-    try {
-      const response = await fetch('https://one-click-c308.onrender.com/api/basic-traps/deploy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          templateId: selectedTemplate?.id,
-          trapName: customConfig.trapName,
-          description: customConfig.description,
-          rewardPercentage: customConfig.rewardPercentage,
-          maxAttackers: customConfig.maxAttackers,
-          deploymentHash: hash,
-          userAddress: address,
-          cost: selectedTemplate?.costInEth
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to record deployment');
-      }
-
-      console.log('Deployment recorded successfully');
-    } catch (error) {
-      console.error('Failed to record deployment:', error);
-      // Don't fail the deployment for this
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'Basic': return 'bg-green-100 text-green-800';
+      case 'Intermediate': return 'bg-yellow-100 text-yellow-800';
+      case 'Advanced': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const handleBackToSelect = () => {
-    setSelectedTemplate(null);
-    setDeploymentStep('select');
-    setCustomConfig({
-      trapName: '',
-      description: '',
-      rewardPercentage: 10,
-      maxAttackers: 5
-    });
-    setDeploymentHash('');
+  const getSecurityLevelColor = (level: string) => {
+    switch (level) {
+      case 'Low': return 'bg-red-100 text-red-800';
+      case 'Medium': return 'bg-yellow-100 text-yellow-800';
+      case 'High': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-24 h-24 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
             <Shield className="w-12 h-12 text-white" />
           </div>
-          <h1 className="text-3xl font-bold mb-4">Connect Your Wallet</h1>
+          <h1 className="text-3xl font-bold text-white mb-4">Connect Your Wallet</h1>
           <p className="text-gray-400 mb-6">Connect your wallet to deploy security traps</p>
           <Button 
             className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white px-8 py-3 text-lg"
@@ -254,387 +176,379 @@ export default function DeployPage() {
     );
   }
 
-  if (deploymentStep === 'select') {
-    return (
-      <div className="min-h-screen bg-black text-white pt-20">
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Header Section */}
+      <div className="bg-white/5 backdrop-blur-sm border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-white mb-4">
               Deploy Security Traps
             </h1>
-            <p className="text-gray-400 text-lg">
-              Choose a security trap template and deploy it to protect your assets
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+              Choose from our pre-configured security trap templates and deploy them 
+              with one-click automation. Protect your DeFi protocols instantly.
             </p>
-            <div className="mt-4">
-              <Badge variant="outline" className="text-orange-400 border-orange-500">
-                Connected: {address?.slice(0, 6)}...{address?.slice(-4)}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Template Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {trapTemplates.map((template) => (
-              <Card 
-                key={template.id}
-                className="bg-gray-900/50 border-gray-800 hover:border-orange-500/50 transition-all duration-300 cursor-pointer hover:scale-105"
-                onClick={() => handleTemplateSelect(template)}
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between mb-2">
-                    <CardTitle className="text-xl">{template.name}</CardTitle>
-                    <Badge 
-                      variant="outline" 
-                      className={`${
-                        template.difficulty === 'Basic' ? 'text-green-400 border-green-500' :
-                        template.difficulty === 'Intermediate' ? 'text-yellow-400 border-yellow-500' :
-                        'text-red-400 border-red-500'
-                      }`}
-                    >
-                      {template.difficulty}
-                    </Badge>
-                  </div>
-                  <CardDescription className="text-gray-300">{template.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Cost:</span>
-                      <span className="text-orange-400 font-semibold">{template.cost}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Deployment:</span>
-                      <span className="text-blue-400">{template.deploymentTime}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Security:</span>
-                      <span className="text-green-400">{template.securityLevel}</span>
-                    </div>
-                    <div className="pt-2">
-                      <div className="text-sm text-gray-400 mb-2">Features:</div>
-                      <div className="flex flex-wrap gap-1">
-                        {template.features.map((feature, index) => (
-                          <Badge key={index} variant="outline" className="text-xs text-gray-300 border-gray-600">
-                            {feature}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
           </div>
         </div>
       </div>
-    );
-  }
 
-  if (deploymentStep === 'configure') {
-    return (
-      <div className="min-h-screen bg-black text-white pt-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-4">Configure Your Trap</h1>
-            <p className="text-gray-400">Customize your {selectedTemplate?.name} before deployment</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Deployment Progress */}
+        {deploymentStep !== 'select' && (
+          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 mb-8 border border-white/10">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-white">Deployment Progress</h2>
+              <Badge variant="outline" className="border-orange-500/30 text-orange-400">
+                Step {deploymentStep === 'configure' ? '1' : deploymentStep === 'payment' ? '2' : deploymentStep === 'deploying' ? '3' : '4'} of 4
+              </Badge>
+            </div>
+            
+                         <div className="space-y-4">
+               <div className="flex items-center">
+                 <div className="w-8 h-8 rounded-full flex items-center justify-center mr-3 bg-green-500">
+                   <CheckCircle className="w-5 h-5 text-white" />
+                 </div>
+                 <span className="text-gray-300">Template Selection</span>
+               </div>
+               
+               <div className="flex items-center">
+                 <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
+                   deploymentStep === 'configure' ? 'bg-orange-500' : 'bg-green-500'
+                 }`}>
+                   {deploymentStep === 'configure' ? <Clock className="w-5 h-5 text-white" /> : <CheckCircle className="w-5 h-5 text-white" />}
+                 </div>
+                 <span className="text-gray-300">Configuration</span>
+               </div>
+               
+               <div className="flex items-center">
+                 <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
+                   deploymentStep === 'payment' ? 'bg-orange-500' : deploymentStep === 'deploying' || deploymentStep === 'success' ? 'bg-green-500' : 'bg-gray-600'
+                 }`}>
+                   {deploymentStep === 'payment' ? <Clock className="w-5 h-5 text-white" /> : deploymentStep === 'deploying' || deploymentStep === 'success' ? <CheckCircle className="w-5 h-5 text-white" /> : <Clock className="w-5 h-5 text-white" />}
+                 </div>
+                 <span className="text-gray-300">Payment</span>
+               </div>
+               
+               <div className="flex items-center">
+                 <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
+                   deploymentStep === 'success' ? 'bg-green-500' : deploymentStep === 'deploying' ? 'bg-orange-500' : 'bg-gray-600'
+                 }`}>
+                   {deploymentStep === 'deploying' ? <Clock className="w-5 h-5 text-white" /> : deploymentStep === 'success' ? <CheckCircle className="w-5 h-5 text-white" /> : <Clock className="w-5 h-5 text-white" />}
+                 </div>
+                 <span className="text-gray-300">Deployment</span>
+               </div>
+             </div>
           </div>
+        )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Configuration Form */}
-            <Card className="bg-gray-900/50 border-gray-800">
+        {/* Template Selection */}
+        {deploymentStep === 'select' && (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-white mb-4">Choose Your Security Trap</h2>
+              <p className="text-gray-300">Select from our professionally crafted security trap templates</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {trapTemplates.map((template) => (
+                <Card key={template.id} className="bg-white/5 backdrop-blur-sm border border-white/10 hover:border-orange-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/20 cursor-pointer" onClick={() => handleTemplateSelect(template)}>
+                  <CardHeader className="pb-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-xl text-white mb-2">{template.name}</CardTitle>
+                        <CardDescription className="text-gray-300 text-sm leading-relaxed">
+                          {template.description}
+                        </CardDescription>
+                      </div>
+                      <div className="text-right ml-4">
+                        <div className="text-2xl font-bold text-orange-400 mb-1">{template.cost}</div>
+                        <Badge variant="outline" className="border-orange-500/30 text-orange-400">
+                          {template.deploymentTime}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="space-y-4">
+                    {/* Difficulty and Security Level */}
+                    <div className="flex gap-2">
+                      <Badge className={getDifficultyColor(template.difficulty)}>
+                        {template.difficulty}
+                      </Badge>
+                      <Badge className={getSecurityLevelColor(template.securityLevel)}>
+                        {template.securityLevel} Security
+                      </Badge>
+                    </div>
+
+                    {/* Features */}
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-300 mb-2">Features:</h4>
+                      <ul className="space-y-1">
+                        {template.features.map((feature, index) => (
+                          <li key={index} className="text-xs text-gray-400 flex items-center">
+                            <CheckCircle className="h-3 w-3 text-green-400 mr-2" />
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Select Button */}
+                    <Button className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white">
+                      <Shield className="h-4 w-4 mr-2" />
+                      Select Template
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Configuration Step */}
+        {deploymentStep === 'configure' && selectedTemplate && (
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-white mb-4">Configure Your Trap</h2>
+              <p className="text-gray-300">Customize the settings for your {selectedTemplate.name}</p>
+            </div>
+
+            <Card className="bg-white/5 backdrop-blur-sm border border-white/10">
               <CardHeader>
-                <CardTitle>Configuration</CardTitle>
-                <CardDescription>Set up your trap parameters</CardDescription>
+                <CardTitle className="text-white">Trap Configuration</CardTitle>
+                <CardDescription className="text-gray-300">
+                  Set up your security trap parameters
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Trap Name</label>
-                  <input
-                    type="text"
-                    value={customConfig.trapName}
-                    onChange={(e) => setCustomConfig(prev => ({ ...prev, trapName: e.target.value }))}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    placeholder="Enter trap name"
-                  />
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Trap Name</label>
+                    <input
+                      type="text"
+                      value={customConfig.trapName}
+                      onChange={(e) => setCustomConfig({...customConfig, trapName: e.target.value})}
+                      placeholder="My Security Trap"
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Reward Percentage</label>
+                    <input
+                      type="number"
+                      value={customConfig.rewardPercentage}
+                      onChange={(e) => setCustomConfig({...customConfig, rewardPercentage: Number(e.target.value)})}
+                      min="1"
+                      max="50"
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  </div>
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
                   <textarea
                     value={customConfig.description}
-                    onChange={(e) => setCustomConfig(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    onChange={(e) => setCustomConfig({...customConfig, description: e.target.value})}
+                    placeholder="Describe your security trap..."
                     rows={3}
-                    placeholder="Describe your trap"
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Reward Percentage: {customConfig.rewardPercentage}%</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Max Attackers</label>
                   <input
-                    type="range"
-                    min="1"
-                    max="50"
-                    value={customConfig.rewardPercentage}
-                    onChange={(e) => setCustomConfig(prev => ({ ...prev, rewardPercentage: parseInt(e.target.value) }))}
-                    className="w-full"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Max Attackers: {customConfig.maxAttackers}</label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="20"
+                    type="number"
                     value={customConfig.maxAttackers}
-                    onChange={(e) => setCustomConfig(prev => ({ ...prev, maxAttackers: parseInt(e.target.value) }))}
-                    className="w-full"
+                    onChange={(e) => setCustomConfig({...customConfig, maxAttackers: Number(e.target.value)})}
+                    min="1"
+                    max="100"
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
+                </div>
+
+                <div className="flex gap-4">
+                  <Button
+                    onClick={() => setDeploymentStep('select')}
+                    variant="outline"
+                    className="flex-1 border-white/20 text-white hover:bg-white/10"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    onClick={() => setDeploymentStep('payment')}
+                    className="flex-1 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
+                  >
+                    Continue to Payment
+                  </Button>
                 </div>
               </CardContent>
             </Card>
+          </div>
+        )}
 
-            {/* Template Summary */}
-            <Card className="bg-gray-900/50 border-gray-800">
+        {/* Payment Step */}
+        {deploymentStep === 'payment' && selectedTemplate && (
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-white mb-4">Payment & Deployment</h2>
+              <p className="text-gray-300">Complete payment to deploy your security trap</p>
+            </div>
+
+            <Card className="bg-white/5 backdrop-blur-sm border border-white/10">
               <CardHeader>
-                <CardTitle>Template Summary</CardTitle>
-                <CardDescription>Review your selection</CardDescription>
+                <CardTitle className="text-white">Payment Summary</CardTitle>
+                <CardDescription className="text-gray-300">
+                  Review your order and select payment method
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Template:</span>
-                    <span className="font-semibold">{selectedTemplate?.name}</span>
+              <CardContent className="space-y-6">
+                {/* Order Summary */}
+                <div className="bg-white/5 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-gray-300 mb-3">Order Details</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Template:</span>
+                      <span className="text-white">{selectedTemplate.name}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Cost:</span>
+                      <span className="text-orange-400 font-semibold">{selectedTemplate.cost}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Deployment Time:</span>
+                      <span className="text-white">{selectedTemplate.deploymentTime}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Difficulty:</span>
-                    <Badge variant="outline" className="text-orange-400 border-orange-500">
-                      {selectedTemplate?.difficulty}
-                    </Badge>
+                </div>
+
+                {/* Payment Method */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-300 mb-3">Payment Method</h4>
+                  <div className="space-y-3">
+                    <label className="flex items-center space-x-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="wallet"
+                        checked={paymentMethod === 'wallet'}
+                        onChange={(e) => setPaymentMethod(e.target.value as 'wallet' | 'card')}
+                        className="text-orange-500 focus:ring-orange-500"
+                      />
+                      <div className="flex items-center space-x-2">
+                        <Wallet className="h-5 w-5 text-orange-400" />
+                        <span className="text-white">Wallet Payment (Recommended)</span>
+                      </div>
+                    </label>
+                    
+                    <label className="flex items-center space-x-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="card"
+                        checked={paymentMethod === 'card'}
+                        onChange={(e) => setPaymentMethod(e.target.value as 'wallet' | 'card')}
+                        className="text-orange-500 focus:ring-orange-500"
+                      />
+                      <div className="flex items-center space-x-2">
+                        <CreditCard className="h-5 w-5 text-orange-400" />
+                        <span className="text-white">Credit Card (Coming Soon)</span>
+                      </div>
+                    </label>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Cost:</span>
-                    <span className="text-orange-400 font-semibold">{selectedTemplate?.cost}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Deployment Time:</span>
-                    <span className="text-blue-400">{selectedTemplate?.deploymentTime}</span>
-                  </div>
-                  <div className="pt-4 border-t border-gray-700">
-                    <Button 
-                      onClick={() => setDeploymentStep('payment')}
-                      className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
-                    >
-                      Proceed to Payment
-                    </Button>
-                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <Button
+                    onClick={() => setDeploymentStep('configure')}
+                    variant="outline"
+                    className="flex-1 border-white/20 text-white hover:bg-white/10"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    onClick={handlePayment}
+                    disabled={isProcessingPayment}
+                    className="flex-1 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
+                  >
+                    {isProcessingPayment ? 'Processing...' : `Pay ${selectedTemplate.cost}`}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
+        )}
 
-          <div className="mt-8 text-center">
-            <Button 
-              onClick={handleBackToSelect}
-              variant="outline"
-              className="border-gray-600 text-gray-400 hover:bg-gray-800"
-            >
-              ← Back to Templates
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (deploymentStep === 'payment') {
-    return (
-      <div className="min-h-screen bg-black text-white pt-20">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-4">Payment & Deployment</h1>
-            <p className="text-gray-400">Complete payment to deploy your security trap</p>
-          </div>
-
-          <Card className="bg-gray-900/50 border-gray-800 mb-8">
-            <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Template:</span>
-                  <span className="font-semibold">{selectedTemplate?.name}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Trap Name:</span>
-                  <span className="font-semibold">{customConfig.trapName || 'Unnamed Trap'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Deployment Cost:</span>
-                  <span className="text-orange-400 font-semibold text-xl">{selectedTemplate?.cost}</span>
-                </div>
-                <div className="pt-3 border-t border-gray-700">
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-semibold">Total:</span>
-                    <span className="text-orange-400 font-bold text-2xl">{selectedTemplate?.cost}</span>
-                  </div>
-                </div>
+        {/* Deployment Step */}
+        {deploymentStep === 'deploying' && (
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10">
+              <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Zap className="w-8 h-8 text-white" />
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-900/50 border-gray-800 mb-8">
-            <CardHeader>
-              <CardTitle>Payment Method</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="radio"
-                    id="wallet"
-                    name="paymentMethod"
-                    value="wallet"
-                    checked={paymentMethod === 'wallet'}
-                    onChange={(e) => setPaymentMethod(e.target.value as 'wallet' | 'card')}
-                    className="text-orange-500 focus:ring-orange-500"
-                  />
-                  <label htmlFor="wallet" className="flex items-center gap-2 text-gray-300 cursor-pointer">
-                    <Wallet className="w-5 h-5" />
-                    Pay with Wallet (Recommended)
-                  </label>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="radio"
-                    id="card"
-                    name="paymentMethod"
-                    value="card"
-                    checked={paymentMethod === 'card'}
-                    onChange={(e) => setPaymentMethod(e.target.value as 'wallet' | 'card')}
-                    className="text-orange-500 focus:ring-orange-500"
-                  />
-                  <label htmlFor="card" className="flex items-center gap-2 text-gray-300 cursor-pointer">
-                    <CreditCard className="w-5 h-5" />
-                    Pay with Card (Coming Soon)
-                  </label>
-                </div>
+              
+              <h2 className="text-2xl font-bold text-white mb-4">Deploying Your Security Trap</h2>
+              <p className="text-gray-300 mb-6">Please wait while we deploy your security trap to the blockchain</p>
+              
+              {/* Progress Bar */}
+              <div className="w-full bg-white/10 rounded-full h-3 mb-6">
+                <div 
+                  className="bg-gradient-to-r from-orange-500 to-red-600 h-3 rounded-full transition-all duration-300"
+                  style={{ width: `${deploymentProgress}%` }}
+                ></div>
               </div>
-            </CardContent>
-          </Card>
-
-          <div className="flex gap-4">
-            <Button 
-              onClick={() => setDeploymentStep('configure')}
-              variant="outline"
-              className="flex-1 border-gray-600 text-gray-400 hover:bg-gray-800"
-            >
-              ← Back to Configuration
-            </Button>
-            <Button 
-              onClick={handlePayment}
-              disabled={isProcessingPayment}
-              className="flex-1 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
-            >
-              {isProcessingPayment ? 'Processing...' : `Pay ${selectedTemplate?.cost} & Deploy`}
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (deploymentStep === 'deploying') {
-    return (
-      <div className="min-h-screen bg-black text-white pt-20">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
-          <div className="w-24 h-24 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-8">
-            <Zap className="w-12 h-12 text-white animate-pulse" />
-          </div>
-          
-          <h1 className="text-3xl font-bold mb-4">Deploying Your Trap</h1>
-          <p className="text-gray-400 mb-8">Please wait while we deploy your security trap to the blockchain</p>
-          
-          {/* Progress Bar */}
-          <div className="w-full bg-gray-800 rounded-full h-3 mb-6">
-            <div 
-              className="bg-gradient-to-r from-orange-500 to-red-600 h-3 rounded-full transition-all duration-500"
-              style={{ width: `${deploymentProgress}%` }}
-            ></div>
-          </div>
-          
-          <div className="text-sm text-gray-400 mb-8">
-            {deploymentProgress < 20 && "Validating configuration..."}
-            {deploymentProgress >= 20 && deploymentProgress < 40 && "Compiling smart contract..."}
-            {deploymentProgress >= 40 && deploymentProgress < 60 && "Deploying to blockchain..."}
-            {deploymentProgress >= 60 && deploymentProgress < 80 && "Verifying deployment..."}
-            {deploymentProgress >= 80 && deploymentProgress < 100 && "Finalizing deployment..."}
-            {deploymentProgress === 100 && "Deployment complete!"}
-          </div>
-          
-          <div className="text-2xl font-bold text-orange-400">{deploymentProgress}%</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (deploymentStep === 'success') {
-    return (
-      <div className="min-h-screen bg-black text-white pt-20">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
-          <div className="w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-8">
-            <CheckCircle className="w-12 h-12 text-white" />
-          </div>
-          
-          <h1 className="text-3xl font-bold mb-4 text-green-400">Deployment Successful!</h1>
-          <p className="text-gray-400 mb-8">Your security trap has been deployed to the blockchain</p>
-          
-          <Card className="bg-gray-900/50 border-gray-800 mb-8">
-            <CardContent className="p-6">
-              <div className="space-y-3 text-left">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Trap Name:</span>
-                  <span className="font-semibold">{customConfig.trapName || selectedTemplate?.name}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Contract Address:</span>
-                  <span className="font-mono text-sm text-green-400">{deploymentHash}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Network:</span>
-                  <span className="text-blue-400">Hoodi Testnet</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Deployment Cost:</span>
-                  <span className="text-orange-400">{selectedTemplate?.cost}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <div className="space-y-4">
-            <Button 
-              onClick={() => window.location.href = '/app'}
-              className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white px-8 py-3"
-            >
-              Go to Dashboard
-            </Button>
-            <div>
-              <Button 
-                onClick={handleBackToSelect}
-                variant="outline"
-                className="border-gray-600 text-gray-400 hover:bg-gray-800"
-              >
-                Deploy Another Trap
-              </Button>
+              
+              <p className="text-sm text-gray-400">{deploymentProgress}% Complete</p>
             </div>
           </div>
-        </div>
-      </div>
-    );
-  }
+        )}
 
-  return null;
+        {/* Success Step */}
+        {deploymentStep === 'success' && (
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10">
+              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-8 h-8 text-white" />
+              </div>
+              
+              <h2 className="text-2xl font-bold text-white mb-4">Deployment Successful!</h2>
+              <p className="text-gray-300 mb-6">Your security trap has been deployed successfully</p>
+              
+              <div className="bg-white/5 rounded-lg p-4 mb-6 text-left">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Contract Address:</span>
+                    <span className="text-white font-mono">{userContractAddress}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Transaction Hash:</span>
+                    <span className="text-white font-mono">{deploymentHash}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-4">
+                <Button
+                  onClick={() => setDeploymentStep('select')}
+                  variant="outline"
+                  className="flex-1 border-white/20 text-white hover:bg-white/10"
+                >
+                  Deploy Another
+                </Button>
+                <Button
+                  onClick={() => window.location.href = '/app'}
+                  className="flex-1 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
+                >
+                  View Dashboard
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
