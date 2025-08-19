@@ -7,20 +7,20 @@
 
 /* CSS Variables */
 :root {
-  --background: #0a0a0a;
+  --background: #000000;
   --foreground: #ffffff;
   --primary: #ff6b35;
-  --primary-foreground: #ffffff;
+  --primary-foreground: #000000;
   --secondary: #1a1a1a;
   --secondary-foreground: #ffffff;
   --muted: #2a2a2a;
-  --muted-foreground: #a0a0a0;
+  --muted-foreground: #ff6b35;
   --accent: #ff6b35;
-  --accent-foreground: #ffffff;
+  --accent-foreground: #000000;
   --destructive: #ff4444;
   --destructive-foreground: #ffffff;
-  --border: #2a2a2a;
-  --input: #2a2a2a;
+  --border: #ff6b35;
+  --input: #1a1a1a;
   --ring: #ff6b35;
   --radius: 0.5rem;
 }
@@ -211,15 +211,16 @@ body {
 /* Button animations */
 .btn-primary {
   background: #ff6b35;
-  color: white;
-  font-weight: 600;
+  color: #000000;
+  font-weight: 700;
   padding: 12px 24px;
   border-radius: 8px;
-  border: none;
+  border: 2px solid #ff6b35;
   cursor: pointer;
   transition: all 0.2s ease;
   transform: translateY(0);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(255, 107, 53, 0.3);
+  text-shadow: none;
 }
 
 .btn-primary:hover {
@@ -383,4 +384,99 @@ body {
 .antialiased {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Orange Theme Button Styles */
+.bg-gradient-to-r.from-orange-500.to-red-600 {
+  background: linear-gradient(to right, #ff6b35, #dc2626);
+  color: #000000 !important;
+  font-weight: 700;
+  border: 2px solid #ff6b35;
+  text-shadow: none;
+  box-shadow: 0 4px 6px rgba(255, 107, 53, 0.3);
+}
+
+.bg-gradient-to-r.from-orange-500.to-red-600:hover {
+  background: linear-gradient(to right, #ea580c, #b91c1c);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(255, 107, 53, 0.4);
+}
+
+/* Ensure button text is always visible */
+button, .btn-primary, .bg-orange-500, .bg-gradient-to-r.from-orange-500.to-red-600 {
+  color: #000000 !important;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+/* Dark theme backgrounds */
+.bg-background {
+  background-color: #000000 !important;
+}
+
+.bg-white {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+}
+
+.bg-gray-50 {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+}
+
+.bg-gray-800 {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+}
+
+.bg-gray-900 {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* Text colors for better contrast */
+.text-gray-900 {
+  color: #ffffff !important;
+}
+
+.text-gray-600 {
+  color: #ff6b35 !important;
+}
+
+.text-gray-400 {
+  color: #ff6b35 !important;
+}
+
+.text-gray-300 {
+  color: #ff6b35 !important;
+}
+
+/* Card backgrounds */
+.card {
+  background: #1a1a1a;
+  border: 1px solid #ff6b35;
+  color: #ffffff;
+}
+
+/* Ensure proper button styling */
+.bg-orange-500 {
+  background-color: #ff6b35 !important;
+  color: #000000 !important;
+  font-weight: 700;
+}
+
+.bg-orange-500:hover {
+  background-color: #ea580c !important;
+  color: #000000 !important;
+}
+
+/* Fix gradient backgrounds */
+.bg-gradient-to-br.from-orange-500.to-red-600 {
+  background: linear-gradient(to bottom right, #ff6b35, #dc2626) !important;
+  color: #000000 !important;
+}
+
+.bg-gradient-to-r.from-orange-500.to-red-600 {
+  background: linear-gradient(to right, #ff6b35, #dc2626) !important;
+  color: #000000 !important;
 }
