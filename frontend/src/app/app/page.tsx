@@ -5,51 +5,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { useWallet } from "../../providers/WalletProvider";
-import { Shield, Zap, Target, AlertTriangle, CheckCircle, Clock, DollarSign, TrendingUp, Activity, Users, Eye, Settings, Plus } from "lucide-react";
+import { Shield, Zap, Target, AlertTriangle, CheckCircle, Clock, DollarSign, TrendingUp, Activity, Users, Eye, Settings, Plus, RefreshCw } from "lucide-react";
+import { DashboardService } from "../../lib/dashboardService";
+import { TrapDeployment, SecurityAlert, TrapStats, DashboardActivity } from "../../types/dashboard";
 
 // Disable SSR for this page since it uses wallet hooks
 export const dynamic = 'force-dynamic';
 
-interface TrapDeployment {
-  id: string;
-  name: string;
-  type: string;
-  status: 'active' | 'inactive' | 'triggered';
-  deploymentDate: string;
-  lastActivity: string;
-  totalTriggers: number;
-  contractAddress: string;
-  balance: string;
-}
-
-interface SecurityAlert {
-  id: string;
-  type: 'high' | 'medium' | 'low';
-  message: string;
-  timestamp: string;
-  status: 'new' | 'acknowledged' | 'resolved';
-}
-
-interface TrapStats {
-  totalTraps: number;
-  activeTraps: number;
-  totalTriggers: number;
-  totalValueProtected: string;
-  monthlyDeployments: number;
-  successRate: number;
-}
+// Types are now imported from types/dashboard.ts
 
 export default function DashboardPage() {
   const { isConnected, address } = useWallet();
   const [trapDeployments, setTrapDeployments] = useState<TrapDeployment[]>([]);
   const [securityAlerts, setSecurityAlerts] = useState<SecurityAlert[]>([]);
   const [trapStats, setTrapStats] = useState<TrapStats>({
-    totalTraps: 0,
+    totalDeployments: 0,
     activeTraps: 0,
-    totalTriggers: 0,
-    totalValueProtected: '0 ETH',
+    totalRevenue: 0,
+    successRate: 0,
+    totalGasUsed: 0,
+    lastDeployment: null,
     monthlyDeployments: 0,
-    successRate: 0
+    securityScore: 0
   });
   const [selectedTimeframe, setSelectedTimeframe] = useState<'24h' | '7d' | '30d' | 'all'>('7d');
   const [isLoading, setIsLoading] = useState(true);
@@ -66,79 +43,17 @@ export default function DashboardPage() {
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Mock data - replace with actual API calls
-      const mockDeployments: TrapDeployment[] = [
-        {
-          id: '1',
-          name: 'Honeypot Trap #1',
-          type: 'Honeypot',
-          status: 'active',
-          deploymentDate: '2024-01-15',
-          lastActivity: '2 hours ago',
-          totalTriggers: 3,
-          contractAddress: '0x1234...5678',
-          balance: '0.05 ETH'
-        },
-        {
-          id: '2',
-          name: 'Reentrancy Guard',
-          type: 'ReentrancyGuard',
-          status: 'active',
-          deploymentDate: '2024-01-10',
-          lastActivity: '1 day ago',
-          totalTriggers: 0,
-          contractAddress: '0x8765...4321',
-          balance: '0.02 ETH'
-        },
-        {
-          id: '3',
-          name: 'Flash Loan Detector',
-          type: 'FlashLoanProtection',
-          status: 'triggered',
-          deploymentDate: '2024-01-05',
-          lastActivity: '30 minutes ago',
-          totalTriggers: 1,
-          contractAddress: '0x9876...5432',
-          balance: '0.08 ETH'
-        }
-      ];
+      if (!address) {
+        setIsLoading(false);
+        return;
+      }
 
-      const mockAlerts: SecurityAlert[] = [
-        {
-          id: '1',
-          type: 'high',
-          message: 'Suspicious transaction pattern detected in Honeypot Trap #1',
-          timestamp: '2 hours ago',
-          status: 'new'
-        },
-        {
-          id: '2',
-          type: 'medium',
-          message: 'Flash Loan Detector triggered - potential attack blocked',
-          timestamp: '30 minutes ago',
-          status: 'acknowledged'
-        },
-        {
-          id: '3',
-          type: 'low',
-          message: 'Daily security scan completed - all systems operational',
-          timestamp: '1 day ago',
-          status: 'resolved'
-        }
-      ];
-
-      const mockStats: TrapStats = {
-        totalTraps: 3,
-        activeTraps: 3,
-        totalTriggers: 4,
-        totalValueProtected: '0.15 ETH',
-        monthlyDeployments: 3,
-        successRate: 100
-      };
-
-      setTrapDeployments(mockDeployments);
-      setSecurityAlerts(mockAlerts);
-      setTrapStats(mockStats);
+      // Fetch real data from backend API
+      const dashboardData = await DashboardService.refreshDashboard(address);
+      
+      setTrapDeployments(dashboardData.deployments);
+      setSecurityAlerts(dashboardData.alerts);
+      setTrapStats(dashboardData.stats);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
@@ -155,8 +70,9 @@ export default function DashboardPage() {
     }
   };
 
-  const getAlertTypeColor = (type: string) => {
-    switch (type) {
+  const getAlertTypeColor = (severity: string) => {
+    switch (severity) {
+      case 'critical': return 'bg-red-100 text-red-800';
       case 'high': return 'bg-red-100 text-red-800';
       case 'medium': return 'bg-orange-100 text-orange-800';
       case 'low': return 'bg-blue-100 text-blue-800';
@@ -164,8 +80,9 @@ export default function DashboardPage() {
     }
   };
 
-  const getAlertTypeIcon = (type: string) => {
-    switch (type) {
+  const getAlertTypeIcon = (severity: string) => {
+    switch (severity) {
+      case 'critical': return <AlertTriangle className="h-4 w-4" />;
       case 'high': return <AlertTriangle className="h-4 w-4" />;
       case 'medium': return <AlertTriangle className="h-4 w-4" />;
       case 'low': return <Eye className="h-4 w-4" />;
@@ -209,13 +126,21 @@ export default function DashboardPage() {
               <Badge variant="outline" className="border-orange-500/30 text-orange-400">
                 Connected: {address?.slice(0, 6)}...{address?.slice(-4)}
               </Badge>
-              <Button 
-                onClick={() => window.location.href = '/deploy'}
-                className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Deploy New Trap
-              </Button>
+                             <Button 
+                 onClick={loadDashboardData}
+                 variant="outline"
+                 className="border-white/20 text-white hover:bg-white/10 mr-2"
+               >
+                 <RefreshCw className="h-4 w-4 mr-2" />
+                 Refresh
+               </Button>
+               <Button 
+                 onClick={() => window.location.href = '/deploy'}
+                 className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
+               >
+                 <Plus className="h-4 w-4 mr-2" />
+                 Deploy New Trap
+               </Button>
             </div>
           </div>
         </div>
@@ -229,7 +154,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-400">Total Traps</p>
-                  <p className="text-3xl font-bold text-white">{trapStats.totalTraps}</p>
+                  <p className="text-3xl font-bold text-white">{trapStats.totalDeployments}</p>
                 </div>
                 <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
                   <Shield className="h-6 w-6 text-blue-400" />
@@ -257,7 +182,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-400">Total Triggers</p>
-                  <p className="text-3xl font-bold text-white">{trapStats.totalTriggers}</p>
+                  <p className="text-3xl font-bold text-white">{trapStats.totalGasUsed}</p>
                 </div>
                 <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
                   <Target className="h-6 w-6 text-orange-400" />
@@ -271,7 +196,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-400">Value Protected</p>
-                  <p className="text-3xl font-bold text-white">{trapStats.totalValueProtected}</p>
+                  <p className="text-3xl font-bold text-white">{trapStats.totalRevenue} ETH</p>
                 </div>
                 <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
                   <DollarSign className="h-6 w-6 text-purple-400" />
@@ -354,19 +279,19 @@ export default function DashboardPage() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div>
                             <p className="text-gray-400">Deployed</p>
-                            <p className="text-white">{trap.deploymentDate}</p>
+                            <p className="text-white">{new Date(trap.deployedAt).toLocaleDateString()}</p>
                           </div>
                           <div>
-                            <p className="text-gray-400">Last Activity</p>
-                            <p className="text-white">{trap.lastActivity}</p>
+                            <p className="text-gray-400">Contract</p>
+                            <p className="text-white font-mono text-xs">{trap.contractAddress.slice(0, 6)}...{trap.contractAddress.slice(-4)}</p>
                           </div>
                           <div>
                             <p className="text-gray-400">Triggers</p>
-                            <p className="text-white">{trap.totalTriggers}</p>
+                            <p className="text-white">{trap.triggers}</p>
                           </div>
                           <div>
-                            <p className="text-gray-400">Balance</p>
-                            <p className="text-orange-400 font-semibold">{trap.balance}</p>
+                            <p className="text-gray-400">Revenue</p>
+                            <p className="text-orange-400 font-semibold">{trap.revenueGenerated} ETH</p>
                           </div>
                         </div>
                         
@@ -410,19 +335,19 @@ export default function DashboardPage() {
                       <div key={alert.id} className="bg-white/5 rounded-lg p-3 border border-white/10">
                         <div className="flex items-start gap-3">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            alert.type === 'high' ? 'bg-red-500/20' : 
-                            alert.type === 'medium' ? 'bg-orange-500/20' : 'bg-blue-500/20'
+                            alert.severity === 'high' || alert.severity === 'critical' ? 'bg-red-500/20' : 
+                            alert.severity === 'medium' ? 'bg-orange-500/20' : 'bg-blue-500/20'
                           }`}>
-                            {getAlertTypeIcon(alert.type)}
+                            {getAlertTypeIcon(alert.severity)}
                           </div>
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge className={getAlertTypeColor(alert.type)}>
-                                {alert.type}
-                              </Badge>
+                                                         <div className="flex items-center gap-2 mb-1">
+                               <Badge className={getAlertTypeColor(alert.severity)}>
+                                 {alert.severity}
+                               </Badge>
                               <span className="text-xs text-gray-400">{alert.timestamp}</span>
                             </div>
-                            <p className="text-sm text-white">{alert.message}</p>
+                            <p className="text-sm text-white">{alert.description}</p>
                           </div>
                         </div>
                       </div>
@@ -497,8 +422,8 @@ export default function DashboardPage() {
                   <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Users className="h-8 w-8 text-white" />
                   </div>
-                  <h3 className="text-2xl font-bold text-white mb-2">{trapStats.totalTriggers}</h3>
-                  <p className="text-gray-400">Total Attacks Blocked</p>
+                                     <h3 className="text-2xl font-bold text-white mb-2">{trapStats.totalGasUsed}</h3>
+                   <p className="text-gray-400">Total Gas Used</p>
                 </div>
               </div>
             </CardContent>

@@ -4,121 +4,24 @@ import { useState, useEffect } from "react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
-import { Shield, Star, Users, Eye, ShoppingCart, Filter, Search, TrendingUp, CreditCard, Wallet, CheckCircle, X, Zap, Target, Lock, AlertTriangle } from "lucide-react";
+import { Shield, Star, Users, Eye, ShoppingCart, Filter, Search, TrendingUp, CreditCard, Wallet, CheckCircle, X, Zap, Target, Lock, AlertTriangle, RefreshCw } from "lucide-react";
 import { useWallet } from "../../providers/WalletProvider";
+import { MarketplaceService } from "../../lib/marketplaceService";
+import { MarketplaceItem, MarketplaceFilters } from "../../types/marketplace";
 
 // Disable SSR for this page since it uses wallet hooks
 export const dynamic = 'force-dynamic';
 
-interface MarketplaceItem {
-  id: string;
-  name: string;
-  description: string;
-  price: string;
-  priceInEth: number;
-  category: string;
-  difficulty: 'Basic' | 'Intermediate' | 'Advanced';
-  securityLevel: 'Low' | 'Medium' | 'High';
-  tags: string[];
-  author: string;
-  lastUpdated: string;
-  preview: string;
-  contractCode: string;
-  deploymentTime: string;
-  features: string[];
-  transactionHash?: string;
-}
+// Types are now imported from types/marketplace.ts
 
-const marketplaceItems: MarketplaceItem[] = [
-  {
-    id: '1',
-    name: 'Advanced Honeypot Suite',
-    description: 'Professional-grade honeypot system with advanced monitoring and analytics',
-    price: '0.001 ETH',
-    priceInEth: 0.001,
-    category: 'Honeypots',
-    difficulty: 'Advanced',
-    securityLevel: 'High',
-    tags: ['Honeypot', 'Analytics', 'Monitoring', 'Professional', 'Real-time'],
-    author: 'SecurityMaster',
-    lastUpdated: '2 days ago',
-    preview: 'Professional honeypot with real-time threat detection and analytics',
-    contractCode: 'AdvancedHoneypot.sol',
-    deploymentTime: '2-3 minutes',
-    features: ['Real-time monitoring', 'Advanced analytics', 'Threat detection', 'Professional support', 'Fund recovery']
-  },
-  {
-    id: '2',
-    name: 'Flash Loan Defender Pro',
-    description: 'Comprehensive protection against flash loan attacks with real-time blocking',
-    price: '0.001 ETH',
-    priceInEth: 0.001,
-    category: 'Flash Loan Protection',
-    difficulty: 'Intermediate',
-    securityLevel: 'High',
-    tags: ['Flash Loan', 'Real-time', 'Blocking', 'Protection', 'Pattern Detection'],
-    author: 'DeFiGuard',
-    lastUpdated: '1 week ago',
-    preview: 'Real-time flash loan attack prevention with pattern recognition',
-    contractCode: 'FlashLoanDefender.sol',
-    deploymentTime: '2-3 minutes',
-    features: ['Flash loan detection', 'Real-time blocking', 'Transaction analysis', 'Gas optimization', 'Blacklist management']
-  },
-  {
-    id: '3',
-    name: 'Multi-Sig Vault System',
-    description: 'Enterprise-grade multi-signature vault with role-based access control',
-    price: '0.01 ETH',
-    priceInEth: 0.01,
-    category: 'Access Control',
-    difficulty: 'Advanced',
-    securityLevel: 'High',
-    tags: ['Multi-sig', 'Vault', 'Enterprise', 'Access Control', 'Audit Trail'],
-    author: 'VaultMaster',
-    lastUpdated: '3 days ago',
-    preview: 'Enterprise multi-signature vault system with full audit trails',
-    contractCode: 'MultiSigVault.sol',
-    deploymentTime: '4-5 minutes',
-    features: ['Multi-signature', 'Role-based access', 'Enterprise security', 'Audit trail', 'Emergency controls']
-  },
-  {
-    id: '4',
-    name: 'Reentrancy Shield',
-    description: 'Lightweight but powerful protection against reentrancy attacks',
-    price: '0.005 ETH',
-    priceInEth: 0.005,
-    category: 'Reentrancy Protection',
-    difficulty: 'Intermediate',
-    securityLevel: 'High',
-    tags: ['Reentrancy', 'Lightweight', 'Protection', 'Gas Efficient', 'Performance'],
-    author: 'ShieldMaster',
-    lastUpdated: '5 days ago',
-    preview: 'Gas-efficient reentrancy protection with performance monitoring',
-    contractCode: 'ReentrancyShield.sol',
-    deploymentTime: '1-2 minutes',
-    features: ['Reentrancy protection', 'Gas efficient', 'Lightweight', 'Easy integration', 'Performance metrics']
-  },
-  {
-    id: '5',
-    name: 'MEV Protection Suite',
-    description: 'Comprehensive MEV attack prevention with advanced detection algorithms',
-    price: '0.015 ETH',
-    priceInEth: 0.015,
-    category: 'MEV Protection',
-    difficulty: 'Advanced',
-    securityLevel: 'High',
-    tags: ['MEV', 'Sandwich Attack', 'Gas Optimization', 'Advanced', 'Real-time'],
-    author: 'MEVGuard',
-    lastUpdated: '1 day ago',
-    preview: 'Advanced MEV protection with real-time threat detection',
-    contractCode: 'MEVProtection.sol',
-    deploymentTime: '3-4 minutes',
-    features: ['MEV detection', 'Sandwich prevention', 'Gas optimization', 'Real-time monitoring', 'Advanced analytics']
-  }
-];
+// Data will be fetched from the backend API
+const defaultMarketplaceItems: MarketplaceItem[] = [];
 
 export default function MarketplacePage() {
   const { isConnected, address } = useWallet();
+  const [marketplaceItems, setMarketplaceItems] = useState<MarketplaceItem[]>([]);
+  const [filteredItems, setFilteredItems] = useState<MarketplaceItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [cart, setCart] = useState<MarketplaceItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
@@ -150,31 +53,56 @@ export default function MarketplacePage() {
     return cart.reduce((total, item) => total + item.priceInEth, 0);
   };
 
-  const filteredItems = marketplaceItems.filter(item => {
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    const matchesDifficulty = selectedDifficulty === 'all' || item.difficulty === selectedDifficulty;
-    const matchesSecurityLevel = selectedSecurityLevel === 'all' || item.securityLevel === selectedSecurityLevel;
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+  // Filter and sort items
+  useEffect(() => {
+    const filtered = marketplaceItems.filter(item => {
+      const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+      const matchesDifficulty = selectedDifficulty === 'all' || item.difficulty === selectedDifficulty;
+      const matchesSecurityLevel = selectedSecurityLevel === 'all' || item.securityLevel === selectedSecurityLevel;
+      const matchesSearch = searchQuery === '' || 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      return matchesCategory && matchesDifficulty && matchesSecurityLevel && matchesSearch;
+    });
 
-    return matchesCategory && matchesDifficulty && matchesSecurityLevel && matchesSearch;
-  });
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'price':
+          return a.priceInEth - b.priceInEth;
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'date':
+          return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
+        case 'popularity':
+          return (b.rating || 0) - (a.rating || 0);
+        default:
+          return 0;
+        }
+    });
 
-  const sortedItems = [...filteredItems].sort((a, b) => {
-    switch (sortBy) {
-      case 'price':
-        return a.priceInEth - b.priceInEth;
-      case 'name':
-        return a.name.localeCompare(b.name);
-      case 'date':
-        return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
-      case 'popularity':
-        return Math.random() - 0.5; // Placeholder for popularity
-      default:
-        return 0;
-    }
-  });
+    setFilteredItems(sorted);
+  }, [marketplaceItems, selectedCategory, selectedDifficulty, selectedSecurityLevel, searchQuery, sortBy]);
+
+  // Fetch marketplace data on component mount
+  useEffect(() => {
+    const fetchMarketplaceData = async () => {
+      setIsLoading(true);
+      try {
+        const items = await MarketplaceService.getMarketplaceItems();
+        setMarketplaceItems(items);
+      } catch (error) {
+        console.error('Failed to fetch marketplace data:', error);
+        // Fallback to default items if API fails
+        setMarketplaceItems(defaultMarketplaceItems);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMarketplaceData();
+  }, []);
 
   const handlePayment = async () => {
     if (!isConnected) {
@@ -346,21 +274,50 @@ export default function MarketplacePage() {
         {/* Results Count */}
         <div className="flex items-center justify-between mb-6">
           <p className="text-gray-300">
-            Showing {sortedItems.length} of {marketplaceItems.length} security traps
+            Showing {filteredItems.length} of {marketplaceItems.length} security traps
           </p>
-          <Button
-            onClick={() => setShowCart(!showCart)}
-            variant="outline"
-            className="border-white/20 text-white hover:bg-white/10"
-          >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            Cart ({cart.length})
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                const fetchMarketplaceData = async () => {
+                  setIsLoading(true);
+                  try {
+                    const items = await MarketplaceService.getMarketplaceItems();
+                    setMarketplaceItems(items);
+                  } catch (error) {
+                    console.error('Failed to refresh marketplace data:', error);
+                  } finally {
+                    setIsLoading(false);
+                  }
+                };
+                fetchMarketplaceData();
+              }}
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+            <Button
+              onClick={() => setShowCart(!showCart)}
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              Cart ({cart.length})
+            </Button>
+          </div>
         </div>
 
         {/* Marketplace Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sortedItems.map((item) => (
+        {isLoading ? (
+          <div className="col-span-full text-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-400">Loading marketplace items...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredItems.map((item) => (
             <Card key={item.id} className="bg-white/5 backdrop-blur-sm border border-white/10 hover:border-orange-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/20">
               <CardHeader className="pb-4">
                 <div className="flex items-start justify-between">
@@ -443,9 +400,10 @@ export default function MarketplacePage() {
             </Card>
           ))}
         </div>
+        )}
 
         {/* Empty State */}
-        {sortedItems.length === 0 && (
+                        {filteredItems.length === 0 && (
           <div className="text-center py-16">
             <Shield className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-300 mb-2">No security traps found</h3>

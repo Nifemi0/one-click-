@@ -115,6 +115,7 @@ async function setupRoutes() {
     const { createRpcTestRouter } = await import('./routes/rpcTest');
     const { createMarketplaceRouter } = await import('./routes/marketplace');
     const { createDroseraTrapsRouter } = await import('./routes/droseraTraps');
+    const dashboardRoutes = (await import('./routes/dashboard')).default;
     
     // Import other route modules
     const authRoutes = await import('./routes/auth');
@@ -144,6 +145,7 @@ async function setupRoutes() {
     app.use('/api/rpc-test', rpcTestRoutes);
     app.use('/api/marketplace', marketplaceRoutes);
     app.use('/api/drosera-traps', droseraTrapsRoutes);
+    app.use('/api/dashboard', dashboardRoutes);
     app.use('/api/auth', authRoutes.default);
     app.use('/api/basic-traps', basicTrapsRoutes.default);
     app.use('/api/enhanced-ai-trap', enhancedAITrapRoutes.default);
