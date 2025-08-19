@@ -22,7 +22,7 @@ async function globalTeardown(config: FullConfig) {
     
     console.log('🎉 All tests completed successfully!');
   } catch (error) {
-    console.log('⚠️ Final connectivity check failed:', error.message);
+    console.log('⚠️ Final connectivity check failed:', error instanceof Error ? error.message : 'Unknown error');
   }
   
   await browser.close();

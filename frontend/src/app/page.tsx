@@ -6,7 +6,7 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import BackendConnectionTest from '@/components/BackendConnectionTest';
 
 export default function Home() {
-  const { isConnected, address, connect, walletError } = useWallet();
+  const { isConnected, address, connect } = useWallet();
   const { resolvedTheme } = useTheme();
 
   const copyAddress = () => {
@@ -40,6 +40,14 @@ export default function Home() {
   const handleViewTemplates = () => {
     if (isConnected) {
       window.location.href = '/marketplace';
+    } else {
+      connect();
+    }
+  };
+
+  const handleDroseraTraps = () => {
+    if (isConnected) {
+      window.location.href = '/drosera-traps';
     } else {
       connect();
     }
@@ -164,6 +172,70 @@ export default function Home() {
                 </dd>
               </div>
             </dl>
+          </div>
+        </div>
+      </section>
+
+      {/* Drosera Traps Section */}
+      <section className="py-24 sm:py-32 bg-gray-50 dark:bg-gray-800">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-base font-semibold leading-7 text-orange-600 dark:text-orange-400">
+              Drosera Framework
+            </h2>
+            <h3 className="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
+              Advanced Security Trap Deployment
+            </h3>
+            <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
+              Deploy intelligent security traps using the Drosera framework. Our specialized 
+              deployment system provides enterprise-grade security with one-click automation.
+            </p>
+          </div>
+          
+          <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-8 hover:shadow-lg transition-all duration-200">
+                <div className="h-12 w-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center mb-6">
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                </div>
+                <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                  Drosera Trap Templates
+                </h4>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  Choose from our curated collection of security trap templates including honeypots, 
+                  flash loan protection, reentrancy shields, and MEV protection suites.
+                </p>
+                <button 
+                  onClick={handleDroseraTraps}
+                  className="text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium text-sm flex items-center"
+                >
+                  Explore Drosera Traps →
+                </button>
+              </div>
+              
+              <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-8 hover:shadow-lg transition-all duration-200">
+                <div className="h-12 w-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center mb-6">
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                  </svg>
+                </div>
+                <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                  Intelligent Configuration
+                </h4>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  Customize trap parameters with intelligent defaults. Set activation thresholds, 
+                  response delays, and gas limits for optimal security performance.
+                </p>
+                <button 
+                  onClick={handleDroseraTraps}
+                  className="text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium text-sm flex items-center"
+                >
+                  Configure Your Trap →
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>

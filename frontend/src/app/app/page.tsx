@@ -7,6 +7,9 @@ import { Button } from "../../components/ui/button";
 import { useWallet } from "../../providers/WalletProvider";
 import { Shield, Zap, Target, AlertTriangle, CheckCircle, Clock, DollarSign, TrendingUp, Activity, Users, Eye, Settings, Plus } from "lucide-react";
 
+// Disable SSR for this page since it uses wallet hooks
+export const dynamic = 'force-dynamic';
+
 interface TrapDeployment {
   id: string;
   name: string;
@@ -37,7 +40,7 @@ interface TrapStats {
 }
 
 export default function DashboardPage() {
-  const { isConnected, address, token } = useWallet();
+  const { isConnected, address } = useWallet();
   const [trapDeployments, setTrapDeployments] = useState<TrapDeployment[]>([]);
   const [securityAlerts, setSecurityAlerts] = useState<SecurityAlert[]>([]);
   const [trapStats, setTrapStats] = useState<TrapStats>({

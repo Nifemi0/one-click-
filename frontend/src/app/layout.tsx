@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { WalletProvider } from "../providers/WalletProvider";
+import { ThemeProvider } from "../providers/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -72,7 +74,11 @@ export default function RootLayout({
         {/* <link rel="stylesheet" href="/standalone.css" /> */}
       </head>
       <body className="antialiased">
-        {children}
+        <ThemeProvider>
+          <WalletProvider>
+            {children}
+          </WalletProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

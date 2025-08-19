@@ -7,6 +7,9 @@ import { Badge } from "../../components/ui/badge";
 import { Shield, Star, Users, Eye, ShoppingCart, Filter, Search, TrendingUp, CreditCard, Wallet, CheckCircle, X, Zap, Target, Lock, AlertTriangle } from "lucide-react";
 import { useWallet } from "../../providers/WalletProvider";
 
+// Disable SSR for this page since it uses wallet hooks
+export const dynamic = 'force-dynamic';
+
 interface MarketplaceItem {
   id: string;
   name: string;
@@ -115,7 +118,7 @@ const marketplaceItems: MarketplaceItem[] = [
 ];
 
 export default function MarketplacePage() {
-  const { isConnected, address, token } = useWallet();
+  const { isConnected, address } = useWallet();
   const [cart, setCart] = useState<MarketplaceItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');

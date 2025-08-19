@@ -8,6 +8,9 @@ import { Shield, Zap, Target, AlertTriangle, CheckCircle, Clock, DollarSign, Cre
 import { useWallet } from "../../providers/WalletProvider";
 import { deploySecurityTrapContract } from "../../lib/contractDeployer";
 
+// Disable SSR for this page since it uses wallet hooks
+export const dynamic = 'force-dynamic';
+
 interface TrapTemplate {
   id: string;
   name: string;
@@ -61,7 +64,7 @@ const trapTemplates: TrapTemplate[] = [
 ];
 
 export default function DeployPage() {
-  const { isConnected, address, token } = useWallet();
+  const { isConnected, address } = useWallet();
   const [selectedTemplate, setSelectedTemplate] = useState<TrapTemplate | null>(null);
   const [deploymentStep, setDeploymentStep] = useState<'select' | 'configure' | 'payment' | 'deploying' | 'success'>('select');
   const [deploymentProgress, setDeploymentProgress] = useState(0);

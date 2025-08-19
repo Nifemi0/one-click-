@@ -1,0 +1,10 @@
+[33m9896bcf[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/ui-sync-from-github[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mui-sync-from-github[m[33m)[m feat: Complete Drosera integration and professional UI overhaul
+[33m1c53f05[m Sync UI from origin/Nifemi0-patch-1: update layout, globals.css, homepage and components
+[33m9b01554[m Implement real payment and deployment mechanisms - remove fake stats, add checkout functionality, real deployment tracking
+[33ma37d962[m Add backend integration test - verify CORS and API connectivity
+[33m6e755c1[m Update CORS to allow oneclick1.netlify.app frontend
+[33mf80df9e[m All sub-pages tested and verified working: Dashboard, Deploy, Marketplace fully functional
+[33m3ffa8f0[m Transform landing page into working application: Add functional trap deployment, marketplace, and dashboard
+[33mc558728[m Fix frontend functionality: Add wallet connection, working buttons, and app page
+[33m7037753[m Update Netlify configuration for Next.js 15 and backend integration
+[33m43f970b[m Fix backend errors: initialize BasicTrapDeploymentService and add missing marketplace endpoints

@@ -16,7 +16,7 @@ async function globalSetup(config: FullConfig) {
       console.log('⚠️ Backend returned status:', response.status());
     }
   } catch (error) {
-    console.log('❌ Backend connectivity test failed:', error.message);
+    console.log('❌ Backend connectivity test failed:', error instanceof Error ? error.message : 'Unknown error');
   }
   
   // Test frontend accessibility
@@ -30,7 +30,7 @@ async function globalSetup(config: FullConfig) {
       console.log('⚠️ Frontend returned status:', response.status());
     }
   } catch (error) {
-    console.log('❌ Frontend accessibility test failed:', error.message);
+    console.log('❌ Frontend accessibility test failed:', error instanceof Error ? error.message : 'Unknown error');
   }
   
   await browser.close();
