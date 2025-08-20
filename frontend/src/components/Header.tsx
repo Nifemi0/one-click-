@@ -46,6 +46,9 @@ export function Header() {
             <a href="/marketplace" className="text-white hover:text-orange-400 transition-colors">
               Marketplace
             </a>
+            <a href="/drosera-registry" className="text-white hover:text-orange-400 transition-colors">
+              Registry
+            </a>
             <a href="#contact" className="text-white hover:text-orange-400 transition-colors">
               Contact
             </a>

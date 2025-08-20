@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title SecurityTrap - Drosera Trap Compatible
@@ -30,7 +30,7 @@ contract SecurityTrap is Ownable, ReentrancyGuard {
     }
     
     // Trap Response Actions
-    struct TrapResponse {
+    struct TrapResponseAction {
         uint256 trapId;
         string actionType;
         address target;
@@ -42,7 +42,7 @@ contract SecurityTrap is Ownable, ReentrancyGuard {
     // State Variables
     uint256 private _trapIds;
     mapping(uint256 => TrapConfig) public traps;
-    mapping(uint256 => TrapResponse[]) public responses;
+    mapping(uint256 => TrapResponseAction[]) public responses;
     
     // Trap Types
     string[] public availableTrapTypes = [
@@ -186,7 +186,7 @@ contract SecurityTrap is Ownable, ReentrancyGuard {
             trap.lastTriggerTime = block.timestamp;
             
             // Record response
-            TrapResponse memory response = TrapResponse({
+            TrapResponseAction memory response = TrapResponseAction({
                 trapId: trapId,
                 actionType: actionType,
                 target: target,
@@ -207,9 +207,13 @@ contract SecurityTrap is Ownable, ReentrancyGuard {
      */
     function _detectHoneypot(address target, bytes memory data) internal pure returns (bool shouldRespond, string memory reason) {
         // Honeypot detection logic
-        if (data.length > 0) {
+        if (data.length >= 4) {
             // Check for suspicious function calls
-            if (bytes4(data[:4]) == bytes4(keccak256("withdraw()"))) {
+            bytes4 selector;
+            assembly {
+                selector := mload(add(data, 32))
+            }
+            if (selector == bytes4(keccak256("withdraw()"))) {
                 return (true, "Honeypot withdrawal attempt");
             }
         }
@@ -218,9 +222,13 @@ contract SecurityTrap is Ownable, ReentrancyGuard {
     
     function _detectFlashLoan(address target, bytes memory data) internal pure returns (bool shouldRespond, string memory reason) {
         // Flash loan detection logic
-        if (data.length > 0) {
+        if (data.length >= 4) {
             // Check for flash loan patterns
-            if (bytes4(data[:4]) == bytes4(keccak256("flashLoan(address,uint256,bytes)"))) {
+            bytes4 selector;
+            assembly {
+                selector := mload(add(data, 32))
+            }
+            if (selector == bytes4(keccak256("flashLoan(address,uint256,bytes)"))) {
                 return (true, "Flash loan attack detected");
             }
         }
@@ -229,9 +237,13 @@ contract SecurityTrap is Ownable, ReentrancyGuard {
     
     function _detectReentrancy(address target, bytes memory data) internal pure returns (bool shouldRespond, string memory reason) {
         // Reentrancy detection logic
-        if (data.length > 0) {
+        if (data.length >= 4) {
             // Check for reentrancy patterns
-            if (bytes4(data[:4]) == bytes4(keccak256("call(address,bytes)"))) {
+            bytes4 selector;
+            assembly {
+                selector := mload(add(data, 32))
+            }
+            if (selector == bytes4(keccak256("call(address,bytes)"))) {
                 return (true, "Potential reentrancy attack");
             }
         }
@@ -319,7 +331,7 @@ contract SecurityTrap is Ownable, ReentrancyGuard {
         );
     }
     
-    function getTrapResponses(uint256 trapId) external view trapExists(trapId) returns (TrapResponse[] memory) {
+    function getTrapResponses(uint256 trapId) external view trapExists(trapId) returns (TrapResponseAction[] memory) {
         return responses[trapId];
     }
     

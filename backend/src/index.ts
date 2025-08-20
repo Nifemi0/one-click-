@@ -125,6 +125,7 @@ async function setupRoutes() {
     const alertsRoutes = await import('./routes/alerts');
     const trapsRoutes = await import('./routes/traps');
     const droseraRegistryRoutes = await import('./routes/droseraRegistry');
+    const realContractsRoutes = await import('./routes/realContracts');
     
     console.log('🔧 Creating route instances...');
     
@@ -147,6 +148,7 @@ async function setupRoutes() {
     app.use('/api/marketplace', marketplaceRoutes);
     app.use('/api/drosera-traps', droseraTrapsRoutes);
     app.use('/api/drosera-registry', droseraRegistryRoutes.default);
+    app.use('/api/real-contracts', realContractsRoutes.default);
     app.use('/api/dashboard', dashboardRoutes);
     app.use('/api/auth', authRoutes.default);
     app.use('/api/basic-traps', basicTrapsRoutes.default);
@@ -160,6 +162,7 @@ async function setupRoutes() {
     console.log('✅ Marketplace routes: /api/marketplace/*');
     console.log('✅ Drosera Traps routes: /api/drosera-traps/*');
     console.log('✅ Drosera Registry routes: /api/drosera-registry/*');
+    console.log('✅ Real Contracts routes: /api/real-contracts/*');
     console.log('✅ Auth routes: /api/auth/*');
     console.log('✅ Basic Traps routes: /api/basic-traps/*');
     console.log('✅ Enhanced AI Trap routes: /api/enhanced-ai-trap/*');

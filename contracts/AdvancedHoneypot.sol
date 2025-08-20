@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import "./IDroseraTrap.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title AdvancedHoneypot - Drosera Trap Compatible
@@ -283,7 +283,7 @@ contract AdvancedHoneypot is IDroseraTrap, Ownable, ReentrancyGuard {
             trap.isActive,
             trap.activationThreshold,
             trap.responseDelay,
-            trap.totalTriggers,
+            trap.totalAttacks,
             trap.lastAttackTime
         );
     }
