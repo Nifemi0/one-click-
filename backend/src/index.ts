@@ -124,6 +124,7 @@ async function setupRoutes() {
     const analysisRoutes = await import('./routes/analysis');
     const alertsRoutes = await import('./routes/alerts');
     const trapsRoutes = await import('./routes/traps');
+    const droseraRegistryRoutes = await import('./routes/droseraRegistry');
     
     console.log('🔧 Creating route instances...');
     
@@ -145,6 +146,7 @@ async function setupRoutes() {
     app.use('/api/rpc-test', rpcTestRoutes);
     app.use('/api/marketplace', marketplaceRoutes);
     app.use('/api/drosera-traps', droseraTrapsRoutes);
+    app.use('/api/drosera-registry', droseraRegistryRoutes.default);
     app.use('/api/dashboard', dashboardRoutes);
     app.use('/api/auth', authRoutes.default);
     app.use('/api/basic-traps', basicTrapsRoutes.default);
@@ -157,6 +159,7 @@ async function setupRoutes() {
     console.log('✅ RPC Test routes: /api/rpc-test/*');
     console.log('✅ Marketplace routes: /api/marketplace/*');
     console.log('✅ Drosera Traps routes: /api/drosera-traps/*');
+    console.log('✅ Drosera Registry routes: /api/drosera-registry/*');
     console.log('✅ Auth routes: /api/auth/*');
     console.log('✅ Basic Traps routes: /api/basic-traps/*');
     console.log('✅ Enhanced AI Trap routes: /api/enhanced-ai-trap/*');

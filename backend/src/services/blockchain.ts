@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 import { DatabaseService } from './database';
 import { NotificationService } from './notification';
+import { DroseraRegistryService } from './droseraRegistryService';
 import { HOODI_CONFIG, HOODI_ERRORS, HOODI_MESSAGES, validateHoodiConfig } from '../config/hoodi';
 
 export interface ContractAnalysis {
@@ -31,6 +32,7 @@ export interface DeploymentResult {
 export class BlockchainService {
   private db: DatabaseService;
   private notification: NotificationService;
+  private droseraRegistry: DroseraRegistryService;
   private hoodiProvider: ethers.JsonRpcProvider;
   
   // Hoodi Testnet Configuration
@@ -42,6 +44,7 @@ export class BlockchainService {
   constructor(db: DatabaseService, notification: NotificationService) {
     this.db = db;
     this.notification = notification;
+    this.droseraRegistry = new DroseraRegistryService(db, notification);
     
     // Validate Hoodi configuration
     try {
@@ -189,6 +192,38 @@ export class BlockchainService {
         blockNumber
       });
 
+      // Automatically register in Drosera Registry
+      let registryTrapId: number | undefined;
+      try {
+        console.log('📝 Registering trap in Drosera Registry...');
+        const registrationResult = await this.droseraRegistry.registerTrap({
+          contractAddress,
+          trapType: template.trapType || templateId,
+          trapName: template.name,
+          description: template.description || `Security trap deployed from template ${templateId}`,
+          deployerAddress: userWallet.address,
+          network: 'Hoodi Testnet',
+          chainId: this.HOODI_CHAIN_ID,
+          deploymentTxHash: transactionHash,
+          metadata: {
+            templateId,
+            userId,
+            deploymentCost: actualCost,
+            constructorArgs
+          }
+        });
+
+        if (registrationResult.success) {
+          registryTrapId = registrationResult.trapId;
+          console.log(`✅ Trap registered in Drosera Registry with ID: ${registryTrapId}`);
+        } else {
+          console.warn(`⚠️ Failed to register trap in registry: ${registrationResult.error}`);
+        }
+      } catch (registryError) {
+        console.warn('⚠️ Failed to register trap in Drosera Registry:', registryError);
+        // Don't fail the deployment if registry registration fails
+      }
+
       // Send success notification
       await this.notification.sendNotification(userId, {
         type: 'success',
@@ -199,7 +234,8 @@ export class BlockchainService {
           contractAddress,
           transactionHash,
           cost: actualCost,
-          network: this.HOODI_CHAIN_ID
+          network: this.HOODI_CHAIN_ID,
+          droseraRegistryId: registryTrapId
         }
       });
 

@@ -2,7 +2,6 @@
 
 import { Moon, Sun, Monitor } from 'lucide-react';
 import { useTheme } from '../providers/ThemeProvider';
-import { Button } from './ui/button';
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -44,15 +43,13 @@ export function ThemeToggle() {
   };
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
+    <button
       onClick={toggleTheme}
-      className="flex items-center gap-2 px-3"
+      className="flex items-center gap-2 px-3 py-2 bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition-all duration-300"
       title={`Current theme: ${getThemeLabel()}. Click to cycle through themes.`}
     >
       {getThemeIcon()}
       <span className="hidden sm:inline">{getThemeLabel()}</span>
-    </Button>
+    </button>
   );
 }
