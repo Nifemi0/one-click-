@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { Database } from '../database';
-import { authenticateToken } from '../middleware/auth';
+import { authMiddleware as authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
@@ -25,10 +25,10 @@ router.get('/deployments', authenticateToken, async (req: Request, res: Response
       return res.status(500).json({ error: 'Failed to fetch deployments' });
     }
 
-    res.json({ deployments: deployments || [] });
+    return res.json({ deployments: deployments || [] });
   } catch (error) {
     console.error('Error fetching deployments:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -54,10 +54,10 @@ router.get('/alerts', authenticateToken, async (req: Request, res: Response) => 
       return res.status(500).json({ error: 'Failed to fetch alerts' });
     }
 
-    res.json({ alerts: alerts || [] });
+    return res.json({ alerts: alerts || [] });
   } catch (error) {
     console.error('Error fetching alerts:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -134,7 +134,7 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
     // Calculate security score based on various factors
     const securityScore = Math.min(100, Math.max(0, 
       (successRate * 0.4) + 
-      (Math.min(activeTraps, 10) * 5) + 
+      (Math.min(activeTraps || 0, 10) * 5) + 
       (Math.min(totalRevenue * 100, 30))
     ));
 
@@ -149,10 +149,10 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
       securityScore: Math.round(securityScore)
     };
 
-    res.json({ stats });
+    return res.json({ stats });
   } catch (error) {
     console.error('Error fetching stats:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -203,10 +203,10 @@ router.get('/activity', authenticateToken, async (req: Request, res: Response) =
     ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, Number(limit));
 
-    res.json({ activities });
+    return res.json({ activities });
   } catch (error) {
     console.error('Error fetching activity:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 

@@ -107,7 +107,8 @@ export class SmartContractDeploymentService {
       );
 
       // Estimate gas
-      const gasLimit = config.customizations.gasLimit || await factory.getDeployTransaction().gasLimit || 500000;
+      const deployTx = await factory.getDeployTransaction();
+      const gasLimit = config.customizations.gasLimit || Number(deployTx.gasLimit) || 500000;
       
       // Get current gas price
       const feeData = await this.provider.getFeeData();
@@ -124,17 +125,22 @@ export class SmartContractDeploymentService {
       const contractAddress = await contract.getAddress();
 
       // Get transaction receipt for gas used
-      const receipt = await this.provider.getTransactionReceipt(deploymentReceipt.hash!);
-      const gasUsed = receipt?.gasUsed || gasLimit;
-      const totalCost = (gasUsed * gasPrice) / ethers.parseUnits('1', 'ether');
+      const deploymentTx = deploymentReceipt.deploymentTransaction();
+      if (!deploymentTx?.hash) {
+        throw new Error('Deployment transaction hash not found');
+      }
+      
+      const receipt = await this.provider.getTransactionReceipt(deploymentTx.hash);
+      const gasUsed = Number(receipt?.gasUsed || gasLimit);
+      const totalCost = (gasUsed * Number(gasPrice)) / Number(ethers.parseUnits('1', 'ether'));
 
       return {
         success: true,
         contractAddress,
-        transactionHash: deploymentReceipt.hash!,
-        gasUsed: Number(gasUsed),
+        transactionHash: deploymentTx.hash,
+        gasUsed: gasUsed,
         gasPrice: Number(gasPrice),
-        totalCost: Number(totalCost),
+        totalCost: totalCost,
       };
     } catch (error) {
       console.error('Contract deployment failed:', error);
@@ -147,43 +153,24 @@ export class SmartContractDeploymentService {
 
   private async getContractData(templateType: string): Promise<{ abi: any; bytecode: string } | null> {
     try {
-      // Import the appropriate contract based on template type
+      // Use fallback contracts for now - these will be replaced with real compiled contracts later
+      const { fallbackContracts } = await import('./fallbackContracts');
+      
       switch (templateType) {
         case 'Honeypot':
-          const { AdvancedHoneypot } = await import('../contracts/AdvancedHoneypot');
-          return {
-            abi: AdvancedHoneypot.abi,
-            bytecode: AdvancedHoneypot.bytecode,
-          };
+          return fallbackContracts.Honeypot;
         
         case 'ReentrancyGuard':
-          const { ReentrancyGuard } = await import('../contracts/ReentrancyGuard');
-          return {
-            abi: ReentrancyGuard.abi,
-            bytecode: ReentrancyGuard.bytecode,
-          };
+          return fallbackContracts.ReentrancyGuard;
         
         case 'FlashLoanProtection':
-          const { FlashLoanProtection } = await import('../contracts/FlashLoanProtection');
-          return {
-            abi: FlashLoanProtection.abi,
-            bytecode: FlashLoanProtection.bytecode,
-          };
+          return fallbackContracts.FlashLoanProtection;
         
         case 'MEVProtection':
-          const { MEVProtection } = await import('../contracts/MEVProtection');
-          return {
-            abi: MEVProtection.abi,
-            bytecode: MEVProtection.bytecode,
-          };
+          return fallbackContracts.MEVProtection;
         
         default:
-          // Try to import a generic security trap
-          const { SecurityTrap } = await import('../contracts/SecurityTrap');
-          return {
-            abi: SecurityTrap.abi,
-            bytecode: SecurityTrap.bytecode,
-          };
+          return fallbackContracts.SecurityTrap;
       }
     } catch (error) {
       console.error('Failed to load contract data:', error);
@@ -208,10 +195,11 @@ export class SmartContractDeploymentService {
         this.signer
       );
 
-      const gasLimit = await factory.getDeployTransaction().gasLimit || 500000;
+      const deployTx = await factory.getDeployTransaction();
+    const gasLimit = Number(deployTx.gasLimit) || 500000;
       const feeData = await this.provider.getFeeData();
       const gasPrice = feeData.gasPrice || ethers.parseUnits('20', 'gwei');
-      const totalCost = (gasLimit * gasPrice) / ethers.parseUnits('1', 'ether');
+      const totalCost = (Number(gasLimit) * Number(gasPrice)) / Number(ethers.parseUnits('1', 'ether'));
 
       return {
         gasLimit: Number(gasLimit),
