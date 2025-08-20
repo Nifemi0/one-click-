@@ -37,6 +37,76 @@ export function createMarketplaceRouter(databaseService: any) {
     }
   }));
 
+  // Get marketplace items (frontend expects this endpoint)
+  router.get('/items', asyncHandler(async (req, res) => {
+    console.log('🔧 Marketplace /items endpoint called');
+    try {
+      // Mock marketplace items for now - these will be replaced with real data
+      const items = [
+        {
+          id: '1',
+          name: 'Basic Honeypot Trap',
+          description: 'A simple honeypot that lures attackers into a fake vulnerable contract',
+          price: '0.01',
+          priceInEth: 0.01,
+          category: 'Honeypot',
+          difficulty: 'Basic',
+          securityLevel: 'Medium',
+          tags: ['Honeypot', 'Basic', 'Monitoring'],
+          author: 'SecurityMaster',
+          lastUpdated: new Date().toISOString(),
+          preview: 'Simple honeypot protection',
+          contractCode: '// Basic Honeypot Contract Code',
+          deploymentTime: '2-3 minutes',
+          features: ['Attack detection', 'Fund protection', 'Basic monitoring'],
+          transactionHash: '0x1234567890abcdef',
+          imageUrl: '/images/honeypot.png',
+          rating: 4.5,
+          reviewCount: 23,
+          downloads: 156,
+          isFeatured: true,
+          isPopular: true
+        },
+        {
+          id: '2',
+          name: 'Reentrancy Guard Trap',
+          description: 'Advanced protection against reentrancy attacks',
+          price: '0.02',
+          priceInEth: 0.02,
+          category: 'Security',
+          difficulty: 'Advanced',
+          securityLevel: 'High',
+          tags: ['Security', 'Advanced', 'Reentrancy'],
+          author: 'CryptoGuard',
+          lastUpdated: new Date().toISOString(),
+          preview: 'Advanced reentrancy protection',
+          contractCode: '// Reentrancy Guard Contract Code',
+          deploymentTime: '3-5 minutes',
+          features: ['Reentrancy protection', 'Advanced monitoring', 'Attack prevention'],
+          transactionHash: '0xabcdef1234567890',
+          imageUrl: '/images/security.png',
+          rating: 4.8,
+          reviewCount: 45,
+          downloads: 89,
+          isFeatured: true,
+          isPopular: false
+        }
+      ];
+      
+      res.json({
+        success: true,
+        items: items
+      });
+    } catch (error) {
+      console.error('❌ Marketplace /items error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get marketplace items',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }));
+
   // Get trap templates
   router.get('/templates', asyncHandler(async (req, res) => {
     console.log('🔧 Marketplace /templates endpoint called');
@@ -347,6 +417,69 @@ export function createMarketplaceRouter(databaseService: any) {
       res.status(500).json({
         success: false,
         message: 'Failed to get recent activity',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }));
+
+  // Get categories (frontend expects this endpoint)
+  router.get('/categories', asyncHandler(async (req, res) => {
+    console.log('🔧 Marketplace /categories endpoint called');
+    try {
+      const categories = [
+        { id: 'security', name: 'Security', description: 'Security-focused trap templates', itemCount: 15, icon: '🛡️' },
+        { id: 'monitoring', name: 'Monitoring', description: 'Monitoring and surveillance traps', itemCount: 8, icon: '👁️' },
+        { id: 'honeypot', name: 'Honeypot', description: 'Honeypot and deception traps', itemCount: 12, icon: '🍯' },
+        { id: 'governance', name: 'Governance', description: 'Governance and voting traps', itemCount: 6, icon: '🗳️' }
+      ];
+      
+      res.json({
+        success: true,
+        categories: categories
+      });
+    } catch (error) {
+      console.error('❌ Marketplace /categories error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get categories',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }));
+
+  // Get difficulties (frontend expects this endpoint)
+  router.get('/difficulties', asyncHandler(async (req, res) => {
+    console.log('🔧 Marketplace /difficulties endpoint called');
+    try {
+      const difficulties = ['Basic', 'Intermediate', 'Advanced'];
+      res.json({
+        success: true,
+        difficulties: difficulties
+      });
+    } catch (error) {
+      console.error('❌ Marketplace /difficulties error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get difficulties',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }));
+
+  // Get security levels (frontend expects this endpoint)
+  router.get('/security-levels', asyncHandler(async (req, res) => {
+    console.log('🔧 Marketplace /security-levels endpoint called');
+    try {
+      const securityLevels = ['Low', 'Medium', 'High'];
+      res.json({
+        success: true,
+        securityLevels: securityLevels
+      });
+    } catch (error) {
+      console.error('❌ Marketplace /security-levels error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get security levels',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
