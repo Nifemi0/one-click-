@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 // Wallet context
 interface WalletContextType {
@@ -22,9 +22,57 @@ export function useWallet() {
 }
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-  const [isConnected, setIsConnected] = useState(false);
-  const [address, setAddress] = useState<string | null>(null);
-  const [chainId, setChainId] = useState<number | null>(null);
+  const [isConnected, setIsConnected] = useState(() => {
+    // Check if wallet was previously connected
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('walletConnected') === 'true';
+    }
+    return false;
+  });
+  
+  const [address, setAddress] = useState<string | null>(() => {
+    // Check if address was previously stored
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('walletAddress');
+    }
+    return null;
+  });
+  
+  const [chainId, setChainId] = useState<number | null>(() => {
+    // Check if chainId was previously stored
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('walletChainId');
+      return stored ? parseInt(stored, 10) : null;
+    }
+    return null;
+  });
+
+  // Check wallet connection status on mount
+  useEffect(() => {
+    const checkWalletConnection = async () => {
+      if (typeof window.ethereum !== 'undefined' && isConnected && address) {
+        try {
+          // Verify the account is still accessible
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          if (accounts.length === 0 || accounts[0] !== address) {
+            // Account no longer accessible, disconnect
+            disconnect();
+          } else {
+            // Get current chain ID
+            const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+            const currentChainIdNumber = parseInt(currentChainId, 16);
+            setChainId(currentChainIdNumber);
+            localStorage.setItem('walletChainId', currentChainIdNumber.toString());
+          }
+        } catch (error) {
+          console.error('Error checking wallet connection:', error);
+          disconnect();
+        }
+      }
+    };
+
+    checkWalletConnection();
+  }, [isConnected, address]);
 
   const connect = async () => {
     try {
@@ -32,12 +80,18 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       if (typeof window.ethereum !== 'undefined') {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         if (accounts.length > 0) {
-          setAddress(accounts[0]);
-          setIsConnected(true);
-          
-          // Get chain ID
+          const accountAddress = accounts[0];
           const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-          setChainId(parseInt(chainId, 16));
+          const chainIdNumber = parseInt(chainId, 16);
+          
+          setAddress(accountAddress);
+          setIsConnected(true);
+          setChainId(chainIdNumber);
+          
+          // Save to localStorage
+          localStorage.setItem('walletConnected', 'true');
+          localStorage.setItem('walletAddress', accountAddress);
+          localStorage.setItem('walletChainId', chainIdNumber.toString());
           
           // Listen for account changes
           window.ethereum.on('accountsChanged', (accounts: string[]) => {
@@ -66,6 +120,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setIsConnected(false);
     setAddress(null);
     setChainId(null);
+    
+    // Clear localStorage
+    localStorage.removeItem('walletConnected');
+    localStorage.removeItem('walletAddress');
+    localStorage.removeItem('walletChainId');
   };
 
   const value: WalletContextType = {

@@ -2,6 +2,14 @@ import { Button } from "./ui/button";
 import { ArrowRight } from "lucide-react";
 
 export function Hero() {
+  const handleDeployTrap = () => {
+    window.location.href = '/deploy';
+  };
+
+  const handleViewTemplates = () => {
+    window.location.href = '/marketplace';
+  };
+
   return (
     <section className="relative min-h-screen pt-16 px-4 sm:px-6 lg:px-8 overflow-hidden flex items-center">
       {/* Enhanced Background Elements */}
@@ -50,6 +58,7 @@ export function Hero() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-16">
             <Button 
               size="lg" 
+              onClick={handleDeployTrap}
               className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white border-0 shadow-xl shadow-orange-500/25 hover:shadow-orange-500/40 transition-all duration-300 text-lg px-8 py-6 group hover:scale-105 transform"
             >
                Deploy Security Trap
@@ -59,6 +68,7 @@ export function Hero() {
             <Button 
               variant="outline" 
               size="lg"
+              onClick={handleViewTemplates}
               className="border-gray-600/50 text-gray-300 hover:bg-gray-800/50 hover:text-white hover:border-gray-500 transition-all duration-300 text-lg px-8 py-6 group backdrop-blur-sm hover:scale-105 transform"
             >
                View Templates
