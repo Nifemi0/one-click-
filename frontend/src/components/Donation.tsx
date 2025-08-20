@@ -2,7 +2,7 @@ import { Button } from "./ui/button";
 import { Heart, Copy, Twitter } from "lucide-react";
 
 export function Donation() {
-  const walletAddress = "0x742F35cc6A9B6Cf5Eb8E1...";
+  const walletAddress = "0xa3B983c22c10Bb64bd812ACd9Eb15B13856aF3b7";
 
   const copyToClipboard = async () => {
     try {

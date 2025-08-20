@@ -1,6 +1,6 @@
 'use client';
 
-import { Shield, DollarSign, Target, Clock } from 'lucide-react';
+import { Shield, Target, Clock, Zap } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface StatItem {
@@ -18,9 +18,9 @@ const stats: StatItem[] = [
     color: "from-orange-500 to-red-600"
   },
   {
-    icon: DollarSign,
-    value: "$50M+",
-    label: "Protected Value",
+    icon: Zap,
+    value: "150+",
+    label: "Active Deployments",
     color: "from-orange-500 to-red-600"
   },
   {
