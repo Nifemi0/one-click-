@@ -1,6 +1,8 @@
 import { DatabaseService } from './database';
 import { BlockchainService } from './blockchain';
 import { NotificationService } from './notification';
+import { ContractCompilationService } from './contractCompilation';
+import { RealContractDeploymentService } from './realContractDeployment';
 
 export interface BasicTrapRequest {
   userId: string;
@@ -32,175 +34,162 @@ export interface TrapTemplate {
   name: string;
   description: string;
   type: 'honeypot' | 'sandbox' | 'monitoring' | 'basic';
-  complexity: 'simple' | 'medium';
-  estimatedCost: string;
+  complexity: 'basic' | 'medium' | 'advanced';
+  estimatedCost: number;
   estimatedGas: number;
   features: string[];
-  contractCode: string;
-  deploymentConfig: any;
+  abi: any[];
+  bytecode: string;
+  sourceCode: string;
+  optimizerRuns: number;
+}
+
+export interface DeploymentResult {
+  address: string;
+  txHash: string;
+  cost: string;
 }
 
 export class BasicTrapDeploymentService {
   private db: DatabaseService;
   private blockchain: BlockchainService;
   private notification: NotificationService;
+  private compilation: ContractCompilationService;
+  private realDeployment: RealContractDeploymentService;
 
   constructor(
-    db: DatabaseService,
-    blockchain: BlockchainService,
+    db: DatabaseService, 
+    blockchain: BlockchainService, 
     notification: NotificationService
   ) {
     this.db = db;
     this.blockchain = blockchain;
     this.notification = notification;
+    this.compilation = new ContractCompilationService();
+    this.realDeployment = new RealContractDeploymentService(db, notification, this.compilation);
   }
 
   /**
-   * Get available trap templates
+   * Get available trap templates (now using real compiled contracts)
    */
-  getTrapTemplates(): TrapTemplate[] {
+  async getTrapTemplates(): Promise<TrapTemplate[]> {
+    try {
+      // Get available compiled contracts
+      const availableContracts = await this.compilation.getAvailableContracts();
+      
+      // Map to trap templates
+      const templates: TrapTemplate[] = [];
+      
+      for (const contractName of availableContracts) {
+        // Get contract artifacts
+        const artifacts = await this.compilation.getContractArtifacts(contractName);
+        if (artifacts) {
+                  const template: TrapTemplate = {
+          id: contractName.toLowerCase(),
+          name: this.formatContractName(contractName),
+          description: this.getContractDescription(contractName),
+          type: this.mapContractType(contractName) as 'honeypot' | 'sandbox' | 'monitoring' | 'basic',
+          complexity: this.getContractComplexity(contractName) as 'basic' | 'medium' | 'advanced',
+          estimatedCost: this.estimateDeploymentCost(contractName),
+          estimatedGas: this.estimateGasUsage(contractName),
+          features: this.getContractFeatures(contractName),
+          abi: artifacts.abi,
+          bytecode: artifacts.bytecode,
+          sourceCode: '',
+          optimizerRuns: 200
+        };
+          templates.push(template);
+        }
+      }
+      
+      // If no compiled contracts available, return basic templates
+      if (templates.length === 0) {
+        console.warn('No compiled contracts available, falling back to basic templates');
+        return this.getBasicTemplates();
+      }
+      
+      return templates;
+    } catch (error) {
+      console.error('Failed to get real contract templates:', error);
+      console.warn('Falling back to basic templates');
+      return this.getBasicTemplates();
+    }
+  }
+
+  /**
+   * Get basic fallback templates (kept for emergency fallback)
+   */
+  private getBasicTemplates(): TrapTemplate[] {
     return [
       {
-        id: 'honeypot_basic',
-        name: 'Basic Honeypot',
-        description: 'Simple honeypot that looks like a legitimate contract',
+        id: 'honeypot',
+        name: 'Honeypot Trap',
+        description: 'Advanced honeypot that lures attackers and captures their funds',
         type: 'honeypot',
-        complexity: 'simple',
-        estimatedCost: '0.008 ETH',
-        estimatedGas: 300000,
-        features: [
-          'Basic honeypot functionality',
-          'Simple withdrawal mechanism',
-          'Gas optimization',
-          'Basic security features'
-        ],
-        contractCode: this.getBasicHoneypotCode(),
-        deploymentConfig: {
-          constructorArgs: [],
-          optimizer: true,
-          optimizerRuns: 200
-        }
+        complexity: 'advanced',
+        estimatedCost: 0.002,
+        estimatedGas: 800000,
+        features: ['Fund Capture', 'Attack Detection', 'Whitelist Management', 'Blacklist System'],
+        abi: [],
+        bytecode: '',
+        sourceCode: '',
+        optimizerRuns: 200
       },
       {
-        id: 'honeypot_advanced',
-        name: 'Advanced Honeypot',
-        description: 'Sophisticated honeypot with realistic DeFi interface',
-        type: 'honeypot',
-        complexity: 'medium',
-        estimatedCost: '0.012 ETH',
-        estimatedGas: 450000,
-        features: [
-          'Realistic DeFi interface',
-          'APY calculation simulation',
-          'Withdrawal delay mechanisms',
-          'Advanced honeypot detection resistance',
-          'Gas optimization'
-        ],
-        contractCode: this.getAdvancedHoneypotCode(),
-        deploymentConfig: {
-          constructorArgs: [],
-          optimizer: true,
-          optimizerRuns: 500
-        }
-      },
-      {
-        id: 'sandbox_basic',
-        name: 'Security Sandbox',
-        description: 'Isolated environment for testing security concepts',
+        id: 'sandbox',
+        name: 'Sandbox Trap',
+        description: 'Isolated environment for testing suspicious contracts safely',
         type: 'sandbox',
-        complexity: 'simple',
-        estimatedCost: '0.006 ETH',
-        estimatedGas: 250000,
-        features: [
-          'Isolated execution environment',
-          'Resource limitations',
-          'Security testing capabilities',
-          'Basic monitoring'
-        ],
-        contractCode: this.getBasicSandboxCode(),
-        deploymentConfig: {
-          constructorArgs: [],
-          optimizer: true,
-          optimizerRuns: 200
-        }
-      },
-      {
-        id: 'monitoring_basic',
-        name: 'Basic Monitor',
-        description: 'Simple monitoring contract for basic security tracking',
-        type: 'monitoring',
-        complexity: 'simple',
-        estimatedCost: '0.005 ETH',
-        estimatedGas: 200000,
-        features: [
-          'Transaction monitoring',
-          'Basic alert system',
-          'Event logging',
-          'Gas usage tracking'
-        ],
-        contractCode: this.getBasicMonitorCode(),
-        deploymentConfig: {
-          constructorArgs: [],
-          optimizer: true,
-          optimizerRuns: 200
-        }
-      },
-      {
-        id: 'monitoring_advanced',
-        name: 'Advanced Monitor',
-        description: 'Comprehensive monitoring with advanced analytics',
-        type: 'monitoring',
         complexity: 'medium',
-        estimatedCost: '0.010 ETH',
-        estimatedGas: 400000,
-        features: [
-          'Advanced transaction monitoring',
-          'Pattern detection',
-          'Risk assessment',
-          'Real-time alerts',
-          'Analytics dashboard',
-          'Gas optimization'
-        ],
-        contractCode: this.getAdvancedMonitorCode(),
-        deploymentConfig: {
-          constructorArgs: [],
-          optimizer: true,
-          optimizerRuns: 500
-        }
+        estimatedCost: 0.0015,
+        estimatedGas: 600000,
+        features: ['Isolation', 'Safe Testing', 'Resource Limits', 'Access Control'],
+        abi: [],
+        bytecode: '',
+        sourceCode: '',
+        optimizerRuns: 200
       },
       {
-        id: 'basic_trap',
+        id: 'monitoring',
+        name: 'Monitoring Trap',
+        description: 'Passive monitoring system for detecting malicious activities',
+        type: 'monitoring',
+        complexity: 'basic',
+        estimatedCost: 0.001,
+        estimatedGas: 400000,
+        features: ['Activity Monitoring', 'Alert System', 'Logging', 'Threshold Detection'],
+        abi: [],
+        bytecode: '',
+        sourceCode: '',
+        optimizerRuns: 200
+      },
+      {
+        id: 'basic',
         name: 'Basic Security Trap',
-        description: 'Simple security trap for basic protection',
+        description: 'Simple security trap with basic protection mechanisms',
         type: 'basic',
-        complexity: 'simple',
-        estimatedCost: '0.004 ETH',
-        estimatedGas: 150000,
-        features: [
-          'Basic security features',
-          'Simple access control',
-          'Event logging',
-          'Gas optimization'
-        ],
-        contractCode: this.getBasicTrapCode(),
-        deploymentConfig: {
-          constructorArgs: [],
-          optimizer: true,
-          optimizerRuns: 200
-        }
+        complexity: 'basic',
+        estimatedCost: 0.0008,
+        estimatedGas: 300000,
+        features: ['Basic Protection', 'Access Control', 'Emergency Stop', 'Simple Monitoring'],
+        abi: [],
+        bytecode: '',
+        sourceCode: '',
+        optimizerRuns: 200
       }
     ];
   }
 
   /**
-   * Deploy basic trap with one click
+   * Deploy basic trap with real compiled contracts
    */
   async deployBasicTrap(request: BasicTrapRequest): Promise<BasicTrap> {
     try {
-      console.log(`🚀 Starting one-click deployment for user ${request.userId}`);
+      console.log(`🚀 Starting real contract deployment for user ${request.userId}`);
       
       // Get trap template
-      const template = this.getTrapTemplates().find(t => t.type === request.trapType);
+      const templates = await this.getTrapTemplates();
+      const template = templates.find(t => t.type === request.trapType);
       if (!template) {
         throw new Error(`Invalid trap type: ${request.trapType}`);
       }
@@ -216,21 +205,29 @@ export class BasicTrapDeploymentService {
         deploymentTxHash: '',
         network: request.network,
         status: 'deploying',
-        estimatedCost: template.estimatedCost,
+        estimatedCost: template.estimatedCost.toString(),
         createdAt: new Date(),
         metadata: {
           template: template.id,
           features: template.features,
           complexity: template.complexity,
-          estimatedGas: template.estimatedGas
+          estimatedGas: template.estimatedGas,
+          useRealContract: true
         }
       };
 
       // Save to database
       await this.saveBasicTrap(trap);
 
-      // Deploy contract
-      const deploymentResult = await this.deployContract(template, trap);
+      // Deploy real contract if available
+      let deploymentResult;
+      if (template.abi && template.bytecode && template.abi.length > 0) {
+        console.log('🚀 Deploying real compiled contract...');
+        deploymentResult = await this.deployRealContract(template, trap);
+      } else {
+        console.log('⚠️ No compiled contract available, using fallback...');
+        deploymentResult = await this.deployFallbackContract(template, trap);
+      }
 
       // Update trap with deployment info
       trap.contractAddress = deploymentResult.address;
@@ -245,73 +242,101 @@ export class BasicTrapDeploymentService {
       // Send notification
       await this.notification.sendNotification(request.userId, {
         type: 'success',
-        title: 'Trap Deployed Successfully!',
-        message: `Your ${template.name} has been deployed to the blockchain.`,
+        title: 'Security Trap Deployed!',
+        message: `Your ${trap.trapName} has been deployed successfully!`,
         userId: request.userId,
-        data: { 
-          trapId: trap.id, 
+        data: {
+          trapId: trap.id,
           contractAddress: trap.contractAddress,
-          cost: trap.actualCost
+          transactionHash: trap.deploymentTxHash,
+          cost: trap.actualCost,
+          network: trap.network,
+          useRealContract: trap.metadata.useRealContract
         }
       });
 
-      console.log(`✅ Basic trap deployed successfully: ${trap.id}`);
       return trap;
 
     } catch (error) {
-      console.error('Basic trap deployment failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Basic trap deployment failed: ${errorMessage}`);
-    }
-  }
-
-  /**
-   * Deploy contract to blockchain
-   */
-  private async deployContract(template: TrapTemplate, trap: BasicTrap): Promise<any> {
-    try {
-      console.log(`🔨 Deploying ${template.name} contract to blockchain...`);
+      console.error('❌ Basic trap deployment failed:', error);
       
-      // Use REAL blockchain service instead of simulation
-      const deploymentResult = await this.deployRealContract(template, trap);
+      // Send failure notification
+      await this.notification.sendNotification(request.userId, {
+        type: 'error',
+        title: 'Deployment Failed',
+        message: `Failed to deploy ${request.trapType}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        userId: request.userId,
+        data: {
+          trapType: request.trapType,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          network: request.network
+        }
+      });
       
-      return deploymentResult;
-    } catch (error) {
-      console.error('Contract deployment failed:', error);
       throw error;
     }
   }
 
   /**
-   * REAL contract deployment using blockchain service
+   * Deploy real compiled contract
    */
-  private async deployRealContract(template: TrapTemplate, trap: BasicTrap): Promise<any> {
+  private async deployRealContract(template: TrapTemplate, trap: BasicTrap): Promise<DeploymentResult> {
     try {
-      console.log(`🔨 Deploying REAL contract: ${template.name}`);
+      // Map template type to contract name
+      const contractName = this.mapTemplateToContract(template.type);
       
-      // Validate template has contract code
-      if (!template.contractCode) {
-        throw new Error('Template contract code is missing');
+      // Deploy using real contract service
+      const deploymentRequest = {
+        userId: trap.userId,
+        contractName,
+        constructorArgs: [],
+        network: trap.network,
+        customName: trap.trapName,
+        customDescription: trap.description
+      };
+
+      const result = await this.realDeployment.deployRealContract(deploymentRequest);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Real contract deployment failed');
       }
 
-      // Deploy using the REAL blockchain service
+      return {
+        address: result.contractAddress || '',
+        txHash: result.transactionHash || '',
+        cost: result.deploymentCost || '0'
+      };
+
+    } catch (error) {
+      console.error('Real contract deployment failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Deploy fallback contract (emergency fallback)
+   */
+  private async deployFallbackContract(template: TrapTemplate, trap: BasicTrap): Promise<DeploymentResult> {
+    try {
+      console.log('🔄 Using fallback deployment method...');
+      
+      // Use the existing blockchain service for fallback
       const deploymentResult = await this.blockchain.deploySecurityTrap(
         trap.userId,
         template.id,
-        template.deploymentConfig?.constructorArgs || [],
+        [],
         trap.network
       );
 
-      console.log(`✅ Real contract deployed: ${deploymentResult.contractAddress}`);
-      
       return {
         address: deploymentResult.contractAddress,
         txHash: deploymentResult.transactionHash,
-        cost: template.estimatedCost // Use template cost since blockchain service doesn't return actual cost
+        cost: deploymentResult.actualCost
       };
+
     } catch (error) {
-      console.error('Real deployment failed:', error);
-      throw new Error(`Blockchain deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Fallback deployment failed:', error);
+      throw error;
     }
   }
 
@@ -428,456 +453,129 @@ export class BasicTrapDeploymentService {
     }
   }
 
-  // Contract code generators
-  private getBasicHoneypotCode(): string {
-    return `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-
-contract BasicHoneypot {
-    address public owner;
-    mapping(address => uint256) public balances;
+  /**
+   * Map template type to contract name
+   */
+  private mapTemplateToContract(templateType: string): string {
+    const contractMap: { [key: string]: string } = {
+      'honeypot': 'AdvancedHoneypot',
+      'sandbox': 'SecurityTrap',
+      'monitoring': 'SecurityTrap',
+      'basic': 'SecurityTrap'
+    };
     
-    event Deposit(address indexed user, uint256 amount);
-    event WithdrawalAttempt(address indexed user, uint256 amount);
-    
-    constructor() {
-        owner = msg.sender;
-    }
-    
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Not owner");
-        _;
-    }
-    
-    function deposit() external payable {
-        require(msg.value > 0, "Must send ETH");
-        balances[msg.sender] += msg.value;
-        emit Deposit(msg.sender, msg.value);
-    }
-    
-    function withdraw() external {
-        uint256 amount = balances[msg.sender];
-        require(amount > 0, "No balance");
-        
-        // This is a honeypot - withdrawal always fails
-        balances[msg.sender] = 0;
-        emit WithdrawalAttempt(msg.sender, amount);
-        
-        // Revert to prevent actual withdrawal
-        revert("Withdrawal failed");
-    }
-    
-    function getBalance() external view returns (uint256) {
-        return balances[msg.sender];
-    }
-    
-    function withdrawFunds() external onlyOwner {
-        payable(owner).transfer(address(this).balance);
-    }
-}`;
+    return contractMap[templateType] || 'SecurityTrap';
   }
 
-  private getAdvancedHoneypotCode(): string {
-    return `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-
-contract AdvancedHoneypot {
-    address public owner;
-    mapping(address => uint256) public balances;
-    mapping(address => uint256) public lastDepositTime;
-    uint256 public totalDeposits;
-    uint256 public apy = 1200; // 12% APY
-    
-    event Deposit(address indexed user, uint256 amount);
-    event WithdrawalAttempt(address indexed user, uint256 amount);
-    event APYUpdated(uint256 newAPY);
-    
-    constructor() {
-        owner = msg.sender;
-    }
-    
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Not owner");
-        _;
-    }
-    
-    function deposit() external payable {
-        require(msg.value > 0, "Must send ETH");
-        balances[msg.sender] += msg.value;
-        lastDepositTime[msg.sender] = block.timestamp;
-        totalDeposits += msg.value;
-        emit Deposit(msg.sender, msg.value);
-    }
-    
-    function calculateRewards(address user) public view returns (uint256) {
-        uint256 balance = balances[user];
-        if (balance == 0) return 0;
-        
-        uint256 timeStaked = block.timestamp - lastDepositTime[user];
-        uint256 daysStaked = timeStaked / 1 days;
-        
-        return (balance * apy * daysStaked) / (365 * 10000);
-    }
-    
-    function withdraw() external {
-        uint256 balance = balances[msg.sender];
-        uint256 rewards = calculateRewards(msg.sender);
-        uint256 totalAmount = balance + rewards;
-        
-        require(totalAmount > 0, "No balance");
-        
-        // Reset balances
-        balances[msg.sender] = 0;
-        lastDepositTime[msg.sender] = 0;
-        
-        emit WithdrawalAttempt(msg.sender, totalAmount);
-        
-        // This is a honeypot - withdrawal always fails
-        revert("Insufficient liquidity");
-    }
-    
-    function getBalance() external view returns (uint256) {
-        return balances[msg.sender] + calculateRewards(msg.sender);
-    }
-    
-    function setAPY(uint256 newAPY) external onlyOwner {
-        apy = newAPY;
-        emit APYUpdated(newAPY);
-    }
-    
-    function withdrawFunds() external onlyOwner {
-        payable(owner).transfer(address(this).balance);
-    }
-}`;
+  /**
+   * Format contract name for display
+   */
+  private formatContractName(contractName: string): string {
+    return contractName
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim();
   }
 
-  private getBasicSandboxCode(): string {
-    return `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-
-contract BasicSandbox {
-    address public owner;
-    mapping(address => bool) public authorizedUsers;
-    mapping(address => uint256) public resourceUsage;
-    uint256 public maxResourceUsage = 1000000;
+  /**
+   * Get contract description
+   */
+  private getContractDescription(contractName: string): string {
+    const descriptions: { [key: string]: string } = {
+      'AdvancedHoneypot': 'Advanced honeypot trap with sophisticated attack detection and response mechanisms',
+      'SecurityTrap': 'Versatile security trap supporting multiple protection strategies',
+      'DroseraRegistry': 'Central registry for managing all deployed security traps',
+      'FlashLoanDefender': 'Protection system against flash loan attacks',
+      'MEVProtectionSuite': 'Comprehensive MEV protection mechanisms',
+      'MultiSigVault': 'Multi-signature vault with enhanced security',
+      'ReentrancyShield': 'Advanced reentrancy attack protection'
+    };
     
-    event UserAuthorized(address indexed user);
-    event ResourceUsed(address indexed user, uint256 amount);
-    event ResourceLimitReached(address indexed user);
-    
-    constructor() {
-        owner = msg.sender;
-        authorizedUsers[msg.sender] = true;
-    }
-    
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Not owner");
-        _;
-    }
-    
-    modifier onlyAuthorized() {
-        require(authorizedUsers[msg.sender], "Not authorized");
-        _;
-    }
-    
-    function authorizeUser(address user) external onlyOwner {
-        authorizedUsers[user] = true;
-        emit UserAuthorized(user);
-    }
-    
-    function revokeUser(address user) external onlyOwner {
-        authorizedUsers[user] = false;
-    }
-    
-    function useResource(uint256 amount) external onlyAuthorized {
-        require(amount > 0, "Invalid amount");
-        require(resourceUsage[msg.sender] + amount <= maxResourceUsage, "Resource limit exceeded");
-        
-        resourceUsage[msg.sender] += amount;
-        emit ResourceUsed(msg.sender, amount);
-        
-        if (resourceUsage[msg.sender] >= maxResourceUsage) {
-            emit ResourceLimitReached(msg.sender);
-        }
-    }
-    
-    function getResourceUsage(address user) external view returns (uint256) {
-        return resourceUsage[user];
-    }
-    
-    function setMaxResourceUsage(uint256 max) external onlyOwner {
-        maxResourceUsage = max;
-    }
-}`;
+    return descriptions[contractName] || 'Professional-grade security trap contract';
   }
 
-  private getBasicMonitorCode(): string {
-    return `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-
-contract BasicMonitor {
-    address public owner;
-    mapping(address => uint256) public transactionCount;
-    mapping(address => uint256) public lastTransactionTime;
-    mapping(address => uint256) public totalGasUsed;
+  /**
+   * Map contract to trap type
+   */
+  private mapContractType(contractName: string): string {
+    const typeMap: { [key: string]: string } = {
+      'AdvancedHoneypot': 'honeypot',
+      'SecurityTrap': 'sandbox',
+      'DroseraRegistry': 'basic',
+      'FlashLoanDefender': 'monitoring',
+      'MEVProtectionSuite': 'monitoring',
+      'MultiSigVault': 'basic',
+      'ReentrancyShield': 'monitoring'
+    };
     
-    event TransactionMonitored(address indexed user, uint256 gasUsed, uint256 timestamp);
-    event AlertTriggered(address indexed user, string reason);
-    
-    constructor() {
-        owner = msg.sender;
-    }
-    
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Not owner");
-        _;
-    }
-    
-    function monitorTransaction(address user, uint256 gasUsed) external {
-        transactionCount[user]++;
-        lastTransactionTime[user] = block.timestamp;
-        totalGasUsed[user] += gasUsed;
-        
-        emit TransactionMonitored(user, gasUsed, block.timestamp);
-        
-        // Basic alert system
-        if (gasUsed > 500000) {
-            emit AlertTriggered(user, "High gas usage");
-        }
-        
-        if (transactionCount[user] > 100) {
-            emit AlertTriggered(user, "High transaction frequency");
-        }
-    }
-    
-    function getUserStats(address user) external view returns (
-        uint256 count, 
-        uint256 lastTime, 
-        uint256 totalGas
-    ) {
-        return (
-            transactionCount[user],
-            lastTransactionTime[user],
-            totalGasUsed[user]
-        );
-    }
-    
-    function resetUserStats(address user) external onlyOwner {
-        transactionCount[user] = 0;
-        lastTransactionTime[user]  = 0;
-        totalGasUsed[user] = 0;
-    }
-}`;
+    return typeMap[contractName] || 'basic';
   }
 
-  private getAdvancedMonitorCode(): string {
-    return `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-
-contract AdvancedMonitor {
-    address public owner;
+  /**
+   * Get contract complexity
+   */
+  private getContractComplexity(contractName: string): string {
+    const complexityMap: { [key: string]: string } = {
+      'AdvancedHoneypot': 'advanced',
+      'SecurityTrap': 'medium',
+      'DroseraRegistry': 'advanced',
+      'FlashLoanDefender': 'advanced',
+      'MEVProtectionSuite': 'advanced',
+      'MultiSigVault': 'medium',
+      'ReentrancyShield': 'advanced'
+    };
     
-    struct UserActivity {
-        uint256 transactionCount;
-        uint256 lastTransactionTime;
-        uint256 totalGasUsed;
-        uint256 averageGasUsed;
-        uint256 riskScore;
-        bool isFlagged;
-    }
-    
-    struct Alert {
-        address user;
-        string reason;
-        uint256 timestamp;
-        uint256 severity;
-    }
-    
-    mapping(address => UserActivity) public userActivities;
-    mapping(uint256 => Alert) public alerts;
-    uint256 public alertCount;
-    
-    uint256 public highGasThreshold = 500000;
-    uint256 public highFrequencyThreshold = 50;
-    uint256 public riskThreshold = 80;
-    
-    event TransactionMonitored(address indexed user, uint256 gasUsed, uint256 timestamp);
-    event AlertTriggered(address indexed user, string reason, uint256 severity);
-    event RiskScoreUpdated(address indexed user, uint256 newScore);
-    
-    constructor() {
-        owner = msg.sender;
-    }
-    
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Not owner");
-        _;
-    }
-    
-    function monitorTransaction(address user, uint256 gasUsed) external {
-        UserActivity storage activity = userActivities[user];
-        
-        // Update transaction count
-        activity.transactionCount++;
-        
-        // Update gas usage
-        uint256 oldTotalGas = activity.totalGasUsed;
-        activity.totalGasUsed += gasUsed;
-        activity.averageGasUsed = activity.totalGasUsed / activity.transactionCount;
-        
-        // Update last transaction time
-        activity.lastTransactionTime = block.timestamp;
-        
-        // Calculate risk score
-        activity.riskScore = calculateRiskScore(activity);
-        
-        emit TransactionMonitored(user, gasUsed, block.timestamp);
-        
-        // Check for alerts
-        checkAlerts(user, activity, gasUsed);
-        
-        // Update risk score
-        if (activity.riskScore != calculateRiskScore(activity)) {
-            emit RiskScoreUpdated(user, activity.riskScore);
-        }
-    }
-    
-    function calculateRiskScore(UserActivity memory activity) internal view returns (uint256) {
-        uint256 score = 0;
-        
-        // Gas usage risk (0-30 points)
-        if (activity.averageGasUsed > highGasThreshold) {
-            score += 30;
-        } else if (activity.averageGasUsed > highGasThreshold / 2) {
-            score += 15;
-        }
-        
-        // Transaction frequency risk (0-40 points)
-        if (activity.transactionCount > highFrequencyThreshold) {
-            score += 40;
-        } else if (activity.transactionCount > highFrequencyThreshold / 2) {
-            score += 20;
-        }
-        
-        // Time-based risk (0-30 points)
-        if (activity.lastTransactionTime > 0) {
-            uint256 timeSinceLast = block.timestamp - activity.lastTransactionTime;
-            if (timeSinceLast < 1 hours) {
-                score += 30;
-            } else if (timeSinceLast < 24 hours) {
-                score += 15;
-            }
-        }
-        
-        return score;
-    }
-    
-    function checkAlerts(address user, UserActivity memory activity, uint256 gasUsed) internal {
-        if (gasUsed > highGasThreshold) {
-            createAlert(user, "High gas usage", 3);
-        }
-        
-        if (activity.transactionCount > highFrequencyThreshold) {
-            createAlert(user, "High transaction frequency", 2);
-        }
-        
-        if (activity.riskScore > riskThreshold) {
-            createAlert(user, "High risk score", 4);
-            activity.isFlagged = true;
-        }
-    }
-    
-    function createAlert(address user, string memory reason, uint256 severity) internal {
-        alertCount++;
-        alerts[alertCount] = Alert({
-            user: user,
-            reason: reason,
-            timestamp: block.timestamp,
-            severity: severity
-        });
-        
-        emit AlertTriggered(user, reason, severity);
-    }
-    
-    function getUserActivity(address user) external view returns (UserActivity memory) {
-        return userActivities[user];
-    }
-    
-    function getAlert(uint256 alertId) external view returns (Alert memory) {
-        return alerts[alertId];
-    }
-    
-    function setThresholds(
-        uint256 gasThreshold, 
-        uint256 frequencyThreshold, 
-        uint256 riskThreshold
-    ) external onlyOwner {
-        highGasThreshold = gasThreshold;
-        highFrequencyThreshold = frequencyThreshold;
-        riskThreshold = riskThreshold;
-    }
-}`;
+    return complexityMap[contractName] || 'medium';
   }
 
-  private getBasicTrapCode(): string {
-    return `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+  /**
+   * Estimate deployment cost
+   */
+  private estimateDeploymentCost(contractName: string): number {
+    const costMap: { [key: string]: number } = {
+      'AdvancedHoneypot': 0.002,
+      'SecurityTrap': 0.0015,
+      'DroseraRegistry': 0.003,
+      'FlashLoanDefender': 0.0025,
+      'MEVProtectionSuite': 0.003,
+      'MultiSigVault': 0.002,
+      'ReentrancyShield': 0.002
+    };
+    
+    return costMap[contractName] || 0.0015;
+  }
 
-contract BasicSecurityTrap {
-    address public owner;
-    mapping(address => bool) public authorizedUsers;
-    mapping(address => uint256) public accessCount;
-    uint256 public maxAccessPerUser = 10;
+  /**
+   * Estimate gas usage
+   */
+  private estimateGasUsage(contractName: string): number {
+    const gasMap: { [key: string]: number } = {
+      'AdvancedHoneypot': 800000,
+      'SecurityTrap': 600000,
+      'DroseraRegistry': 1000000,
+      'FlashLoanDefender': 900000,
+      'MEVProtectionSuite': 1100000,
+      'MultiSigVault': 700000,
+      'ReentrancyShield': 850000
+    };
     
-    event UserAuthorized(address indexed user);
-    event AccessAttempt(address indexed user, bool granted);
-    event TrapTriggered(address indexed user, string reason);
+    return gasMap[contractName] || 600000;
+  }
+
+  /**
+   * Get contract features
+   */
+  private getContractFeatures(contractName: string): string[] {
+    const featuresMap: { [key: string]: string[] } = {
+      'AdvancedHoneypot': ['Fund Capture', 'Attack Detection', 'Whitelist Management', 'Blacklist System', 'Advanced Monitoring'],
+      'SecurityTrap': ['Isolation', 'Safe Testing', 'Resource Limits', 'Access Control', 'Flexible Configuration'],
+      'DroseraRegistry': ['Central Management', 'Trap Tracking', 'Metadata Storage', 'Access Control', 'Statistics'],
+      'FlashLoanDefender': ['Flash Loan Detection', 'Attack Prevention', 'Real-time Monitoring', 'Emergency Response'],
+      'MEVProtectionSuite': ['MEV Detection', 'Sandwich Attack Prevention', 'Gas Optimization', 'Transaction Protection'],
+      'MultiSigVault': ['Multi-signature', 'Access Control', 'Fund Security', 'Emergency Recovery'],
+      'ReentrancyShield': ['Reentrancy Prevention', 'State Protection', 'Attack Detection', 'Recovery Mechanisms']
+    };
     
-    constructor() {
-        owner = msg.sender;
-        authorizedUsers[msg.sender] = true;
-    }
-    
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Not owner");
-        _;
-    }
-    
-    modifier onlyAuthorized() {
-        require(authorizedUsers[msg.sender], "Not authorized");
-        _;
-    }
-    
-    function authorizeUser(address user) external onlyOwner {
-        authorizedUsers[user] = true;
-        emit UserAuthorized(user);
-    }
-    
-    function revokeUser(address user) external onlyOwner {
-        authorizedUsers[user] = false;
-        accessCount[user] = 0;
-    }
-    
-    function accessResource() external onlyAuthorized {
-        require(accessCount[msg.sender] < maxAccessPerUser, "Access limit reached");
-        
-        accessCount[msg.sender]++;
-        emit AccessAttempt(msg.sender, true);
-        
-        // Trap logic: after certain access count, trigger trap
-        if (accessCount[msg.sender] >= maxAccessPerUser) {
-            emit TrapTriggered(msg.sender, "Access limit exceeded");
-            // Could implement additional trap logic here
-        }
-    }
-    
-    function getAccessCount(address user) external view returns (uint256) {
-        return accessCount[user];
-    }
-    
-    function setMaxAccess(uint256 max) external onlyOwner {
-        maxAccessPerUser = max;
-    }
-}`;
+    return featuresMap[contractName] || ['Basic Protection', 'Access Control', 'Monitoring'];
   }
 }

@@ -1,7 +1,8 @@
 import { DatabaseService } from './database';
-import { ContractAnalysisService } from './contractAnalysis';
-import { NotificationService } from './notification';
 import { BlockchainService } from './blockchain';
+import { NotificationService } from './notification';
+import { ContractCompilationService } from './contractCompilation';
+import { RealContractDeploymentService } from './realContractDeployment';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -82,24 +83,515 @@ export interface AlertRule {
   cooldown: number; // seconds
 }
 
+export interface EnhancedTrapDeployment {
+  id: string;
+  userId: string;
+  userPrompt: string;
+  complexity: 'simple' | 'medium' | 'advanced' | 'enterprise';
+  targetNetwork: number;
+  securityLevel: 'basic' | 'premium' | 'enterprise';
+  customRequirements: string[];
+  budget: number;
+  timeline: 'immediate' | '24h' | '48h' | '1week';
+  trapType: 'honeypot' | 'sandbox' | 'monitoring' | 'custom';
+  monitoringLevel: 'basic' | 'advanced' | 'enterprise';
+  alertPreferences: string[];
+  customParameters?: Record<string, any>;
+  status: 'analyzing' | 'deploying' | 'deployed' | 'failed';
+  contractAddress: string;
+  deploymentTxHash: string;
+  estimatedCost: string;
+  actualCost: string;
+  createdAt: Date;
+  deployedAt?: Date;
+  analysisResult?: ContractAnalysisResult;
+  deploymentResult?: DeploymentResult;
+  securityFeatures: string[];
+  riskAssessment: RiskAssessment;
+}
+
+export interface ContractAnalysisResult {
+  selectedContract: string;
+  contractArtifacts: any | null;
+  useRealContract: boolean;
+  analysis: PromptAnalysis;
+  securityFeatures: string[];
+  riskAssessment: RiskAssessment;
+  estimatedGas: number;
+  estimatedCost: number;
+}
+
+export interface PromptAnalysis {
+  complexity: 'simple' | 'medium' | 'advanced' | 'enterprise';
+  securityLevel: 'basic' | 'premium' | 'enterprise';
+  features: string[];
+}
+
+export interface RiskAssessment {
+  riskLevel: string;
+  vulnerabilities: string[];
+  recommendations: string[];
+}
+
+export interface DeploymentResult {
+  address: string;
+  txHash: string;
+  cost: string;
+}
+
 export class EnhancedAITrapDeploymentService {
   private db: DatabaseService;
-  private contractAnalysis: ContractAnalysisService;
-  private notification: NotificationService;
   private blockchain: BlockchainService;
+  private notification: NotificationService;
+  private compilation: ContractCompilationService;
+  private realDeployment: RealContractDeploymentService;
   private basePath: string;
 
   constructor(
-    db: DatabaseService,
-    contractAnalysis: ContractAnalysisService,
-    notification: NotificationService,
-    blockchain: BlockchainService
+    db: DatabaseService, 
+    blockchain: BlockchainService, 
+    notification: NotificationService
   ) {
     this.db = db;
-    this.contractAnalysis = contractAnalysis;
-    this.notification = notification;
     this.blockchain = blockchain;
-    this.basePath = process.env.TRAP_DEPLOYMENT_PATH || './deployments';
+    this.notification = notification;
+    this.compilation = new ContractCompilationService();
+    this.realDeployment = new RealContractDeploymentService(db, notification, this.compilation);
+    this.basePath = path.join(process.cwd(), 'deployments');
+  }
+
+  /**
+   * Deploy enhanced AI trap with real compiled contracts
+   */
+  async deployEnhancedAITrap(request: EnhancedTrapDeploymentRequest): Promise<EnhancedTrapDeployment> {
+    try {
+      console.log(`🚀 Starting enhanced AI trap deployment for user ${request.userId}`);
+      
+      // Create deployment record
+      const deployment: EnhancedTrapDeployment = {
+        id: `enhanced_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        userId: request.userId,
+        userPrompt: request.userPrompt,
+        complexity: request.complexity,
+        targetNetwork: request.targetNetwork,
+        securityLevel: request.securityLevel,
+        customRequirements: request.customRequirements,
+        budget: request.budget,
+        timeline: request.timeline,
+        trapType: request.trapType,
+        monitoringLevel: request.monitoringLevel,
+        alertPreferences: request.alertPreferences,
+        status: 'analyzing',
+        contractAddress: '',
+        deploymentTxHash: '',
+        estimatedCost: this.calculateEstimatedCost(request).toString(),
+        actualCost: '',
+        createdAt: new Date(),
+        deployedAt: undefined,
+        analysisResult: undefined,
+        deploymentResult: undefined,
+        securityFeatures: [],
+        riskAssessment: {
+          riskLevel: 'unknown',
+          vulnerabilities: [],
+          recommendations: []
+        }
+      };
+
+      // Save to database
+      await this.saveEnhancedTrapDeployment(deployment);
+
+      // Analyze requirements and select appropriate contract
+      const contractSelection = await this.analyzeRequirementsAndSelectContract(request);
+      
+      // Update deployment with analysis
+      deployment.analysisResult = contractSelection;
+      deployment.securityFeatures = contractSelection.securityFeatures;
+      deployment.riskAssessment = contractSelection.riskAssessment;
+      deployment.status = 'deploying';
+      
+      await this.updateEnhancedTrapDeployment(deployment);
+
+      // Deploy real contract
+      let deploymentResult;
+      if (contractSelection.useRealContract) {
+        console.log('🚀 Deploying real compiled contract...');
+        deploymentResult = await this.deployRealContract(contractSelection, deployment);
+      } else {
+        console.log('⚠️ Using fallback deployment method...');
+        deploymentResult = await this.deployFallbackContract(contractSelection, deployment);
+      }
+
+      // Update deployment with results
+      deployment.contractAddress = deploymentResult.address;
+      deployment.deploymentTxHash = deploymentResult.txHash;
+      deployment.actualCost = deploymentResult.cost;
+      deployment.status = 'deployed';
+      deployment.deployedAt = new Date();
+      deployment.deploymentResult = deploymentResult;
+
+      await this.updateEnhancedTrapDeployment(deployment);
+
+      // Send success notification
+      await this.notification.sendNotification(request.userId, {
+        type: 'success',
+        title: 'Enhanced AI Trap Deployed!',
+        message: `Your AI-generated security trap has been deployed successfully!`,
+        userId: request.userId,
+        data: {
+          deploymentId: deployment.id,
+          contractAddress: deployment.contractAddress,
+          transactionHash: deployment.deploymentTxHash,
+          cost: deployment.actualCost,
+          network: deployment.targetNetwork,
+          useRealContract: contractSelection.useRealContract
+        }
+      });
+
+      return deployment;
+
+    } catch (error) {
+      console.error('❌ Enhanced AI trap deployment failed:', error);
+      
+      // Send failure notification
+      await this.notification.sendNotification(request.userId, {
+        type: 'error',
+        title: 'Enhanced AI Deployment Failed',
+        message: `Failed to deploy enhanced AI trap: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        userId: request.userId,
+        data: {
+          userPrompt: request.userPrompt,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          network: request.targetNetwork
+        }
+      });
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Analyze requirements and select appropriate contract
+   */
+  private async analyzeRequirementsAndSelectContract(request: EnhancedTrapDeploymentRequest): Promise<ContractAnalysisResult> {
+    try {
+      // Analyze user prompt to determine requirements
+      const analysis = this.analyzeUserPrompt(request.userPrompt);
+      
+      // Get available compiled contracts
+      const availableContracts = await this.compilation.getAvailableContracts();
+      
+      // Select best contract based on analysis
+      const selectedContract = this.selectBestContract(analysis, availableContracts);
+      
+      // Get contract artifacts if real contract is selected
+      let contractArtifacts: { abi: any[]; bytecode: string; } | null = null;
+      let useRealContract = false;
+      
+      if (selectedContract && availableContracts.includes(selectedContract)) {
+        contractArtifacts = await this.compilation.getContractArtifacts(selectedContract);
+        useRealContract = contractArtifacts !== null;
+      }
+
+      // Generate security features and risk assessment
+      const securityFeatures = this.generateSecurityFeatures(analysis, selectedContract || 'SecurityTrap');
+      const riskAssessment = this.assessRisk(analysis, selectedContract || 'SecurityTrap');
+
+      return {
+        selectedContract: selectedContract || 'SecurityTrap',
+        contractArtifacts,
+        useRealContract,
+        analysis,
+        securityFeatures,
+        riskAssessment,
+        estimatedGas: this.estimateGasUsage(selectedContract || 'SecurityTrap'),
+        estimatedCost: this.estimateDeploymentCost(selectedContract || 'SecurityTrap')
+      };
+
+    } catch (error) {
+      console.error('Failed to analyze requirements:', error);
+      
+      // Fallback to basic analysis
+      return {
+        selectedContract: 'SecurityTrap',
+        contractArtifacts: null,
+        useRealContract: false,
+        analysis: { complexity: 'medium', securityLevel: 'basic', features: [] },
+        securityFeatures: ['Basic Protection', 'Access Control', 'Monitoring'],
+        riskAssessment: {
+          riskLevel: 'medium',
+          vulnerabilities: ['Limited functionality'],
+          recommendations: ['Consider upgrading to premium features']
+        },
+        estimatedGas: 600000,
+        estimatedCost: 0.0015
+      };
+    }
+  }
+
+  /**
+   * Analyze user prompt to determine requirements
+   */
+  private analyzeUserPrompt(prompt: string): PromptAnalysis {
+    const features: string[] = [];
+    const complexity = 'medium'; // Default
+    const securityLevel = 'premium'; // Default
+
+    if (prompt.includes('honeypot') || prompt.includes('fund capture')) {
+      features.push('honeypot', 'fund capture');
+    }
+    if (prompt.includes('flash loan') || prompt.includes('attack prevention')) {
+      features.push('flash loan', 'attack prevention');
+    }
+    if (prompt.includes('mev') || prompt.includes('sandwich')) {
+      features.push('mev', 'sandwich');
+    }
+    if (prompt.includes('reentrancy') || prompt.includes('state protection')) {
+      features.push('reentrancy', 'state protection');
+    }
+    if (prompt.includes('multi-sig') || prompt.includes('vault')) {
+      features.push('multi-sig', 'vault');
+    }
+
+    return { complexity, securityLevel, features };
+  }
+
+  /**
+   * Generate security features based on analysis
+   */
+  private generateSecurityFeatures(analysis: PromptAnalysis, selectedContract: string): string[] {
+    const features: string[] = [];
+    const { complexity, securityLevel, features: promptFeatures } = analysis;
+
+    // Add features based on prompt
+    if (promptFeatures.includes('honeypot') || promptFeatures.includes('fund capture')) {
+      features.push('Advanced Honeypot');
+    }
+    if (promptFeatures.includes('flash loan') || promptFeatures.includes('attack prevention')) {
+      features.push('Flash Loan Defender');
+    }
+    if (promptFeatures.includes('mev') || promptFeatures.includes('sandwich')) {
+      features.push('MEV Protection Suite');
+    }
+    if (promptFeatures.includes('reentrancy') || promptFeatures.includes('state protection')) {
+      features.push('Reentrancy Shield');
+    }
+    if (promptFeatures.includes('multi-sig') || promptFeatures.includes('vault')) {
+      features.push('Multi-Sig Vault');
+    }
+
+    // Add features based on complexity and security level
+    if (complexity === 'advanced' || securityLevel === 'premium') {
+      features.push('Advanced Access Control');
+      features.push('Advanced Monitoring');
+    }
+    if (complexity === 'enterprise' || securityLevel === 'enterprise') {
+      features.push('Enterprise-Grade Security');
+      features.push('Advanced Risk Assessment');
+    }
+
+    return [...new Set(features)]; // Remove duplicates
+  }
+
+  /**
+   * Calculate estimated cost for deployment
+   */
+  private calculateEstimatedCost(request: EnhancedTrapDeploymentRequest): number {
+    let baseCost = 0.001; // Base deployment cost
+    
+    // Add complexity multiplier
+    switch (request.complexity) {
+      case 'simple':
+        baseCost *= 1.0;
+        break;
+      case 'medium':
+        baseCost *= 1.5;
+        break;
+      case 'advanced':
+        baseCost *= 2.0;
+        break;
+      case 'enterprise':
+        baseCost *= 3.0;
+        break;
+    }
+    
+    // Add security level multiplier
+    switch (request.securityLevel) {
+      case 'basic':
+        baseCost *= 1.0;
+        break;
+      case 'premium':
+        baseCost *= 1.3;
+        break;
+      case 'enterprise':
+        baseCost *= 1.8;
+        break;
+    }
+    
+    // Add monitoring level multiplier
+    switch (request.monitoringLevel) {
+      case 'basic':
+        baseCost *= 1.0;
+        break;
+      case 'advanced':
+        baseCost *= 1.2;
+        break;
+      case 'enterprise':
+        baseCost *= 1.5;
+        break;
+    }
+    
+    return Math.round(baseCost * 1000) / 1000; // Round to 3 decimal places
+  }
+
+  /**
+   * Assess risk based on analysis
+   */
+  private assessRisk(analysis: PromptAnalysis, selectedContract: string): RiskAssessment {
+    const { complexity, securityLevel, features } = analysis;
+    const riskLevel: string = complexity === 'advanced' || securityLevel === 'premium' ? 'high' : 'medium';
+    const vulnerabilities: string[] = [];
+    const recommendations: string[] = [];
+
+    if (complexity === 'advanced' || securityLevel === 'premium') {
+      vulnerabilities.push('More complex codebase, higher attack surface');
+      recommendations.push('Thorough testing and auditing');
+    }
+    if (complexity === 'enterprise' || securityLevel === 'enterprise') {
+      vulnerabilities.push('Enterprise-level security, but potential for new vulnerabilities');
+      recommendations.push('Continuous monitoring and updates');
+    }
+
+    return { riskLevel, vulnerabilities, recommendations };
+  }
+
+  /**
+   * Select best contract based on analysis
+   */
+  private selectBestContract(analysis: PromptAnalysis, availableContracts: string[]): string | null {
+    const { complexity, securityLevel, features } = analysis;
+    
+    // Map requirements to contracts
+    if (features.includes('honeypot') || features.includes('fund capture')) {
+      return availableContracts.includes('AdvancedHoneypot') ? 'AdvancedHoneypot' : null;
+    }
+    
+    if (features.includes('flash loan') || features.includes('attack prevention')) {
+      return availableContracts.includes('FlashLoanDefender') ? 'FlashLoanDefender' : null;
+    }
+    
+    if (features.includes('mev') || features.includes('sandwich')) {
+      return availableContracts.includes('MEVProtectionSuite') ? 'MEVProtectionSuite' : null;
+    }
+    
+    if (features.includes('reentrancy') || features.includes('state protection')) {
+      return availableContracts.includes('ReentrancyShield') ? 'ReentrancyShield' : null;
+    }
+    
+    if (features.includes('multi-sig') || features.includes('vault')) {
+      return availableContracts.includes('MultiSigVault') ? 'MultiSigVault' : null;
+    }
+    
+    // Default to SecurityTrap for general purpose
+    return availableContracts.includes('SecurityTrap') ? 'SecurityTrap' : null;
+  }
+
+  /**
+   * Estimate gas usage for contract
+   */
+  private estimateGasUsage(contractName: string): number {
+    const gasMap: { [key: string]: number } = {
+      'AdvancedHoneypot': 800000,
+      'SecurityTrap': 600000,
+      'DroseraRegistry': 1000000,
+      'FlashLoanDefender': 900000,
+      'MEVProtectionSuite': 1100000,
+      'MultiSigVault': 700000,
+      'ReentrancyShield': 850000
+    };
+    
+    return gasMap[contractName] || 600000;
+  }
+
+  /**
+   * Estimate deployment cost for contract
+   */
+  private estimateDeploymentCost(contractName: string): number {
+    const costMap: { [key: string]: number } = {
+      'AdvancedHoneypot': 0.002,
+      'SecurityTrap': 0.0015,
+      'DroseraRegistry': 0.003,
+      'FlashLoanDefender': 0.0025,
+      'MEVProtectionSuite': 0.003,
+      'MultiSigVault': 0.002,
+      'ReentrancyShield': 0.002
+    };
+    
+    return costMap[contractName] || 0.0015;
+  }
+
+  /**
+   * Deploy real compiled contract
+   */
+  private async deployRealContract(contractSelection: ContractAnalysisResult, deployment: EnhancedTrapDeployment): Promise<DeploymentResult> {
+    try {
+      if (!contractSelection.contractArtifacts) {
+        throw new Error('No contract artifacts available for real deployment');
+      }
+
+      // Deploy using real contract service
+      const deploymentRequest = {
+        userId: deployment.userId,
+        contractName: contractSelection.selectedContract,
+        constructorArgs: [],
+        network: deployment.targetNetwork,
+        customName: `AI-${deployment.trapType}`,
+        customDescription: deployment.userPrompt
+      };
+
+      const result = await this.realDeployment.deployRealContract(deploymentRequest);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Real contract deployment failed');
+      }
+
+      return {
+        address: result.contractAddress || '',
+        txHash: result.transactionHash || '',
+        cost: result.deploymentCost || '0'
+      };
+
+    } catch (error) {
+      console.error('Real contract deployment failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Deploy fallback contract (emergency fallback)
+   */
+  private async deployFallbackContract(contractSelection: ContractAnalysisResult, deployment: EnhancedTrapDeployment): Promise<DeploymentResult> {
+    try {
+      console.log('🔄 Using fallback deployment method...');
+      
+      // Use the existing blockchain service for fallback
+      const deploymentResult = await this.blockchain.deploySecurityTrap(
+        deployment.userId,
+        contractSelection.selectedContract,
+        [],
+        deployment.targetNetwork
+      );
+
+      return {
+        address: deploymentResult.contractAddress,
+        txHash: deploymentResult.transactionHash,
+        cost: deploymentResult.actualCost
+      };
+
+    } catch (error) {
+      console.error('Fallback deployment failed:', error);
+      throw error;
+    }
   }
 
   /**
@@ -358,11 +850,8 @@ export class EnhancedAITrapDeploymentService {
       console.log('🔨 Generating Smart Contract...');
       
       const prompt = this.buildContractGenerationPrompt(request);
-      // Perform AI analysis
-      const aiResponse = await this.contractAnalysis.analyzeContract(
-        '0x0000000000000000000000000000000000000000', // Placeholder address
-        560048 // Hoodi testnet chain ID
-      );
+      // Perform AI analysis (placeholder for now)
+      const aiResponse = '{}'; // TODO: Implement AI analysis
 
       // Parse AI response to extract contract code
       const contractData = this.parseContractFromAIResponse(aiResponse || '{}', request);
@@ -973,6 +1462,65 @@ ${deployment.riskAssessment.complianceNotes?.map((note: any) => `- ${note}`).joi
   }
 
   /**
+   * Save enhanced AI trap deployment to database
+   */
+  private async saveEnhancedTrapDeployment(deployment: EnhancedTrapDeployment): Promise<void> {
+    try {
+      await this.db.query(`
+        INSERT INTO enhanced_ai_deployments (
+          id, user_id, user_prompt, complexity, target_network, security_level,
+          custom_requirements, budget, timeline, trap_type, monitoring_level,
+          alert_preferences, custom_parameters, status, contract_address,
+          deployment_tx_hash, estimated_cost, actual_cost, created_at, deployed_at,
+          analysis_result, deployment_result
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+      `, [
+        deployment.id, deployment.userId, deployment.userPrompt, deployment.complexity,
+        deployment.targetNetwork, deployment.securityLevel, JSON.stringify(deployment.customRequirements),
+        deployment.budget, deployment.timeline, deployment.trapType, deployment.monitoringLevel,
+        JSON.stringify(deployment.alertPreferences), JSON.stringify(deployment.customParameters),
+        deployment.status, deployment.contractAddress, deployment.deploymentTxHash,
+        deployment.estimatedCost, deployment.actualCost, deployment.createdAt, deployment.deployedAt,
+        JSON.stringify(deployment.analysisResult), JSON.stringify(deployment.deploymentResult)
+      ]);
+      console.log(`✅ Enhanced AI trap deployment saved to database: ${deployment.id}`);
+    } catch (error) {
+      console.error('Failed to save enhanced AI trap deployment:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update enhanced AI trap deployment in database
+   */
+  private async updateEnhancedTrapDeployment(deployment: EnhancedTrapDeployment): Promise<void> {
+    try {
+      await this.db.query(`
+        UPDATE enhanced_ai_deployments SET
+          user_prompt = $1, complexity = $2, target_network = $3, security_level = $4,
+          custom_requirements = $5, budget = $6, timeline = $7, trap_type = $8,
+          monitoring_level = $9, alert_preferences = $10, custom_parameters = $11,
+          status = $12, contract_address = $13, deployment_tx_hash = $14,
+          estimated_cost = $15, actual_cost = $16, analysis_result = $17,
+          deployment_result = $18, deployed_at = $19
+        WHERE id = $20
+      `, [
+        deployment.userPrompt, deployment.complexity, deployment.targetNetwork, deployment.securityLevel,
+        JSON.stringify(deployment.customRequirements), deployment.budget, deployment.timeline,
+        deployment.trapType, deployment.monitoringLevel, JSON.stringify(deployment.alertPreferences),
+        JSON.stringify(deployment.customParameters), deployment.status, deployment.contractAddress,
+        deployment.deploymentTxHash, deployment.estimatedCost, deployment.actualCost,
+        JSON.stringify(deployment.analysisResult), JSON.stringify(deployment.deploymentResult),
+        deployment.deployedAt, deployment.id
+      ]);
+      console.log(`✅ Enhanced AI trap deployment updated in database: ${deployment.id}`);
+    } catch (error) {
+      console.error('Failed to update enhanced AI trap deployment:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get user's complete deployments
    */
   async getUserDeployments(userId: string): Promise<CompleteTrapDeployment[]> {
@@ -1009,6 +1557,47 @@ ${deployment.riskAssessment.complianceNotes?.map((note: any) => `- ${note}`).joi
 
     } catch (error) {
       console.error('Failed to get user deployments:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get user's enhanced AI trap deployments
+   */
+  async getUserEnhancedAITrapDeployments(userId: string): Promise<EnhancedTrapDeployment[]> {
+    try {
+      const result = await this.db.query(
+        'SELECT * FROM enhanced_ai_deployments WHERE user_id = $1 ORDER BY created_at DESC',
+        [userId]
+      );
+
+      return result.rows.map((row: any) => ({
+        id: row.id,
+        userId: row.user_id,
+        userPrompt: row.user_prompt,
+        complexity: row.complexity,
+        targetNetwork: row.target_network,
+        securityLevel: row.security_level,
+        customRequirements: JSON.parse(row.custom_requirements || '[]'),
+        budget: row.budget,
+        timeline: row.timeline,
+        trapType: row.trap_type,
+        monitoringLevel: row.monitoring_level,
+        alertPreferences: JSON.parse(row.alert_preferences || '[]'),
+        customParameters: JSON.parse(row.custom_parameters || '{}'),
+        status: row.status,
+        contractAddress: row.contract_address,
+        deploymentTxHash: row.deployment_tx_hash,
+        estimatedCost: row.estimated_cost,
+        actualCost: row.actual_cost,
+        createdAt: new Date(row.created_at),
+        deployedAt: row.deployed_at ? new Date(row.deployed_at) : undefined,
+        analysisResult: JSON.parse(row.analysis_result || '{}'),
+        deploymentResult: JSON.parse(row.deployment_result || '{}')
+      }));
+
+    } catch (error) {
+      console.error('Failed to get user enhanced AI trap deployments:', error);
       return [];
     }
   }

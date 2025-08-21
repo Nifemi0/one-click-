@@ -98,20 +98,30 @@ export class ContractCompilationService {
     try {
       console.log(`🔨 Compiling specific contract: ${contractName}`);
       
-      // First compile all contracts
+      // First check if the contract source exists
+      const contractPath = path.join(this.contractsDir, `${contractName}.sol`);
+      if (!fs.existsSync(contractPath)) {
+        console.error(`❌ Contract source not found: ${contractPath}`);
+        return null;
+      }
+
+      // Compile all contracts (Hardhat doesn't support single contract compilation easily)
       const result = await this.compileAllContracts();
       
       if (!result.success) {
-        throw new Error(`Compilation failed: ${result.errors?.join(', ')}`);
+        console.error('❌ Compilation failed:', result.errors);
+        return null;
       }
 
-      // Find the specific contract
+      // Find the specific contract in the results
       const contract = result.contracts.find(c => c.name === contractName);
       
       if (!contract) {
-        throw new Error(`Contract ${contractName} not found in compilation results`);
+        console.error(`❌ Contract ${contractName} not found in compilation results`);
+        return null;
       }
 
+      console.log(`✅ Successfully compiled ${contractName}`);
       return contract;
 
     } catch (error: any) {
@@ -121,104 +131,137 @@ export class ContractCompilationService {
   }
 
   /**
-   * @dev Get contract ABI and bytecode for deployment
+   * @dev Get contract artifacts (ABI and bytecode) for a specific contract
    */
-  async getContractArtifacts(contractName: string): Promise<{
-    abi: any[];
-    bytecode: string;
-  } | null> {
+  async getContractArtifacts(contractName: string): Promise<{ abi: any[]; bytecode: string; sourceCode: string } | null> {
     try {
-      const contract = await this.compileContract(contractName);
+      // First try to get from existing artifacts (Hardhat format: artifacts/contracts/ContractName.sol/ContractName.json)
+      const artifactsPath = path.join(this.artifactsDir, 'contracts', `${contractName}.sol`, `${contractName}.json`);
       
-      if (!contract) {
-        return null;
+      if (fs.existsSync(artifactsPath)) {
+        const contractData = JSON.parse(fs.readFileSync(artifactsPath, 'utf8'));
+        
+        // Get source code
+        const sourcePath = path.join(this.contractsDir, `${contractName}.sol`);
+        const sourceCode = fs.existsSync(sourcePath) ? fs.readFileSync(sourcePath, 'utf8') : '';
+        
+        return {
+          abi: contractData.abi || [],
+          bytecode: contractData.bytecode || '',
+          sourceCode
+        };
       }
 
-      return {
-        abi: contract.abi,
-        bytecode: contract.bytecode
-      };
+      // If artifacts don't exist, try to compile the contract
+      const contract = await this.compileContract(contractName);
+      if (contract) {
+        const sourcePath = path.join(this.contractsDir, `${contractName}.sol`);
+        const sourceCode = fs.existsSync(sourcePath) ? fs.readFileSync(sourcePath, 'utf8') : '';
+        
+        return {
+          abi: contract.abi,
+          bytecode: contract.bytecode,
+          sourceCode
+        };
+      }
 
-    } catch (error: any) {
-      console.error(`❌ Failed to get artifacts for ${contractName}:`, error);
+      return null;
+
+    } catch (error) {
+      console.error(`❌ Error getting artifacts for ${contractName}:`, error);
       return null;
     }
   }
 
   /**
-   * @dev Check if Hardhat is available in the project
+   * @dev Get contract templates for the frontend
    */
-  private async isHardhatAvailable(): Promise<boolean> {
+  async getContractTemplates(): Promise<Array<{
+    id: string;
+    name: string;
+    description: string;
+    type: 'honeypot' | 'sandbox' | 'monitoring' | 'basic';
+    complexity: 'basic' | 'medium' | 'advanced';
+    estimatedCost: number;
+    estimatedGas: number;
+    features: string[];
+    abi: any[];
+    bytecode: string;
+    sourceCode: string;
+    optimizerRuns: number;
+  }>> {
     try {
-      await execAsync('npx hardhat --version', { cwd: this.projectRoot });
-      return true;
-    } catch {
-      return false;
-    }
-  }
+      const availableContracts = await this.getAvailableContracts();
+      const templates: Array<{
+        id: string;
+        name: string;
+        description: string;
+        type: 'honeypot' | 'sandbox' | 'monitoring' | 'basic';
+        complexity: 'basic' | 'medium' | 'advanced';
+        estimatedCost: number;
+        estimatedGas: number;
+        features: string[];
+        abi: any[];
+        bytecode: string;
+        sourceCode: string;
+        optimizerRuns: number;
+      }> = [];
 
-  /**
-   * @dev Clean previous compilation artifacts
-   */
-  private async cleanArtifacts(): Promise<void> {
-    try {
-      if (fs.existsSync(this.artifactsDir)) {
-        fs.rmSync(this.artifactsDir, { recursive: true, force: true });
-        console.log('🧹 Cleaned previous artifacts');
-      }
-    } catch (error) {
-      console.warn('⚠️ Could not clean artifacts:', error);
-    }
-  }
+      for (const contractName of availableContracts) {
+        const artifacts = await this.getContractArtifacts(contractName);
+        if (artifacts) {
+          // Determine contract type and complexity based on name
+          let type: 'honeypot' | 'sandbox' | 'monitoring' | 'basic' = 'basic';
+          let complexity: 'basic' | 'medium' | 'advanced' = 'medium';
+          let features: string[] = ['Security Protection'];
 
-  /**
-   * @dev Extract compiled contracts from Hardhat artifacts
-   */
-  private async extractCompiledContracts(): Promise<CompiledContract[]> {
-    const contracts: CompiledContract[] = [];
-    
-    try {
-      if (!fs.existsSync(this.artifactsDir)) {
-        console.warn('⚠️ Artifacts directory not found');
-        return contracts;
-      }
-
-      // Read artifacts directory
-      const contractDirs = fs.readdirSync(this.artifactsDir, { withFileTypes: true })
-        .filter(dirent => dirent.isDirectory() && dirent.name !== 'build-info');
-
-      for (const contractDir of contractDirs) {
-        const contractPath = path.join(this.artifactsDir, contractDir.name);
-        const contractJsonPath = path.join(contractPath, `${contractDir.name}.json`);
-        
-        if (fs.existsSync(contractJsonPath)) {
-          try {
-            const contractData = JSON.parse(fs.readFileSync(contractJsonPath, 'utf8'));
-            
-            const contract: CompiledContract = {
-              name: contractDir.name,
-              abi: contractData.abi || [],
-              bytecode: contractData.bytecode || '',
-              deployedBytecode: contractData.deployedBytecode || '',
-              sourceMap: contractData.sourceMap || '',
-              compilerVersion: contractData.compilerVersion || 'unknown',
-              optimization: contractData.optimization || false,
-              runs: contractData.runs || 0
-            };
-            
-            contracts.push(contract);
-            console.log(`📋 Extracted contract: ${contract.name}`);
-          } catch (parseError) {
-            console.warn(`⚠️ Could not parse contract ${contractDir.name}:`, parseError);
+          if (contractName.includes('Honeypot')) {
+            type = 'honeypot';
+            complexity = 'advanced';
+            features.push('Fund Capture', 'Attack Detection');
+          } else if (contractName.includes('MEV')) {
+            type = 'monitoring';
+            complexity = 'advanced';
+            features.push('MEV Protection', 'Sandwich Attack Prevention');
+          } else if (contractName.includes('MultiSig')) {
+            type = 'basic';
+            complexity = 'medium';
+            features.push('Multi-Signature', 'Access Control');
+          } else if (contractName.includes('FlashLoan')) {
+            type = 'monitoring';
+            complexity = 'advanced';
+            features.push('Flash Loan Protection', 'Attack Prevention');
           }
+
+          // Estimate gas and cost (more accurate calculation)
+          const baseGas = 21000; // Base transaction gas
+          const contractGas = Math.ceil(artifacts.bytecode.length / 2); // Contract deployment gas
+          const estimatedGas = baseGas + contractGas;
+          const estimatedCost = (estimatedGas * 0.000000001).toFixed(6); // Rough ETH cost
+
+          templates.push({
+            id: contractName.toLowerCase(),
+            name: contractName,
+            description: `${type.charAt(0).toUpperCase() + type.slice(1)} security trap with ${complexity} complexity`,
+            type,
+            complexity,
+            estimatedCost: parseFloat(estimatedCost),
+            estimatedGas,
+            features,
+            abi: artifacts.abi,
+            bytecode: artifacts.bytecode,
+            sourceCode: artifacts.sourceCode,
+            optimizerRuns: 200
+          });
         }
       }
 
-    } catch (error) {
-      console.error('❌ Error extracting compiled contracts:', error);
-    }
+      return templates;
 
-    return contracts;
+    } catch (error) {
+      console.error('❌ Error getting contract templates:', error);
+      return [];
+    }
   }
 
   /**
@@ -279,5 +322,92 @@ export class ContractCompilationService {
         errors: [error.message]
       };
     }
+  }
+
+  /**
+   * @dev Check if Hardhat is available in the project
+   */
+  private async isHardhatAvailable(): Promise<boolean> {
+    try {
+      await execAsync('npx hardhat --version', { cwd: this.projectRoot });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * @dev Clean previous compilation artifacts
+   */
+  private async cleanArtifacts(): Promise<void> {
+    try {
+      if (fs.existsSync(this.artifactsDir)) {
+        fs.rmSync(this.artifactsDir, { recursive: true, force: true });
+        console.log('🧹 Cleaned previous artifacts');
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not clean artifacts:', error);
+    }
+  }
+
+  /**
+   * @dev Extract compiled contracts from Hardhat artifacts
+   */
+  private async extractCompiledContracts(): Promise<CompiledContract[]> {
+    const contracts: CompiledContract[] = [];
+    
+    try {
+      if (!fs.existsSync(this.artifactsDir)) {
+        console.warn('⚠️ Artifacts directory not found');
+        return contracts;
+      }
+
+      // Hardhat creates artifacts in artifacts/contracts/ContractName.sol/ContractName.json format
+      const contractsDir = path.join(this.artifactsDir, 'contracts');
+      
+      if (!fs.existsSync(contractsDir)) {
+        console.warn('⚠️ Contracts artifacts directory not found');
+        return contracts;
+      }
+
+      // Read contracts artifacts directory
+      const contractDirs = fs.readdirSync(contractsDir, { withFileTypes: true })
+        .filter(dirent => dirent.isDirectory() && dirent.name.endsWith('.sol'));
+
+      for (const contractDir of contractDirs) {
+        const contractName = contractDir.name.replace('.sol', '');
+        const contractPath = path.join(contractsDir, contractDir.name);
+        const contractJsonPath = path.join(contractPath, `${contractName}.json`);
+        
+        if (fs.existsSync(contractJsonPath)) {
+          try {
+            const contractData = JSON.parse(fs.readFileSync(contractJsonPath, 'utf8'));
+            
+            const contract: CompiledContract = {
+              name: contractName,
+              abi: contractData.abi || [],
+              bytecode: contractData.bytecode || '',
+              deployedBytecode: contractData.deployedBytecode || '',
+              sourceMap: contractData.sourceMap || '',
+              compilerVersion: contractData.compilerVersion || 'unknown',
+              optimization: contractData.optimization || false,
+              runs: contractData.runs || 0
+            };
+            
+            contracts.push(contract);
+            console.log(`📋 Extracted contract: ${contract.name}`);
+          } catch (parseError) {
+            console.warn(`⚠️ Could not parse contract ${contractName}:`, parseError);
+          }
+        } else {
+          console.warn(`⚠️ Contract JSON not found for ${contractName} at ${contractJsonPath}`);
+        }
+      }
+
+    } catch (error) {
+      console.error('❌ Error extracting compiled contracts:', error);
+    }
+
+    return contracts;
   }
 }
