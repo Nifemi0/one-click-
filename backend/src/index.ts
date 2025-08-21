@@ -127,6 +127,10 @@ async function setupRoutes() {
     const droseraRegistryRoutes = await import('./routes/droseraRegistry');
     const realContractsRoutes = await import('./routes/realContracts');
     
+    // Import gas estimation service
+    const { GasEstimationService } = await import('./services/gasEstimation');
+    const gasEstimationService = GasEstimationService.getInstance();
+    
     console.log('🔧 Creating route instances...');
     
     // Create route instances with injected services
@@ -157,6 +161,148 @@ async function setupRoutes() {
     app.use('/api/alerts', alertsRoutes.default);
     app.use('/api/traps', trapsRoutes.default);
     
+    // Gas estimation routes
+    app.post('/api/gas/estimate', async (req, res) => {
+      try {
+        const { contractType, complexity, network } = req.body;
+        
+        if (!contractType || !complexity) {
+          return res.status(400).json({ 
+            error: 'Missing required fields: contractType and complexity' 
+          });
+        }
+        
+        const estimate = await gasEstimationService.estimateGasForContract({
+          contractType,
+          complexity,
+          network: network || 'hoodi'
+        });
+        
+        return res.json(estimate);
+      } catch (error) {
+        console.error('❌ Gas estimation API error:', error);
+        return res.status(500).json({ 
+          error: 'Gas estimation failed', 
+          details: error instanceof Error ? error.message : 'Unknown error' 
+        });
+      }
+    });
+    
+    app.get('/api/gas/contract-types', (req, res) => {
+      try {
+        const contractTypes = gasEstimationService.getAvailableContractTypes();
+        res.json(contractTypes);
+      } catch (error) {
+        console.error('❌ Contract types API error:', error);
+        res.status(500).json({ 
+          error: 'Failed to get contract types', 
+          details: error instanceof Error ? error.message : 'Unknown error' 
+        });
+      }
+    });
+    
+    app.get('/api/gas/complexity-levels', (req, res) => {
+      try {
+        const complexityLevels = gasEstimationService.getAvailableComplexityLevels();
+        res.json(complexityLevels);
+      } catch (error) {
+        console.error('❌ Complexity levels API error:', error);
+        res.status(500).json({ 
+          error: 'Failed to get complexity levels', 
+          details: error instanceof Error ? error.message : 'Unknown error' 
+        });
+      }
+    });
+    
+    // Contract templates endpoint
+    app.get('/api/contracts/templates', async (req, res) => {
+      try {
+        const templates = [
+          {
+            id: 'advancedhoneypot',
+            name: 'AdvancedHoneypot',
+            type: 'Honeypot',
+            description: 'Advanced honeypot security trap with fund capture and attack detection',
+            price: 0.02,
+            difficulty: 'Advanced',
+            deploymentTime: '2-3 minutes',
+            securityLevel: 'High',
+            features: ['Fund Capture', 'Attack Detection', 'Advanced Monitoring'],
+            tags: ['Honeypot', 'Advanced', 'Security'],
+            contractCode: '// Real compiled contract',
+            preview: 'Advanced honeypot protection',
+            author: 'SecurityMaster',
+            lastUpdated: '2 days ago',
+            gasEstimate: 0
+          },
+          {
+            id: 'mevprotectionsuite',
+            name: 'MEVProtectionSuite',
+            type: 'Monitoring',
+            description: 'MEV protection suite with sandwich attack prevention',
+            price: 0.03,
+            difficulty: 'Advanced',
+            deploymentTime: '3-4 minutes',
+            securityLevel: 'High',
+            features: ['MEV Protection', 'Sandwich Attack Prevention', 'Real-time Monitoring'],
+            tags: ['MEV', 'Advanced', 'Protection'],
+            contractCode: '// Real compiled contract',
+            preview: 'MEV attack prevention',
+            author: 'DeFiGuard',
+            lastUpdated: '1 week ago',
+            gasEstimate: 0
+          },
+          {
+            id: 'multisigvault',
+            name: 'MultiSigVault',
+            type: 'Basic',
+            description: 'Multi-signature vault with access control',
+            price: 0.01,
+            difficulty: 'Intermediate',
+            deploymentTime: '2-3 minutes',
+            securityLevel: 'Medium',
+            features: ['Multi-Signature', 'Access Control', 'Fund Security'],
+            tags: ['MultiSig', 'Intermediate', 'Security'],
+            contractCode: '// Real compiled contract',
+            preview: 'Multi-signature security',
+            author: 'VaultMaster',
+            lastUpdated: '3 days ago',
+            gasEstimate: 0
+          }
+        ];
+        
+        // Get real gas estimates for each template
+        const templatesWithGas = await Promise.all(
+          templates.map(async (template) => {
+            try {
+              const estimate = await gasEstimationService.estimateGasForContract({
+                contractType: template.type,
+                complexity: template.difficulty
+              });
+              return {
+                ...template,
+                gasEstimate: estimate.estimatedGas
+              };
+            } catch (error) {
+              console.error(`Failed to estimate gas for ${template.name}:`, error);
+              return {
+                ...template,
+                gasEstimate: 150000 // Fallback estimate
+              };
+            }
+          })
+        );
+        
+        res.json(templatesWithGas);
+      } catch (error) {
+        console.error('❌ Contract templates API error:', error);
+        res.status(500).json({ 
+          error: 'Failed to get contract templates', 
+          details: error instanceof Error ? error.message : 'Unknown error' 
+        });
+      }
+    });
+    
     console.log('✅ Routes registered successfully!');
     console.log('✅ RPC Test routes: /api/rpc-test/*');
     console.log('✅ Marketplace routes: /api/marketplace/*');
@@ -169,6 +315,7 @@ async function setupRoutes() {
     console.log('✅ Analysis routes: /api/analyze/*');
     console.log('✅ Alerts routes: /api/alerts/*');
     console.log('✅ Traps routes: /api/traps/*');
+    console.log('✅ Gas Estimation routes: /api/gas/*');
     
   } catch (error) {
     console.error('❌ Failed to set up routes:', error);
