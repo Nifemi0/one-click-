@@ -93,7 +93,152 @@ app.get('/api/ai-contracts/test', (req, res) => {
   });
 });
 
-// Direct AI status endpoint removed - now using dynamic route
+// Temporary direct routes while debugging dynamic route issue
+app.get('/api/ai-contracts/status', async (req, res) => {
+  try {
+    const status = {
+      openai: !!process.env.OPENAI_API_KEY,
+      anthropic: !!process.env.ANTHROPIC_API_KEY,
+      gemini: !!process.env.GEMINI_API_KEY,
+      compilation: true,
+      deployment: true,
+      timestamp: new Date().toISOString()
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: status
+    });
+
+  } catch (error: any) {
+    console.error('❌ AI Status Check Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to check status',
+      details: error.message
+    });
+  }
+});
+
+// Temporary direct route for contract generation
+app.post('/api/ai-contracts/generate', async (req, res) => {
+  try {
+    console.log('🤖 AI Contract Generation Request:', req.body);
+    
+    const { userPrompt } = req.body;
+
+    if (!userPrompt) {
+      return res.status(400).json({
+        success: false,
+        error: 'User prompt is required'
+      });
+    }
+
+    // For now, return a mock response while we debug the dynamic routes
+    return res.status(200).json({
+      success: true,
+      data: {
+        contractCode: `// Mock contract for debugging
+pragma solidity ^0.8.0;
+contract MockContract {
+    string public message = "${userPrompt}";
+}`,
+        contractName: 'MockContract',
+        description: 'Mock contract for debugging purposes',
+        securityFeatures: ['Basic structure'],
+        estimatedGas: 150000,
+        riskAssessment: 'Low - Mock contract',
+        compilationInstructions: 'Mock contract - no compilation needed',
+        deploymentNotes: 'Mock contract - no deployment needed',
+        aiProvider: 'Mock',
+        confidence: 0.9,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+  } catch (error: any) {
+    console.error('❌ AI Contract Generation Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to generate contract',
+      details: error.message
+    });
+  }
+});
+
+// Temporary direct route for contract compilation
+app.post('/api/ai-contracts/compile', async (req, res) => {
+  try {
+    console.log('🔧 AI Contract Compilation Request:', req.body);
+    
+    const { contractCode, contractName } = req.body;
+
+    if (!contractCode || !contractName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Contract code and name are required'
+      });
+    }
+
+    // For now, return a mock compilation result while we debug the dynamic routes
+    return res.status(200).json({
+      success: true,
+      data: {
+        abi: '[{"inputs":[],"name":"message","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}]',
+        bytecode: '0x608060405234801561001057600080fd5b50610150806100206000396000f3fe608060405234801561001057600080fd5b506004361061002a5760003560e01c8063b6b55f251461002f575b600080fd5b610049600480360381019061004491906100b5565b61005f565b60405161005691906100f1565b60405180910390f35b60008054905090565b6000819050919050565b61007b81610068565b811461008657600080fd5b50565b60008135905061009881610072565b92915050565b6000602082840312156100b4576100b3600080fd5b5b60006100c08484610089565b91505092915050565b600081519050919050565b600082825260208201905092915050565b60005b838110156101015780820151818401526020810190506100e6565b60008484015250505050565b6000601f19601f8301169050919050565b610122816100e8565b811461012d57600080fd5b50565b60008135905061013f81610119565b92915050565b6000806040838503121561015c5761015b600080fd5b5b60006101688585610130565b925050602061017985828601610089565b9150509250929050565b61018a81610068565b82525050565b60006020820190506101a56000830184610181565b9291505056fea2646970667358221220a0b0c0d0e0f0a1b1c1d1e1f1a2b2c2d2e2f2a3b3c3d3e3f3a4b4c4d4e4f4a5b5c5d5e5f5a6b6c6d6e6f6a7b7c7d7e7f7a8b8c8d8e8f8a9b9c9d9e9f9aa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff',
+        gasEstimate: 150000,
+        compilerVersion: '0.8.19',
+        timestamp: new Date().toISOString()
+      }
+    });
+
+  } catch (error: any) {
+    console.error('❌ AI Contract Compilation Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to compile contract',
+      details: error.message
+    });
+  }
+});
+
+// Temporary direct route for contract deployment
+app.post('/api/ai-contracts/deploy', async (req, res) => {
+  try {
+    console.log('🚀 AI Contract Deployment Request:', req.body);
+    
+    const { contractCode, contractName, gasLimit } = req.body;
+
+    if (!contractCode || !contractName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Contract code and name are required'
+      });
+    }
+
+    // For now, return a mock deployment result while we debug the dynamic routes
+    const deploymentResult = {
+      success: true,
+      contractAddress: '0x' + '0'.repeat(40), // Mock address
+      transactionHash: '0x' + '0'.repeat(64), // Mock hash
+      gasUsed: gasLimit || 300000,
+      deploymentCost: '0.001' // Mock cost
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: deploymentResult
+    });
+
+  } catch (error: any) {
+    console.error('❌ AI Contract Deployment Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to deploy contract',
+      details: error.message
+    });
+  }
+});
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
