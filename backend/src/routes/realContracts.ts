@@ -298,4 +298,58 @@ router.get('/deployment-status/:txHash', async (req, res) => {
   }
 });
 
+/**
+ * @route GET /api/real-contracts/templates
+ * @desc Get all compiled contract templates with ABI and bytecode
+ * @access Public
+ */
+router.get('/templates', async (req, res) => {
+  try {
+    console.log('📋 Fetching contract templates...');
+    
+    const contractNames = await compilation.getAvailableContracts();
+    const templates: Array<{
+      name: string;
+      type: string;
+      abi: any[];
+      bytecode: string;
+      sourceCode: string;
+    }> = [];
+    
+    for (const contractName of contractNames) {
+      try {
+        const artifacts = await compilation.getContractArtifacts(contractName);
+        if (artifacts && artifacts.abi && artifacts.bytecode) {
+          templates.push({
+            name: contractName,
+            type: contractName.toLowerCase().replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
+            abi: artifacts.abi,
+            bytecode: artifacts.bytecode,
+            sourceCode: artifacts.sourceCode
+          });
+        }
+      } catch (error) {
+        console.warn(`⚠️ Failed to get compiled data for ${contractName}:`, error);
+      }
+    }
+    
+    console.log(`✅ Found ${templates.length} compiled templates`);
+    
+    return res.status(200).json({
+      success: true,
+      data: {
+        templates,
+        count: templates.length
+      }
+    });
+  } catch (error: any) {
+    console.error('❌ Get contract templates error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      details: error.message
+    });
+  }
+});
+
 export default router;

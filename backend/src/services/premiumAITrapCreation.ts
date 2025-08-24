@@ -117,7 +117,7 @@ export class PremiumAITrapCreationService {
     
     // Perform AI analysis
     const aiResponse = await this.contractAnalysis.analyzeContract(
-      '0x0000000000000000000000000000000000000000', // Placeholder address
+      await this.generateContractAddress(),
       request.targetNetwork
     );
 
@@ -614,5 +614,14 @@ Format your response as JSON with this structure:
     } else {
       return `${Math.round(totalMinutes / 1440)} days`;
     }
+  }
+
+  /**
+   * Generate a placeholder contract address for AI analysis
+   */
+  private async generateContractAddress(): Promise<string> {
+    // In a real application, this would involve a secure key generation
+    // For now, we'll return a placeholder address
+    return '0x0000000000000000000000000000000000000000';
   }
 }

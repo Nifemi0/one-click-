@@ -676,11 +676,15 @@ Format your response as JSON:
   private async getSocialSentiment(address: string, chainId: number): Promise<any> {
     try {
       // This would integrate with social media APIs or blockchain forums
-      // For now, return mock data
+      // TODO: Implement real social sentiment analysis
+      console.log('Social sentiment analysis requested for address:', address);
+      
+      // Return empty data structure until real API is implemented
       return {
-        score: Math.random() * 100,
-        mentions: Math.floor(Math.random() * 100),
+        score: 0,
+        mentions: 0,
         lastUpdated: new Date(),
+        source: 'pending_implementation'
       };
     } catch (error) {
       console.error('Failed to get social sentiment:', error);

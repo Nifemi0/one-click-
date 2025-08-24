@@ -131,6 +131,71 @@ export class ContractCompilationService {
   }
 
   /**
+   * @dev Compile dynamic contract code (for AI-generated contracts)
+   */
+  async compileDynamicContract(contractCode: string, contractName: string): Promise<{
+    success: boolean;
+    abi?: any[];
+    bytecode?: string;
+    gasEstimate?: number;
+    compilerVersion?: string;
+    optimization?: boolean;
+    runs?: number;
+    error?: string;
+  }> {
+    try {
+      console.log(`🔨 Compiling dynamic contract: ${contractName}`);
+      
+      // Create a temporary contract file
+      const tempContractPath = path.join(this.contractsDir, `${contractName}.sol`);
+      const originalContent = fs.existsSync(tempContractPath) ? fs.readFileSync(tempContractPath, 'utf8') : null;
+      
+      try {
+        // Write the AI-generated contract code to the file
+        fs.writeFileSync(tempContractPath, contractCode);
+        
+        // Compile the contract
+        const contract = await this.compileContract(contractName);
+        
+        if (contract) {
+          return {
+            success: true,
+            abi: contract.abi,
+            bytecode: contract.bytecode,
+            gasEstimate: 150000, // Default gas estimate
+            compilerVersion: contract.compilerVersion,
+            optimization: contract.optimization,
+            runs: contract.runs
+          };
+        } else {
+          return {
+            success: false,
+            error: 'Failed to compile contract'
+          };
+        }
+        
+      } finally {
+        // Restore original content if it existed
+        if (originalContent !== null) {
+          fs.writeFileSync(tempContractPath, originalContent);
+        } else {
+          // Remove temporary file if it didn't exist before
+          if (fs.existsSync(tempContractPath)) {
+            fs.unlinkSync(tempContractPath);
+          }
+        }
+      }
+      
+    } catch (error: any) {
+      console.error(`❌ Failed to compile dynamic contract ${contractName}:`, error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
    * @dev Get contract artifacts (ABI and bytecode) for a specific contract
    */
   async getContractArtifacts(contractName: string): Promise<{ abi: any[]; bytecode: string; sourceCode: string } | null> {

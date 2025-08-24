@@ -126,6 +126,7 @@ async function setupRoutes() {
     const trapsRoutes = await import('./routes/traps');
     const droseraRegistryRoutes = await import('./routes/droseraRegistry');
     const realContractsRoutes = await import('./routes/realContracts');
+    const aiContractRoutes = await import('./routes/aiContractGeneration');
     
     // Import gas estimation service
     const { GasEstimationService } = await import('./services/gasEstimation');
@@ -153,6 +154,7 @@ async function setupRoutes() {
     app.use('/api/drosera-traps', droseraTrapsRoutes);
     app.use('/api/drosera-registry', droseraRegistryRoutes.default);
     app.use('/api/real-contracts', realContractsRoutes.default);
+    app.use('/api/ai-contracts', aiContractRoutes.default);
     app.use('/api/dashboard', dashboardRoutes);
     app.use('/api/auth', authRoutes.default);
     app.use('/api/basic-traps', basicTrapsRoutes.default);
