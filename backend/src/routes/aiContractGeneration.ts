@@ -6,6 +6,15 @@ const router = express.Router();
 const aiService = new AIIntegrationService();
 const compilationService = new ContractCompilationService();
 
+// Add a simple test route to verify router is working
+router.get('/test-router', (req, res) => {
+  res.json({
+    message: 'AI router is working correctly',
+    timestamp: new Date().toISOString(),
+    router: 'aiContractGeneration'
+  });
+});
+
 /**
  * POST /api/ai-contracts/generate
  * Generate smart contract using AI

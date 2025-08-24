@@ -147,7 +147,19 @@ async function setupRoutes() {
     const trapsRoutes = await import('./routes/traps');
     const droseraRegistryRoutes = await import('./routes/droseraRegistry');
     const realContractsRoutes = await import('./routes/realContracts');
-    const aiContractRoutes = await import('./routes/aiContractGeneration');
+    
+    // Import AI routes with error handling and debugging
+    console.log('🔧 Importing AI contract routes...');
+    let aiContractRoutes;
+    try {
+      aiContractRoutes = await import('./routes/aiContractGeneration');
+      console.log('✅ AI routes imported successfully');
+      console.log('📊 AI routes object:', typeof aiContractRoutes);
+      console.log('📊 AI routes default:', typeof aiContractRoutes.default);
+    } catch (error) {
+      console.error('❌ Failed to import AI routes:', error);
+      throw error;
+    }
     
     // Import gas estimation service
     const { GasEstimationService } = await import('./services/gasEstimation');
@@ -176,7 +188,18 @@ async function setupRoutes() {
     app.use('/api/drosera-registry', droseraRegistryRoutes.default);
     app.use('/api/real-contracts', realContractsRoutes.default);
     // Re-enable AI routes now that helmet issue is resolved
-    app.use('/api/ai-contracts', aiContractRoutes.default);
+    console.log('🔧 Registering AI routes...');
+    console.log('📊 AI routes path: /api/ai-contracts');
+    console.log('📊 AI routes object type:', typeof aiContractRoutes);
+    console.log('📊 AI routes default type:', typeof aiContractRoutes.default);
+    
+    try {
+      app.use('/api/ai-contracts', aiContractRoutes.default);
+      console.log('✅ AI routes registered successfully');
+    } catch (error) {
+      console.error('❌ Failed to register AI routes:', error);
+      throw error;
+    }
     app.use('/api/dashboard', dashboardRoutes);
     app.use('/api/auth', authRoutes.default);
     app.use('/api/basic-traps', basicTrapsRoutes.default);
