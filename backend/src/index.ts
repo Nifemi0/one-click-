@@ -342,14 +342,24 @@ async function setupRoutes() {
   }
 }
 
-// Start server
-server.listen(PORT, () => {
-  console.log(`🚀 One Click API server running on http://${HOST}:${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔌 WebSocket server ready`);
+// Initialize services and routes BEFORE starting server
+initializeServices().then(() => {
+  // Start server after routes are set up
+  server.listen(PORT, () => {
+    console.log(`🚀 One Click API server running on http://${HOST}:${PORT}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔌 WebSocket server ready`);
+    console.log(`✅ All routes are now available`);
+  });
+}).catch((error) => {
+  console.error('❌ Failed to initialize services, but starting server anyway:', error);
+  // Start server even if services fail
+  server.listen(PORT, () => {
+    console.log(`🚀 One Click API server running on http://${HOST}:${PORT}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔌 WebSocket server ready`);
+    console.log(`⚠️  Some services may not be available`);
+  });
 });
-
-// Initialize services after server starts
-initializeServices();
 
 export default app;
