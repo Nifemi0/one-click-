@@ -181,7 +181,8 @@ async function setupRoutes() {
     app.use('/api/drosera-traps', droseraTrapsRoutes);
     app.use('/api/drosera-registry', droseraRegistryRoutes.default);
     app.use('/api/real-contracts', realContractsRoutes.default);
-    app.use('/api/ai-contracts', aiContractRoutes.default);
+    // Temporarily comment out AI routes to debug
+    // app.use('/api/ai-contracts', aiContractRoutes.default);
     app.use('/api/dashboard', dashboardRoutes);
     app.use('/api/auth', authRoutes.default);
     app.use('/api/basic-traps', basicTrapsRoutes.default);
