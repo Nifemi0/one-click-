@@ -41,11 +41,11 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
-// Middleware - re-enabled with permissive helmet config
-app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false
-}));
+// Middleware - temporarily disable helmet to test POST requests
+// app.use(helmet({
+//   contentSecurityPolicy: false,
+//   crossOriginEmbedderPolicy: false
+// }));
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL || "http://localhost:3000",
@@ -67,6 +67,20 @@ app.use(limiter);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Error handling middleware to catch any parsing errors
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error('❌ Middleware error:', err);
+  if (err instanceof SyntaxError && (err as any).status === 400 && 'body' in err) {
+    console.error('❌ JSON parsing error:', err.message);
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid JSON in request body',
+      details: err.message
+    });
+  }
+  next(err);
+});
 
 // AI Routes - Register at top level to ensure they work
 console.log('🔧 Setting up AI routes at top level...');
