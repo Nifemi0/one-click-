@@ -178,8 +178,28 @@ export class AIIntegrationService {
       }
 
       throw new Error('Invalid OpenAI response');
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ OpenAI API error:', error);
+      
+      // Provide more specific error information
+      if (error.response) {
+        console.error('❌ OpenAI API response error:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data
+        });
+        
+        if (error.response.status === 401) {
+          throw new Error('OpenAI API key invalid or expired');
+        } else if (error.response.status === 400) {
+          throw new Error(`OpenAI API request error: ${error.response.data?.error?.message || 'Bad request'}`);
+        } else if (error.response.status === 429) {
+          throw new Error('OpenAI API rate limit exceeded');
+        } else if (error.response.status >= 500) {
+          throw new Error('OpenAI API server error');
+        }
+      }
+      
       throw error;
     }
   }
@@ -237,49 +257,88 @@ export class AIIntegrationService {
       throw new Error('Gemini API key not configured');
     }
 
-    try {
-      console.log('🔄 Gemini: Building prompt...');
-      const prompt = this.buildGeminiPrompt(request);
-      console.log('🔄 Gemini: Prompt built, length:', prompt.length);
-      
-      console.log('🔄 Gemini: Making API call to Gemini...');
-      const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.geminiApiKey}`,
-        {
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt
-                }
-              ]
+    // Try multiple Gemini API endpoints in case one is deprecated
+    const geminiEndpoints = [
+      'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent',
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+      'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent'
+    ];
+
+    for (const endpoint of geminiEndpoints) {
+      try {
+        console.log(`🔄 Gemini: Trying endpoint: ${endpoint}`);
+        const prompt = this.buildGeminiPrompt(request);
+        console.log('🔄 Gemini: Prompt built, length:', prompt.length);
+        
+        console.log('🔄 Gemini: Making API call to Gemini...');
+        
+        const response = await axios.post(
+          `${endpoint}?key=${this.geminiApiKey}`,
+          {
+            contents: [
+              {
+                parts: [
+                  {
+                    text: prompt
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 4000
             }
-          ],
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 4000
-          }
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json'
           },
-          timeout: 30000
+          {
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            timeout: 30000
+          }
+        );
+
+        console.log('🔄 Gemini: API call successful, processing response...');
+        if (response.data.candidates && response.data.candidates[0]) {
+          const contractCode = response.data.candidates[0].content.parts[0].text;
+          console.log('🔄 Gemini: Contract code received, length:', contractCode.length);
+          return this.parseAIResponse(contractCode, 'Gemini', request);
         }
-      );
 
-      console.log('🔄 Gemini: API call successful, processing response...');
-      if (response.data.candidates && response.data.candidates[0]) {
-        const contractCode = response.data.candidates[0].content.parts[0].text;
-        console.log('🔄 Gemini: Contract code received, length:', contractCode.length);
-        return this.parseAIResponse(contractCode, 'Gemini', request);
+        throw new Error('Invalid Gemini response');
+      } catch (error: any) {
+        console.error(`❌ Gemini API error with endpoint ${endpoint}:`, error);
+        
+        // If this is the last endpoint, throw the error
+        if (endpoint === geminiEndpoints[geminiEndpoints.length - 1]) {
+          // Provide more specific error information
+          if (error.response) {
+            console.error('❌ Gemini API response error:', {
+              status: error.response.status,
+              statusText: error.response.statusText,
+              data: error.response.data
+            });
+            
+            if (error.response.status === 404) {
+              throw new Error('All Gemini API endpoints failed - API may have changed');
+            } else if (error.response.status === 400) {
+              throw new Error(`Gemini API request error: ${error.response.data?.error?.message || 'Bad request'}`);
+            } else if (error.response.status === 429) {
+              throw new Error('Gemini API rate limit exceeded');
+            } else if (error.response.status >= 500) {
+              throw new Error('Gemini API server error');
+            }
+          }
+          
+          throw error;
+        }
+        
+        // Continue to next endpoint
+        console.log(`🔄 Gemini: Endpoint ${endpoint} failed, trying next...`);
+        continue;
       }
-
-      throw new Error('Invalid Gemini response');
-    } catch (error) {
-      console.error('❌ Gemini API error:', error);
-      throw error;
     }
+
+    throw new Error('All Gemini API endpoints failed');
   }
 
   /**
