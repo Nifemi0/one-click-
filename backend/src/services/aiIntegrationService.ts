@@ -30,11 +30,34 @@ export class AIIntegrationService {
   private openaiApiKey: string;
   private anthropicApiKey: string;
   private geminiApiKey: string;
+  private isAvailable: boolean;
 
   constructor() {
-    this.openaiApiKey = process.env.OPENAI_API_KEY || '';
-    this.anthropicApiKey = process.env.ANTHROPIC_API_KEY || '';
-    this.geminiApiKey = process.env.GEMINI_API_KEY || '';
+    try {
+      this.openaiApiKey = process.env.OPENAI_API_KEY || '';
+      this.anthropicApiKey = process.env.ANTHROPIC_API_KEY || '';
+      this.geminiApiKey = process.env.GEMINI_API_KEY || '';
+      
+      // Check if any AI provider is available
+      this.isAvailable = !!(this.openaiApiKey || this.anthropicApiKey || this.geminiApiKey);
+      
+      if (!this.isAvailable) {
+        console.log('⚠️ No AI API keys configured, using fallback mode');
+      }
+    } catch (error) {
+      console.error('❌ Error initializing AI service:', error);
+      this.openaiApiKey = '';
+      this.anthropicApiKey = '';
+      this.geminiApiKey = '';
+      this.isAvailable = false;
+    }
+  }
+
+  /**
+   * Check if AI service is available
+   */
+  public getAvailability(): boolean {
+    return this.isAvailable;
   }
 
   /**
@@ -44,15 +67,26 @@ export class AIIntegrationService {
     try {
       console.log('🤖 Starting AI contract generation...');
       
+      // If no AI providers are available, use fallback immediately
+      if (!this.isAvailable) {
+        console.log('🔄 No AI providers available, using fallback contract');
+        return this.generateFallbackContract(request);
+      }
+      
       // Try multiple AI providers in order of preference
       const providers = [
-        { name: 'OpenAI', method: this.generateWithOpenAI.bind(this) },
-        { name: 'Anthropic', method: this.generateWithAnthropic.bind(this) },
-        { name: 'Gemini', method: this.generateWithGemini.bind(this) },
-        { name: 'Fallback', method: this.generateFallbackContract.bind(this) }
+        { name: 'OpenAI', method: this.generateWithOpenAI.bind(this), available: !!this.openaiApiKey },
+        { name: 'Anthropic', method: this.generateWithAnthropic.bind(this), available: !!this.anthropicApiKey },
+        { name: 'Gemini', method: this.generateWithGemini.bind(this), available: !!this.geminiApiKey },
+        { name: 'Fallback', method: this.generateFallbackContract.bind(this), available: true }
       ];
 
       for (const provider of providers) {
+        if (!provider.available) {
+          console.log(`⏭️ Skipping ${provider.name} - not configured`);
+          continue;
+        }
+        
         try {
           console.log(`🔄 Trying ${provider.name}...`);
           const result = await provider.method(request);
@@ -81,48 +115,45 @@ export class AIIntegrationService {
       throw new Error('OpenAI API key not configured');
     }
 
-    const prompt = this.buildOpenAIPrompt(request);
-    
-    const response = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert Solidity smart contract developer specializing in DeFi security traps and honeypots. Generate production-ready, secure smart contracts.'
+    try {
+      const prompt = this.buildOpenAIPrompt(request);
+      
+      const response = await axios.post(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          model: 'gpt-4',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert Solidity smart contract developer specializing in DeFi security traps and honeypots. Generate production-ready, secure smart contracts.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 4000
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.openaiApiKey}`,
+            'Content-Type': 'application/json'
           },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 4000
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${this.openaiApiKey}`,
-          'Content-Type': 'application/json'
+          timeout: 30000
         }
-      }
-    );
+      );
 
-    const contractCode = response.data.choices[0].message.content;
-    
-    return {
-      success: true,
-      contractCode: this.extractContractCode(contractCode),
-      contractName: this.generateContractName(request),
-      description: request.userPrompt,
-      securityFeatures: this.extractSecurityFeatures(contractCode),
-      estimatedGas: this.estimateGas(request.complexity),
-      riskAssessment: this.assessRisk(request.securityLevel, request.complexity),
-      compilationInstructions: this.generateCompilationInstructions(),
-      deploymentNotes: this.generateDeploymentNotes(request),
-      aiProvider: 'OpenAI GPT-4',
-      confidence: 0.95
-    };
+      if (response.data.choices && response.data.choices[0]) {
+        const contractCode = response.data.choices[0].message.content;
+        return this.parseAIResponse(contractCode, 'OpenAI', request);
+      }
+
+      throw new Error('Invalid OpenAI response');
+    } catch (error) {
+      console.error('❌ OpenAI API error:', error);
+      throw error;
+    }
   }
 
   /**
@@ -133,44 +164,41 @@ export class AIIntegrationService {
       throw new Error('Anthropic API key not configured');
     }
 
-    const prompt = this.buildAnthropicPrompt(request);
-    
-    const response = await axios.post(
-      'https://api.anthropic.com/v1/messages',
-      {
-        model: 'claude-3-sonnet-20240229',
-        max_tokens: 4000,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-      },
-      {
-        headers: {
-          'x-api-key': this.anthropicApiKey,
-          'Content-Type': 'application/json',
-          'anthropic-version': '2023-06-01'
+    try {
+      const prompt = this.buildAnthropicPrompt(request);
+      
+      const response = await axios.post(
+        'https://api.anthropic.com/v1/messages',
+        {
+          model: 'claude-3-sonnet-20240229',
+          max_tokens: 4000,
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ]
+        },
+        {
+          headers: {
+            'x-api-key': this.anthropicApiKey,
+            'Content-Type': 'application/json',
+            'anthropic-version': '2023-06-01'
+          },
+          timeout: 30000
         }
-      }
-    );
+      );
 
-    const contractCode = response.data.content[0].text;
-    
-    return {
-      success: true,
-      contractCode: this.extractContractCode(contractCode),
-      contractName: this.generateContractName(request),
-      description: request.userPrompt,
-      securityFeatures: this.extractSecurityFeatures(contractCode),
-      estimatedGas: this.estimateGas(request.complexity),
-      riskAssessment: this.assessRisk(request.securityLevel, request.complexity),
-      compilationInstructions: this.generateCompilationInstructions(),
-      deploymentNotes: this.generateDeploymentNotes(request),
-      aiProvider: 'Anthropic Claude',
-      confidence: 0.93
-    };
+      if (response.data.content && response.data.content[0]) {
+        const contractCode = response.data.content[0].text;
+        return this.parseAIResponse(contractCode, 'Anthropic', request);
+      }
+
+      throw new Error('Invalid Anthropic response');
+    } catch (error) {
+      console.error('❌ Anthropic API error:', error);
+      throw error;
+    }
   }
 
   /**
@@ -181,374 +209,520 @@ export class AIIntegrationService {
       throw new Error('Gemini API key not configured');
     }
 
-    const prompt = this.buildGeminiPrompt(request);
-    
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.geminiApiKey}`,
-      {
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt
-              }
-            ]
+    try {
+      const prompt = this.buildGeminiPrompt(request);
+      
+      const response = await axios.post(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.geminiApiKey}`,
+        {
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 4000
           }
-        ],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 4000
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          timeout: 30000
         }
-      }
-    );
+      );
 
-    const contractCode = response.data.candidates[0].content.parts[0].text;
-    
-    return {
-      success: true,
-      contractCode: this.extractContractCode(contractCode),
-      contractName: this.generateContractName(request),
-      description: request.userPrompt,
-      securityFeatures: this.extractSecurityFeatures(contractCode),
-      estimatedGas: this.estimateGas(request.complexity),
-      riskAssessment: this.assessRisk(request.securityLevel, request.complexity),
-      compilationInstructions: this.generateCompilationInstructions(),
-      deploymentNotes: this.generateDeploymentNotes(request),
-      aiProvider: 'Google Gemini',
-      confidence: 0.90
-    };
+      if (response.data.candidates && response.data.candidates[0]) {
+        const contractCode = response.data.candidates[0].content.parts[0].text;
+        return this.parseAIResponse(contractCode, 'Gemini', request);
+      }
+
+      throw new Error('Invalid Gemini response');
+    } catch (error) {
+      console.error('❌ Gemini API error:', error);
+      throw error;
+    }
   }
 
   /**
-   * Fallback contract generation when AI providers fail
+   * Generate fallback contract when AI providers are unavailable
    */
   private generateFallbackContract(request: AIContractRequest): AIContractResponse {
-    console.log('🔄 Using fallback contract generation...');
+    console.log('🔄 Generating fallback contract...');
     
-    const contractCode = this.generateBasicContractTemplate(request);
+    const contractName = this.generateContractName(request.userPrompt);
+    const securityFeatures = this.extractSecurityFeatures(request.userPrompt);
     
+    // Generate a sophisticated Drosera trap using OpenZeppelin patterns
+    const contractCode = `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+
+/**
+ * @title DroseraSecurityTrap
+ * @dev Advanced security trap with fund capture and attack detection
+ * @custom:security-contact security@drosera.com
+ */
+contract DroseraSecurityTrap is ReentrancyGuard, Pausable, Ownable {
+    using Address for address payable;
+    
+    // State variables
+    mapping(address => uint256) public userBalances;
+    mapping(address => bool) public isWhitelisted;
+    mapping(address => uint256) public lastInteraction;
+    
+    uint256 public constant MINIMUM_DEPOSIT = 0.01 ether;
+    uint256 public constant MAXIMUM_DEPOSIT = 10 ether;
+    uint256 public constant WITHDRAWAL_DELAY = 24 hours;
+    uint256 public constant INTERACTION_COOLDOWN = 1 hours;
+    
+    uint256 public totalDeposits;
+    uint256 public totalCaptured;
+    uint256 public attackCount;
+    
+    // Events
+    event Deposit(address indexed user, uint256 amount, uint256 timestamp);
+    event Withdrawal(address indexed user, uint256 amount, uint256 timestamp);
+    event AttackDetected(address indexed attacker, uint256 amount, string reason);
+    event FundsCaptured(address indexed attacker, uint256 amount, uint256 timestamp);
+    event WhitelistUpdated(address indexed user, bool status);
+    
+    // Modifiers
+    modifier onlyWhitelisted() {
+        require(isWhitelisted[msg.sender], "DroseraSecurityTrap: User not whitelisted");
+        _;
+    }
+    
+    modifier notInCooldown() {
+        require(block.timestamp >= lastInteraction[msg.sender] + INTERACTION_COOLDOWN, "DroseraSecurityTrap: Cooldown active");
+        _;
+    }
+    
+    modifier validDeposit() {
+        require(msg.value >= MINIMUM_DEPOSIT, "DroseraSecurityTrap: Deposit too small");
+        require(msg.value <= MAXIMUM_DEPOSIT, "DroseraSecurityTrap: Deposit too large");
+        require(userBalances[msg.sender] + msg.value <= MAXIMUM_DEPOSIT, "DroseraSecurityTrap: Exceeds maximum balance");
+        _;
+    }
+    
+    constructor() {
+        isWhitelisted[msg.sender] = true;
+        emit WhitelistUpdated(msg.sender, true);
+    }
+    
+    /**
+     * @dev Deposit funds into the security trap
+     */
+    function deposit() external payable nonReentrant validDeposit notInCooldown {
+        userBalances[msg.sender] += msg.value;
+        totalDeposits += msg.value;
+        lastInteraction[msg.sender] = block.timestamp;
+        
+        emit Deposit(msg.sender, msg.value, block.timestamp);
+    }
+    
+    /**
+     * @dev Withdraw funds from the security trap
+     */
+    function withdraw(uint256 amount) external nonReentrant onlyWhitelisted notInCooldown {
+        require(amount > 0, "DroseraSecurityTrap: Amount must be greater than 0");
+        require(userBalances[msg.sender] >= amount, "DroseraSecurityTrap: Insufficient balance");
+        require(block.timestamp >= lastInteraction[msg.sender] + WITHDRAWAL_DELAY, "DroseraSecurityTrap: Withdrawal delay not met");
+        
+        userBalances[msg.sender] -= amount;
+        totalDeposits -= amount;
+        lastInteraction[msg.sender] = block.timestamp;
+        
+        payable(msg.sender).sendValue(amount);
+        emit Withdrawal(msg.sender, amount, block.timestamp);
+    }
+    
+    /**
+     * @dev Emergency withdrawal for whitelisted users
+     */
+    function emergencyWithdraw() external nonReentrant onlyWhitelisted {
+        uint256 balance = userBalances[msg.sender];
+        require(balance > 0, "DroseraSecurityTrap: No balance to withdraw");
+        
+        userBalances[msg.sender] = 0;
+        totalDeposits -= balance;
+        lastInteraction[msg.sender] = block.timestamp;
+        
+        payable(msg.sender).sendValue(balance);
+        emit Withdrawal(msg.sender, balance, block.timestamp);
+    }
+    
+    /**
+     * @dev Capture funds from detected attacks
+     */
+    function captureFunds(address attacker, string memory reason) external onlyOwner {
+        uint256 balance = userBalances[attacker];
+        require(balance > 0, "DroseraSecurityTrap: No funds to capture");
+        
+        userBalances[attacker] = 0;
+        totalDeposits -= balance;
+        totalCaptured += balance;
+        attackCount++;
+        
+        emit AttackDetected(attacker, balance, reason);
+        emit FundsCaptured(attacker, balance, block.timestamp);
+    }
+    
+    /**
+     * @dev Update whitelist status
+     */
+    function updateWhitelist(address user, bool status) external onlyOwner {
+        isWhitelisted[user] = status;
+        emit WhitelistUpdated(user, status);
+    }
+    
+    /**
+     * @dev Pause the contract
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+    
+    /**
+     * @dev Unpause the contract
+     */
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+    
+    /**
+     * @dev Get user information
+     */
+    function getUserInfo(address user) external view returns (
+        uint256 balance,
+        bool whitelisted,
+        uint256 lastInteractionTime,
+        bool canWithdraw
+    ) {
+        balance = userBalances[user];
+        whitelisted = isWhitelisted[user];
+        lastInteractionTime = lastInteraction[user];
+        canWithdraw = block.timestamp >= lastInteraction[user] + WITHDRAWAL_DELAY;
+    }
+    
+    /**
+     * @dev Get contract statistics
+     */
+    function getContractStats() external view returns (
+        uint256 totalDepositsAmount,
+        uint256 totalCapturedAmount,
+        uint256 attackCountValue,
+        uint256 contractBalance
+    ) {
+        totalDepositsAmount = totalDeposits;
+        totalCapturedAmount = totalCaptured;
+        attackCountValue = attackCount;
+        contractBalance = address(this).balance;
+    }
+    
+    /**
+     * @dev Receive function to accept ETH
+     */
+    receive() external payable {
+        // Only accept deposits through the deposit function
+        revert("DroseraSecurityTrap: Use deposit() function");
+    }
+    
+    /**
+     * @dev Fallback function
+     */
+    fallback() external payable {
+        revert("DroseraSecurityTrap: Function not found");
+    }
+}`;
+
     return {
       success: true,
       contractCode,
-      contractName: this.generateContractName(request),
-      description: request.userPrompt,
-      securityFeatures: ['Basic security', 'Input validation', 'Access control'],
-      estimatedGas: this.estimateGas(request.complexity),
-      riskAssessment: this.assessRisk(request.securityLevel, request.complexity),
-      compilationInstructions: this.generateCompilationInstructions(),
-      deploymentNotes: this.generateDeploymentNotes(request),
-      aiProvider: 'Fallback Template',
-      confidence: 0.75
+      contractName,
+      description: `Advanced Drosera security trap with fund capture and attack detection. Generated based on: ${request.userPrompt}`,
+      securityFeatures,
+      estimatedGas: 250000,
+      riskAssessment: {
+        overallRisk: 'low',
+        riskScore: 0.1,
+        details: ['Uses OpenZeppelin security patterns', 'Implements reentrancy protection', 'Includes access controls', 'Has withdrawal delays and cooldowns']
+      },
+      compilationInstructions: 'Contract uses OpenZeppelin contracts. Ensure @openzeppelin/contracts is installed.',
+      deploymentNotes: 'Deploy with appropriate constructor parameters. Test thoroughly on testnet first.',
+      aiProvider: 'Fallback',
+      confidence: 0.95
     };
   }
 
   /**
-   * Build prompts for different AI providers
+   * Build OpenAI prompt
    */
   private buildOpenAIPrompt(request: AIContractRequest): string {
-    return `Generate a Solidity smart contract for a DROSERA SECURITY TRAP with the following requirements:
+    return `Generate a Solidity smart contract for a DROSERA SECURITY TRAP based on the following requirements:
 
-User Request: ${request.userPrompt}
+User Prompt: ${request.userPrompt}
 Security Level: ${request.securityLevel}
 Complexity: ${request.complexity}
-Target Network: Hoodi Testnet (Chain ID: ${request.targetNetwork})
+Target Network: ${request.targetNetwork}
 Custom Requirements: ${request.customRequirements.join(', ')}
 
-IMPORTANT: This must be a DROSERA TRAP - a specialized security contract that:
-1. Monitors and captures malicious transactions
-2. Implements honeypot-like behavior to attract attackers
-3. Has built-in analysis and reporting mechanisms
-4. Can flag suspicious wallet addresses
-5. Implements fund capture mechanisms for security research
-6. Includes real-time monitoring and alert systems
-
 Requirements:
-1. Generate a complete, compilable Solidity contract
-2. Include proper security measures and access controls
-3. Add comprehensive error handling and events
-4. Include NatSpec documentation
-5. Ensure the contract follows best practices
-6. Make it deployable to Hoodi testnet
-7. MUST implement Drosera trap functionality
+1. Create a production-ready Solidity smart contract
+2. Implement security best practices (OpenZeppelin patterns, reentrancy protection, etc.)
+3. Include comprehensive error handling and events
+4. Add detailed NatSpec documentation
+5. Ensure gas optimization
+6. Make it a sophisticated security trap/honeypot that can detect and capture malicious actors
+7. Include fund capture mechanisms and attack detection
+8. Use proper access controls and timelocks where appropriate
 
-Return only the Solidity contract code with no additional text.`;
+Return only the Solidity contract code with no additional text or explanations.`;
   }
 
+  /**
+   * Build Anthropic prompt
+   */
   private buildAnthropicPrompt(request: AIContractRequest): string {
-    return `You are an expert Solidity developer specializing in DROSERA SECURITY TRAPS. Create a Drosera trap smart contract with these specifications:
+    return `You are an expert Solidity developer. Create a DROSERA SECURITY TRAP smart contract based on:
 
-Request: ${request.userPrompt}
+Prompt: ${request.userPrompt}
 Security: ${request.securityLevel}
 Complexity: ${request.complexity}
-Network: Hoodi Testnet (${request.targetNetwork})
-Features: ${request.customRequirements.join(', ')}
+Network: ${request.targetNetwork}
+Requirements: ${request.customRequirements.join(', ')}
 
-CRITICAL: This must be a DROSERA TRAP contract that:
-- Monitors and captures malicious transactions
-- Implements honeypot behavior to attract attackers
-- Has built-in analysis and reporting mechanisms
-- Flags suspicious wallet addresses
-- Implements fund capture for security research
-- Includes real-time monitoring and alert systems
-
-Generate a production-ready Solidity contract with:
-- Proper security implementations
-- Access control mechanisms
-- Event logging
-- Error handling
-- NatSpec documentation
-- Hoodi testnet compatibility
-- DROSERA TRAP functionality
+Generate a production-ready contract with:
+- OpenZeppelin security patterns
+- Reentrancy protection
+- Attack detection and fund capture
+- Comprehensive documentation
+- Gas optimization
+- Proper access controls
 
 Return only the Solidity code.`;
   }
 
+  /**
+   * Build Gemini prompt
+   */
   private buildGeminiPrompt(request: AIContractRequest): string {
-    return `Create a Solidity smart contract for a DROSERA SECURITY TRAP with:
+    return `Create a Solidity smart contract for a DROSERA SECURITY TRAP:
 
-Description: ${request.userPrompt}
+Requirements: ${request.userPrompt}
 Security Level: ${request.securityLevel}
 Complexity: ${request.complexity}
-Target: Hoodi Testnet
-Requirements: ${request.customRequirements.join(', ')}
+Network: ${request.targetNetwork}
+Custom: ${request.customRequirements.join(', ')}
 
-ESSENTIAL: This must be a DROSERA TRAP contract that:
-- Monitors and captures malicious transactions
-- Implements honeypot behavior to attract attackers
-- Has built-in analysis and reporting mechanisms
-- Flags suspicious wallet addresses
-- Implements fund capture for security research
-- Includes real-time monitoring and alert systems
-
-Generate a complete, secure Solidity contract that:
-- Implements proper security measures
-- Includes access controls
-- Has comprehensive error handling
-- Follows Solidity best practices
-- Is deployable to Hoodi testnet
-- Implements DROSERA TRAP functionality
+Features needed:
+- Security best practices
+- OpenZeppelin patterns
+- Reentrancy protection
+- Attack detection
+- Fund capture mechanisms
+- Access controls
+- Gas optimization
 
 Return only the Solidity contract code.`;
   }
 
   /**
-   * Helper methods
+   * Parse AI response and extract contract information
    */
-  private extractContractCode(response: string): string {
-    // Extract Solidity code from AI response
-    const codeMatch = response.match(/```solidity\s*([\s\S]*?)\s*```/);
-    if (codeMatch) {
-      return codeMatch[1].trim();
+  private parseAIResponse(aiResponse: string, provider: string, request: AIContractRequest): AIContractResponse {
+    try {
+      // Extract contract code (remove markdown if present)
+      let contractCode = aiResponse;
+      if (aiResponse.includes('```solidity')) {
+        const start = aiResponse.indexOf('```solidity') + 11;
+        const end = aiResponse.lastIndexOf('```');
+        if (start > 10 && end > start) {
+          contractCode = aiResponse.substring(start, end).trim();
+        }
+      } else if (aiResponse.includes('```')) {
+        const start = aiResponse.indexOf('```') + 3;
+        const end = aiResponse.lastIndexOf('```');
+        if (start > 2 && end > start) {
+          contractCode = aiResponse.substring(start, end).trim();
+        }
+      }
+
+      // Generate contract name
+      const contractName = this.generateContractName(request.userPrompt);
+      
+      // Extract security features
+      const securityFeatures = this.extractSecurityFeatures(contractCode);
+      
+      // Estimate gas (rough calculation)
+      const estimatedGas = this.estimateGas(contractCode, request.complexity);
+      
+      // Assess risk
+      const riskAssessment = this.assessRisk(contractCode, request.securityLevel);
+      
+      return {
+        success: true,
+        contractCode,
+        contractName,
+        description: `AI-generated Drosera security trap based on: ${request.userPrompt}`,
+        securityFeatures,
+        estimatedGas,
+        riskAssessment,
+        compilationInstructions: 'Review and test the generated code thoroughly before deployment',
+        deploymentNotes: 'Ensure all dependencies are installed and test on testnet first',
+        aiProvider: provider,
+        confidence: 0.85
+      };
+    } catch (error) {
+      console.error('❌ Failed to parse AI response:', error);
+      throw new Error('Failed to parse AI response');
     }
-    
-    // Fallback: look for contract keyword
-    const contractMatch = response.match(/contract\s+\w+\s*\{[\s\S]*\}/);
-    if (contractMatch) {
-      return contractMatch[0];
-    }
-    
-    return response;
   }
 
-  private generateContractName(request: AIContractRequest): string {
-    const baseName = request.userPrompt.split(' ').slice(0, 3).join('');
-    return `${baseName}SecurityTrap`;
+  /**
+   * Generate contract name from user prompt
+   */
+  private generateContractName(userPrompt: string): string {
+    // Extract key words and create a meaningful name
+    const words = userPrompt.toLowerCase().split(' ');
+    const keyWords = words.filter(word => 
+      ['security', 'trap', 'honeypot', 'defi', 'drosera', 'protection', 'monitoring'].includes(word)
+    );
+    
+    if (keyWords.length > 0) {
+      const baseName = keyWords[0].charAt(0).toUpperCase() + keyWords[0].slice(1);
+      return `${baseName}SecurityTrap`;
+    }
+    
+    return 'DroseraSecurityTrap';
   }
 
-  private extractSecurityFeatures(code: string): string[] {
+  /**
+   * Extract security features from contract code
+   */
+  private extractSecurityFeatures(contractCode: string): string[] {
     const features: string[] = [];
-    if (code.includes('onlyOwner')) features.push('Owner access control');
-    if (code.includes('require(')) features.push('Input validation');
-    if (code.includes('event ')) features.push('Event logging');
-    if (code.includes('modifier')) features.push('Custom modifiers');
-    if (code.includes('SafeMath')) features.push('Safe math operations');
-    return features.length > 0 ? features : ['Basic security'];
-  }
-
-  private estimateGas(complexity: string): number {
-    switch (complexity) {
-      case 'simple': return 80000;
-      case 'medium': return 150000;
-      case 'complex': return 250000;
-      default: return 150000;
+    
+    if (contractCode.includes('ReentrancyGuard')) features.push('Reentrancy Protection');
+    if (contractCode.includes('Ownable')) features.push('Access Control');
+    if (contractCode.includes('Pausable')) features.push('Emergency Pause');
+    if (contractCode.includes('SafeMath') || contractCode.includes('unchecked')) features.push('Safe Math Operations');
+    if (contractCode.includes('require(')) features.push('Input Validation');
+    if (contractCode.includes('event ')) features.push('Event Logging');
+    if (contractCode.includes('modifier ')) features.push('Custom Modifiers');
+    if (contractCode.includes('mapping(')) features.push('Secure Storage');
+    if (contractCode.includes('external') || contractCode.includes('public')) features.push('Function Visibility');
+    
+    // Add default features if none detected
+    if (features.length === 0) {
+      features.push('Basic Security', 'Input Validation', 'Event Logging');
     }
+    
+    return features;
   }
 
-  private assessRisk(securityLevel: string, complexity: string): AIContractResponse['riskAssessment'] {
-    let riskScore = 50;
+  /**
+   * Estimate gas usage
+   */
+  private estimateGas(contractCode: string, complexity: string): number {
+    let baseGas = 150000;
     
-    if (securityLevel === 'enterprise') riskScore -= 20;
-    if (securityLevel === 'basic') riskScore += 20;
-    if (complexity === 'simple') riskScore -= 15;
-    if (complexity === 'complex') riskScore += 15;
+    // Adjust based on complexity
+    switch (complexity) {
+      case 'simple':
+        baseGas = 100000;
+        break;
+      case 'medium':
+        baseGas = 200000;
+        break;
+      case 'complex':
+        baseGas = 300000;
+        break;
+    }
     
-    riskScore = Math.max(10, Math.min(90, riskScore));
+    // Adjust based on contract features
+    if (contractCode.includes('mapping(')) baseGas += 50000;
+    if (contractCode.includes('event ')) baseGas += 10000;
+    if (contractCode.includes('modifier ')) baseGas += 20000;
+    if (contractCode.includes('external')) baseGas += 15000;
+    
+    return baseGas;
+  }
+
+  /**
+   * Assess contract risk
+   */
+  private assessRisk(contractCode: string, securityLevel: string): {
+    overallRisk: 'low' | 'medium' | 'high';
+    riskScore: number;
+    details: string[];
+  } {
+    const details: string[] = [];
+    let riskScore = 0.3; // Base risk
+    
+    // Check for security features
+    if (contractCode.includes('ReentrancyGuard')) {
+      details.push('✅ Reentrancy protection implemented');
+      riskScore -= 0.1;
+    } else {
+      details.push('⚠️ No reentrancy protection detected');
+      riskScore += 0.2;
+    }
+    
+    if (contractCode.includes('Ownable')) {
+      details.push('✅ Access control implemented');
+      riskScore -= 0.1;
+    } else {
+      details.push('⚠️ No access control detected');
+      riskScore += 0.2;
+    }
+    
+    if (contractCode.includes('require(')) {
+      details.push('✅ Input validation present');
+      riskScore -= 0.05;
+    } else {
+      details.push('⚠️ Limited input validation');
+      riskScore += 0.1;
+    }
+    
+    // Adjust based on security level
+    switch (securityLevel) {
+      case 'basic':
+        riskScore += 0.1;
+        details.push('📊 Basic security level - moderate risk');
+        break;
+      case 'premium':
+        riskScore -= 0.05;
+        details.push('📊 Premium security level - lower risk');
+        break;
+      case 'enterprise':
+        riskScore -= 0.1;
+        details.push('📊 Enterprise security level - minimal risk');
+        break;
+    }
+    
+    // Clamp risk score
+    riskScore = Math.max(0, Math.min(1, riskScore));
+    
+    let overallRisk: 'low' | 'medium' | 'high';
+    if (riskScore <= 0.3) overallRisk = 'low';
+    else if (riskScore <= 0.6) overallRisk = 'medium';
+    else overallRisk = 'high';
     
     return {
-      overallRisk: riskScore < 30 ? 'low' : riskScore < 70 ? 'medium' : 'high',
+      overallRisk,
       riskScore,
-      details: [
-        `Security level: ${securityLevel}`,
-        `Complexity: ${complexity}`,
-        `Estimated risk score: ${riskScore}/100`
-      ]
+      details
     };
-  }
-
-  private generateCompilationInstructions(): string {
-    return 'Compile using Solidity 0.8.19+ with optimization enabled. Ensure all dependencies are available.';
-  }
-
-  private generateDeploymentNotes(request: AIContractRequest): string {
-    return `Deploy to Hoodi testnet (Chain ID: ${request.targetNetwork}). Estimated gas: ${this.estimateGas(request.complexity)}. Ensure sufficient testnet ETH for deployment.`;
-  }
-
-  private generateBasicContractTemplate(request: AIContractRequest): string {
-    return `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-
-contract ${this.generateContractName(request)} is Ownable, ReentrancyGuard, Pausable {
-    // Events for Drosera trap monitoring
-    event TrapTriggered(address indexed attacker, uint256 amount, uint256 timestamp, string attackType);
-    event SuspiciousAddressFlagged(address indexed wallet, string reason, uint256 timestamp);
-    event FundsCaptured(address indexed attacker, uint256 amount, uint256 timestamp);
-    event AnalysisReport(address indexed target, string findings, uint256 timestamp);
-    
-    // State variables for Drosera trap functionality
-    uint256 public totalTraps;
-    uint256 public totalFundsCaptured;
-    mapping(address => bool) public hasTriggered;
-    mapping(address => bool) public flaggedAddresses;
-    mapping(address => uint256) public attackCount;
-    mapping(address => string) public attackTypes;
-    
-    // Drosera trap configuration
-    uint256 public minTrapAmount = 0.001 ether;
-    uint256 public maxTrapAmount = 10 ether;
-    bool public trapActive = true;
-    
-    constructor() {
-        totalTraps = 0;
-        totalFundsCaptured = 0;
-    }
-    
-    // Main Drosera trap function - attracts and captures malicious actors
-    function triggerTrap() external payable nonReentrant whenNotPaused {
-        require(trapActive, "Drosera trap is currently inactive");
-        require(msg.value >= minTrapAmount, "Amount too small to trigger trap");
-        require(msg.value <= maxTrapAmount, "Amount exceeds trap limit");
-        require(!hasTriggered[msg.sender], "Address already triggered trap");
-        
-        // Capture the malicious actor
-        hasTriggered[msg.sender] = true;
-        attackCount[msg.sender]++;
-        totalTraps++;
-        totalFundsCaptured += msg.value;
-        
-        // Analyze the attack pattern
-        string memory attackType = _analyzeAttackPattern(msg.sender, msg.value);
-        attackTypes[msg.sender] = attackType;
-        
-        // Flag suspicious address
-        if (msg.value > 1 ether) {
-            flaggedAddresses[msg.sender] = true;
-            emit SuspiciousAddressFlagged(msg.sender, "High value attack", block.timestamp);
-        }
-        
-        emit TrapTriggered(msg.sender, msg.value, block.timestamp, attackType);
-        emit FundsCaptured(msg.sender, msg.value, block.timestamp);
-        emit AnalysisReport(msg.sender, attackType, block.timestamp);
-    }
-    
-    // Analyze attack patterns (Drosera trap intelligence)
-    function _analyzeAttackPattern(address attacker, uint256 amount) internal view returns (string memory) {
-        if (amount > 5 ether) {
-            return "High-Value Attack";
-        } else if (amount > 1 ether) {
-            return "Medium-Value Attack";
-        } else if (attackCount[attacker] > 1) {
-            return "Repeat Attacker";
-        } else {
-            return "Standard Attack";
-        }
-    }
-    
-    // Get comprehensive trap statistics
-    function getTrapStats() external view returns (
-        uint256 _totalTraps,
-        uint256 _totalFundsCaptured,
-        uint256 _contractBalance,
-        uint256 _flaggedAddresses
-    ) {
-        uint256 flaggedCount = 0;
-        // Count flagged addresses (simplified for gas efficiency)
-        return (totalTraps, totalFundsCaptured, address(this).balance, flaggedCount);
-    }
-    
-    // Check if address is flagged
-    function isAddressFlagged(address wallet) external view returns (bool) {
-        return flaggedAddresses[wallet];
-    }
-    
-    // Get attack history for an address
-    function getAttackHistory(address wallet) external view returns (
-        bool triggered,
-        uint256 count,
-        string memory lastAttackType
-    ) {
-        return (hasTriggered[wallet], attackCount[wallet], attackTypes[wallet]);
-    }
-    
-    // Owner functions for Drosera trap management
-    function withdrawCapturedFunds() external onlyOwner {
-        uint256 balance = address(this).balance;
-        require(balance > 0, "No funds to withdraw");
-        
-        (bool success, ) = payable(owner()).call{value: balance}("");
-        require(success, "Withdrawal failed");
-        
-        emit FundsWithdrawn(owner(), balance);
-    }
-    
-    function setTrapConfiguration(
-        uint256 _minAmount,
-        uint256 _maxAmount,
-        bool _active
-    ) external onlyOwner {
-        minTrapAmount = _minAmount;
-        maxTrapAmount = _maxAmount;
-        trapActive = _active;
-    }
-    
-    function pauseTrap() external onlyOwner {
-        _pause();
-    }
-    
-    function unpauseTrap() external onlyOwner {
-        _unpause();
-    }
-    
-    // Emergency functions
-    function emergencyWithdraw() external onlyOwner {
-        uint256 balance = address(this).balance;
-        if (balance > 0) {
-            (bool success, ) = payable(owner()).call{value: balance}("");
-            require(success, "Emergency withdrawal failed");
-        }
-    }
-    
-    // Receive function to capture additional funds
-    receive() external payable {
-        if (msg.value > 0) {
-            totalFundsCaptured += msg.value;
-            emit FundsCaptured(msg.sender, msg.value, block.timestamp);
-        }
-    }
-}`;
   }
 }
 
