@@ -93,16 +93,7 @@ app.get('/api/ai-contracts/test', (req, res) => {
   });
 });
 
-// Test AI status endpoint directly
-app.get('/api/ai-contracts/status', (req, res) => {
-  res.json({ 
-    message: 'AI status endpoint test - direct route works',
-    timestamp: new Date().toISOString(),
-    openai: !!process.env.OPENAI_API_KEY,
-    anthropic: !!process.env.ANTHROPIC_API_KEY,
-    gemini: !!process.env.GEMINI_API_KEY
-  });
-});
+// Direct AI status endpoint removed - now using dynamic route
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
