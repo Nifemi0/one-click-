@@ -41,8 +41,8 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
-// Middleware
-app.use(helmet());
+// Middleware - temporarily simplified for debugging
+// app.use(helmet());
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL || "http://localhost:3000",
