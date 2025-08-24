@@ -795,33 +795,56 @@ Return only the Solidity contract code.`;
    */
   private parseAIResponse(aiResponse: string, provider: string, request: AIContractRequest): AIContractResponse {
     try {
+      console.log(`🔄 ${provider}: Starting to parse AI response...`);
+      console.log(`🔄 ${provider}: Raw response length:`, aiResponse.length);
+      console.log(`🔄 ${provider}: Raw response preview:`, aiResponse.substring(0, 200));
+      
       // Extract contract code (remove markdown if present)
       let contractCode = aiResponse;
       if (aiResponse.includes('```solidity')) {
+        console.log(`🔄 ${provider}: Found Solidity code block, extracting...`);
         const start = aiResponse.indexOf('```solidity') + 11;
         const end = aiResponse.lastIndexOf('```');
         if (start > 10 && end > start) {
           contractCode = aiResponse.substring(start, end).trim();
+          console.log(`🔄 ${provider}: Extracted Solidity code, length:`, contractCode.length);
+        } else {
+          console.log(`🔄 ${provider}: Code block extraction failed, using full response`);
         }
       } else if (aiResponse.includes('```')) {
+        console.log(`🔄 ${provider}: Found generic code block, extracting...`);
         const start = aiResponse.indexOf('```') + 3;
         const end = aiResponse.lastIndexOf('```');
         if (start > 2 && end > start) {
           contractCode = aiResponse.substring(start, end).trim();
+          console.log(`🔄 ${provider}: Extracted generic code, length:`, contractCode.length);
+        } else {
+          console.log(`🔄 ${provider}: Code block extraction failed, using full response`);
         }
+      } else {
+        console.log(`🔄 ${provider}: No code blocks found, using full response`);
       }
+
+      console.log(`🔄 ${provider}: Final contract code length:`, contractCode.length);
+      console.log(`🔄 ${provider}: Contract code preview:`, contractCode.substring(0, 200));
 
       // Generate contract name
       const contractName = this.generateContractName(request.userPrompt);
+      console.log(`🔄 ${provider}: Generated contract name:`, contractName);
       
       // Extract security features
       const securityFeatures = this.extractSecurityFeatures(contractCode);
+      console.log(`🔄 ${provider}: Extracted security features:`, securityFeatures);
       
       // Estimate gas (rough calculation)
       const estimatedGas = this.estimateGas(contractCode, request.complexity);
+      console.log(`🔄 ${provider}: Estimated gas:`, estimatedGas);
       
       // Assess risk
       const riskAssessment = this.assessRisk(contractCode, request.securityLevel);
+      console.log(`🔄 ${provider}: Risk assessment:`, riskAssessment);
+      
+      console.log(`🔄 ${provider}: Successfully parsed AI response, returning result`);
       
       return {
         success: true,
@@ -836,9 +859,13 @@ Return only the Solidity contract code.`;
         aiProvider: provider,
         confidence: 0.85
       };
-    } catch (error) {
-      console.error('❌ Failed to parse AI response:', error);
-      throw new Error('Failed to parse AI response');
+    } catch (error: any) {
+      console.error(`❌ ${provider}: Failed to parse AI response:`, error);
+      console.error(`❌ ${provider}: Error details:`, {
+        message: error.message,
+        stack: error.stack
+      });
+      throw new Error(`Failed to parse ${provider} response: ${error.message}`);
     }
   }
 
