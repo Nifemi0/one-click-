@@ -97,12 +97,19 @@ app.get('/api/ai-contracts/status', async (req, res) => {
 
 app.post('/api/ai-contracts/generate', async (req, res) => {
   try {
+    console.log('🔍 POST /api/ai-contracts/generate received');
+    console.log('🔍 Request headers:', req.headers);
+    console.log('🔍 Request body:', req.body);
+    console.log('🔍 Request body type:', typeof req.body);
+    
     const { userPrompt } = req.body;
     
     if (!userPrompt) {
+      console.log('❌ Missing userPrompt in request body');
       return res.status(400).json({
         success: false,
-        error: 'Missing userPrompt in request body'
+        error: 'Missing userPrompt in request body',
+        receivedBody: req.body
       });
     }
     
@@ -133,12 +140,19 @@ app.post('/api/ai-contracts/generate', async (req, res) => {
 
 app.post('/api/ai-contracts/compile', async (req, res) => {
   try {
+    console.log('🔍 POST /api/ai-contracts/compile received');
+    console.log('🔍 Request headers:', req.headers);
+    console.log('🔍 Request body:', req.body);
+    console.log('🔍 Request body type:', typeof req.body);
+    
     const { contractCode, contractName } = req.body;
     
     if (!contractCode || !contractName) {
+      console.log('❌ Missing contractCode or contractName in request body');
       return res.status(400).json({
         success: false,
-        error: 'Missing contractCode or contractName in request body'
+        error: 'Missing contractCode or contractName in request body',
+        receivedBody: req.body
       });
     }
     
@@ -195,6 +209,20 @@ app.post('/api/ai-contracts/deploy', async (req, res) => {
 });
 
 console.log('✅ AI routes registered at top level');
+
+// Test POST endpoint to isolate the issue
+app.post('/api/test-post', (req, res) => {
+  console.log('🔍 Test POST endpoint received');
+  console.log('🔍 Request body:', req.body);
+  console.log('🔍 Request body type:', typeof req.body);
+  
+  res.json({
+    success: true,
+    message: 'Test POST endpoint working',
+    receivedBody: req.body,
+    bodyType: typeof req.body
+  });
+});
 
 // Health check
 app.get('/health', (req, res) => {
