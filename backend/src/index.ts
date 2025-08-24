@@ -391,6 +391,42 @@ app.get('/api/ai-contracts/test-providers', async (req, res) => {
   }
 });
 
+// AI Service Status Check Endpoint
+app.get('/api/ai-contracts/service-status', async (req, res) => {
+  try {
+    console.log('🔍 Checking AI service status...');
+    
+    const { AIIntegrationService } = await import('./services/aiIntegrationService');
+    const aiService = new AIIntegrationService();
+    
+    const status = {
+      timestamp: new Date().toISOString(),
+      serviceAvailable: aiService.getAvailability(),
+      environment: {
+        openaiKey: !!process.env.OPENAI_API_KEY,
+        anthropicKey: !!process.env.ANTHROPIC_API_KEY,
+        geminiKey: !!process.env.GEMINI_API_KEY,
+        openaiKeyLength: process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.length : 0,
+        geminiKeyLength: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0
+      }
+    };
+    
+    console.log('📊 AI Service Status:', status);
+    
+    return res.status(200).json({
+      success: true,
+      data: status
+    });
+  } catch (error: any) {
+    console.error('❌ AI Service Status Check Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Service status check failed',
+      details: error.message
+    });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 
