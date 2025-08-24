@@ -68,6 +68,134 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// AI Routes - Register at top level to ensure they work
+console.log('🔧 Setting up AI routes at top level...');
+app.get('/api/ai-contracts/status', async (req, res) => {
+  try {
+    const status = {
+      openai: !!process.env.OPENAI_API_KEY,
+      anthropic: !!process.env.ANTHROPIC_API_KEY,
+      gemini: !!process.env.GEMINI_API_KEY,
+      compilation: true,
+      deployment: true,
+      timestamp: new Date().toISOString()
+    };
+    
+    return res.status(200).json({
+      success: true,
+      data: status
+    });
+  } catch (error: any) {
+    console.error('❌ AI Status Check Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to check status',
+      details: error.message
+    });
+  }
+});
+
+app.post('/api/ai-contracts/generate', async (req, res) => {
+  try {
+    const { userPrompt } = req.body;
+    
+    if (!userPrompt) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing userPrompt in request body'
+      });
+    }
+    
+    console.log('🤖 Generating AI contract for prompt:', userPrompt);
+    
+    // Import and use AI service
+    const { AIIntegrationService } = await import('./services/aiIntegrationService');
+    const aiService = new AIIntegrationService();
+    
+    const result = await aiService.generateContract({ 
+      userPrompt,
+      securityLevel: 'basic',
+      complexity: 'simple',
+      targetNetwork: 1,
+      customRequirements: []
+    });
+    
+    return res.status(200).json(result);
+  } catch (error: any) {
+    console.error('❌ AI Generation Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'AI generation failed',
+      details: error.message
+    });
+  }
+});
+
+app.post('/api/ai-contracts/compile', async (req, res) => {
+  try {
+    const { contractCode, contractName } = req.body;
+    
+    if (!contractCode || !contractName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing contractCode or contractName in request body'
+      });
+    }
+    
+    console.log('🔧 Compiling contract:', contractName);
+    
+    // Import and use compilation service
+    const { ContractCompilationService } = await import('./services/contractCompilation');
+    const compilationService = new ContractCompilationService();
+    
+    const result = await compilationService.compileDynamicContract(contractCode, contractName);
+    
+    return res.status(200).json(result);
+  } catch (error: any) {
+    console.error('❌ Compilation Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Compilation failed',
+      details: error.message
+    });
+  }
+});
+
+app.post('/api/ai-contracts/deploy', async (req, res) => {
+  try {
+    const { contractCode, contractName, network } = req.body;
+    
+    if (!contractCode || !contractName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing contractCode or contractName in request body'
+      });
+    }
+    
+    console.log('🚀 Deploying contract:', contractName);
+    
+    // For now, return mock deployment result
+    const result = {
+      success: true,
+      contractAddress: '0x' + '0'.repeat(40),
+      transactionHash: '0x' + '0'.repeat(64),
+      gasUsed: 150000,
+      deploymentCost: '0.001'
+    };
+    
+    return res.status(200).json(result);
+  } catch (error: any) {
+    console.error('❌ Deployment Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Deployment failed',
+      details: error.message
+    });
+  }
+});
+
+console.log('✅ AI routes registered at top level');
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 
@@ -191,140 +319,11 @@ async function setupRoutes() {
     app.use('/api/drosera-registry', droseraRegistryRoutes.default);
     app.use('/api/real-contracts', realContractsRoutes.default);
     // Re-enable AI routes now that helmet issue is resolved
-    console.log('🔧 Registering AI routes...');
+    console.log('🔧 AI routes already registered at top level');
     console.log('📊 AI routes path: /api/ai-contracts');
     
-    // Always use direct route registration for AI endpoints to avoid dynamic import issues
-    console.log('🔄 Using direct AI route registration...');
-    
-    try {
-      // Import required services
-      const { AIIntegrationService } = await import('./services/aiIntegrationService');
-      const { ContractCompilationService } = await import('./services/contractCompilation');
-      
-      const aiService = new AIIntegrationService();
-      const compilationService = new ContractCompilationService();
-      
-      // Direct AI route registration
-      app.get('/api/ai-contracts/status', async (req, res) => {
-        try {
-          const status = {
-            openai: !!process.env.OPENAI_API_KEY,
-            anthropic: !!process.env.ANTHROPIC_API_KEY,
-            gemini: !!process.env.GEMINI_API_KEY,
-            compilation: true,
-            deployment: true,
-            timestamp: new Date().toISOString()
-          };
-          
-          return res.status(200).json({
-            success: true,
-            data: status
-          });
-        } catch (error: any) {
-          console.error('❌ AI Status Check Error:', error);
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to check status',
-            details: error.message
-          });
-        }
-      });
-      
-      app.post('/api/ai-contracts/generate', async (req, res) => {
-        try {
-          const { userPrompt } = req.body;
-          
-          if (!userPrompt) {
-            return res.status(400).json({
-              success: false,
-              error: 'Missing userPrompt in request body'
-            });
-          }
-          
-          console.log('🤖 Generating AI contract for prompt:', userPrompt);
-          const result = await aiService.generateContract({ 
-            userPrompt,
-            securityLevel: 'basic',
-            complexity: 'simple',
-            targetNetwork: 1,
-            customRequirements: []
-          });
-          
-          return res.status(200).json(result);
-        } catch (error: any) {
-          console.error('❌ AI Generation Error:', error);
-          return res.status(500).json({
-            success: false,
-            error: 'AI generation failed',
-            details: error.message
-          });
-        }
-      });
-      
-      app.post('/api/ai-contracts/compile', async (req, res) => {
-        try {
-          const { contractCode, contractName } = req.body;
-          
-          if (!contractCode || !contractName) {
-            return res.status(400).json({
-              success: false,
-              error: 'Missing contractCode or contractName in request body'
-            });
-          }
-          
-          console.log('🔧 Compiling contract:', contractName);
-          const result = await compilationService.compileDynamicContract(contractCode, contractName);
-          
-          return res.status(200).json(result);
-        } catch (error: any) {
-          console.error('❌ Compilation Error:', error);
-          return res.status(500).json({
-            success: false,
-            error: 'Compilation failed',
-            details: error.message
-          });
-        }
-      });
-      
-      app.post('/api/ai-contracts/deploy', async (req, res) => {
-        try {
-          const { contractCode, contractName, network } = req.body;
-          
-          if (!contractCode || !contractName) {
-            return res.status(400).json({
-              success: false,
-              error: 'Missing contractCode or contractName in request body'
-            });
-          }
-          
-          console.log('🚀 Deploying contract:', contractName);
-          
-          // For now, return mock deployment result
-          const result = {
-            success: true,
-            contractAddress: '0x' + '0'.repeat(40),
-            transactionHash: '0x' + '0'.repeat(64),
-            gasUsed: 150000,
-            deploymentCost: '0.001'
-          };
-          
-          return res.status(200).json(result);
-        } catch (error: any) {
-          console.error('❌ Deployment Error:', error);
-          return res.status(500).json({
-            success: false,
-            error: 'Deployment failed',
-            details: error.message
-          });
-        }
-      });
-      
-      console.log('✅ AI routes registered directly');
-    } catch (error) {
-      console.error('❌ Failed to register AI routes:', error);
-      throw error;
-    }
+    // AI routes are now registered at the top level for reliability
+    console.log('✅ AI routes are available');
     app.use('/api/dashboard', dashboardRoutes);
     app.use('/api/auth', authRoutes.default);
     app.use('/api/basic-traps', basicTrapsRoutes.default);
