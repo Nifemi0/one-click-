@@ -93,9 +93,18 @@ export class AIIntegrationService {
           if (result.success) {
             console.log(`✅ Successfully generated contract using ${provider.name}`);
             return result;
+          } else {
+            console.warn(`⚠️ ${provider.name} returned unsuccessful result:`, result);
           }
-        } catch (error) {
-          console.warn(`⚠️ ${provider.name} failed:`, error);
+        } catch (error: any) {
+          console.error(`❌ ${provider.name} failed with error:`, error);
+          console.error(`❌ Error details:`, {
+            message: error.message,
+            stack: error.stack,
+            code: error.code,
+            status: error.response?.status,
+            statusText: error.response?.statusText
+          });
           continue;
         }
       }
@@ -257,8 +266,165 @@ export class AIIntegrationService {
     
     const contractName = this.generateContractName(request.userPrompt);
     
-    // Generate a sophisticated Drosera trap using OpenZeppelin patterns
-    const contractCode = `// SPDX-License-Identifier: MIT
+    // Generate different contract types based on user prompt
+    let contractCode: string;
+    let description: string;
+    
+    if (request.userPrompt.toLowerCase().includes('dex') || request.userPrompt.toLowerCase().includes('watcher')) {
+      // Generate a DEX monitoring contract
+      contractCode = `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+
+/**
+ * @title DEXWatcherTrap
+ * @dev Advanced DEX monitoring and attack detection trap
+ * @custom:security-contact security@drosera.com
+ */
+contract DEXWatcherTrap is ReentrancyGuard, Pausable, Ownable {
+    using Address for address payable;
+    
+    // DEX monitoring state
+    mapping(address => bool) public monitoredTokens;
+    mapping(address => uint256) public lastPriceCheck;
+    mapping(address => uint256) public priceThresholds;
+    
+    uint256 public constant MINIMUM_MONITORING_AMOUNT = 0.001 ether;
+    uint256 public constant MAXIMUM_MONITORING_AMOUNT = 5 ether;
+    uint256 public constant MONITORING_INTERVAL = 5 minutes;
+    
+    uint256 public totalMonitoredValue;
+    uint256 public attackDetectionCount;
+    
+    // Events
+    event TokenAdded(address indexed token, uint256 threshold, uint256 timestamp);
+    event AttackDetected(address indexed token, uint256 price, string reason, uint256 timestamp);
+    event MonitoringUpdated(address indexed token, uint256 newThreshold);
+    
+    constructor() {
+        // Initialize with some default monitored tokens
+        monitoredTokens[address(0)] = true; // ETH
+        priceThresholds[address(0)] = 1000; // $1000 threshold
+    }
+    
+    /**
+     * @dev Add a token to monitoring
+     */
+    function addTokenToMonitoring(address token, uint256 threshold) external onlyOwner {
+        require(token != address(0), "Invalid token address");
+        require(threshold > 0, "Threshold must be greater than 0");
+        
+        monitoredTokens[token] = true;
+        priceThresholds[token] = threshold;
+        lastPriceCheck[token] = block.timestamp;
+        
+        emit TokenAdded(token, threshold, block.timestamp);
+    }
+    
+    /**
+     * @dev Check if a token price has crossed threshold (simulated)
+     */
+    function checkPriceThreshold(address token) external view returns (bool) {
+        require(monitoredTokens[token], "Token not monitored");
+        require(block.timestamp >= lastPriceCheck[token] + MONITORING_INTERVAL, "Too soon to check");
+        
+        // Simulate price check - in real implementation, this would call price oracle
+        return true; // Simulated threshold breach
+    }
+    
+    /**
+     * @dev Report suspicious activity
+     */
+    function reportSuspiciousActivity(address token, string memory reason) external onlyOwner {
+        require(monitoredTokens[token], "Token not monitored");
+        
+        attackDetectionCount++;
+        emit AttackDetected(token, 0, reason, block.timestamp);
+    }
+    
+    /**
+     * @dev Update monitoring threshold
+     */
+    function updateThreshold(address token, uint256 newThreshold) external onlyOwner {
+        require(monitoredTokens[token], "Token not monitored");
+        require(newThreshold > 0, "Threshold must be greater than 0");
+        
+        priceThresholds[token] = newThreshold;
+        emit MonitoringUpdated(token, newThreshold);
+    }
+    
+    /**
+     * @dev Pause monitoring
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+    
+    /**
+     * @dev Resume monitoring
+     */
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+}`;
+      
+      description = `Advanced DEX monitoring trap with price threshold detection and attack reporting. Generated based on: ${request.userPrompt}`;
+    } else if (request.userPrompt.toLowerCase().includes('honeypot')) {
+      // Generate a honeypot contract
+      contractCode = `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+/**
+ * @title HoneypotTrap
+ * @dev Advanced honeypot security trap with fund capture
+ * @custom:security-contact security@drosera.com
+ */
+contract HoneypotTrap is ReentrancyGuard, Ownable {
+    mapping(address => uint256) public balances;
+    mapping(address => bool) public whitelisted;
+    
+    uint256 public totalDeposits;
+    uint256 public totalCaptured;
+    
+    event Deposit(address indexed user, uint256 amount);
+    event FundsCaptured(address indexed attacker, uint256 amount);
+    
+    constructor() {
+        whitelisted[msg.sender] = true;
+    }
+    
+    function deposit() external payable {
+        balances[msg.sender] += msg.value;
+        totalDeposits += msg.value;
+        emit Deposit(msg.sender, msg.value);
+    }
+    
+    function withdraw() external {
+        require(whitelisted[msg.sender], "Not whitelisted");
+        uint256 amount = balances[msg.sender];
+        balances[msg.sender] = 0;
+        payable(msg.sender).transfer(amount);
+    }
+    
+    function captureFunds(address attacker) external onlyOwner {
+        uint256 amount = balances[attacker];
+        balances[attacker] = 0;
+        totalCaptured += amount;
+        emit FundsCaptured(attacker, amount);
+    }
+}`;
+      
+      description = `Advanced honeypot security trap with fund capture and attack detection. Generated based on: ${request.userPrompt}`;
+    } else {
+      // Default advanced security trap
+      contractCode = `// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -443,6 +609,9 @@ contract DroseraSecurityTrap is ReentrancyGuard, Pausable, Ownable {
         revert("DroseraSecurityTrap: Function not found");
     }
 }`;
+      
+      description = `Advanced Drosera security trap with fund capture and attack detection. Generated based on: ${request.userPrompt}`;
+    }
 
     // Now extract security features from the actual contract code
     const securityFeatures = this.extractSecurityFeatures(contractCode);
@@ -451,7 +620,7 @@ contract DroseraSecurityTrap is ReentrancyGuard, Pausable, Ownable {
       success: true,
       contractCode,
       contractName,
-      description: `Advanced Drosera security trap with fund capture and attack detection. Generated based on: ${request.userPrompt}`,
+      description,
       securityFeatures,
       estimatedGas: 250000,
       riskAssessment: {
