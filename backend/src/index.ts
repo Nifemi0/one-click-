@@ -300,6 +300,128 @@ app.get('/api/ai-contracts/test', (req, res) => {
   });
 });
 
+// AI Provider Diagnostic Endpoint
+app.get('/api/ai-contracts/diagnose', async (req, res) => {
+  try {
+    console.log('🔍 AI Provider Diagnostic Request');
+    
+    const results: {
+      timestamp: string;
+      environment: {
+        openaiKey: boolean;
+        anthropicKey: boolean;
+        geminiKey: boolean;
+        nodeEnv: string | undefined;
+      };
+      tests: {
+        openai?: any;
+        gemini?: any;
+      };
+    } = {
+      timestamp: new Date().toISOString(),
+      environment: {
+        openaiKey: !!process.env.OPENAI_API_KEY,
+        anthropicKey: !!process.env.ANTHROPIC_API_KEY,
+        geminiKey: !!process.env.GEMINI_API_KEY,
+        nodeEnv: process.env.NODE_ENV
+      },
+      tests: {}
+    };
+    
+    // Test OpenAI
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        console.log('🧪 Testing OpenAI...');
+        const { AIIntegrationService } = await import('./services/aiIntegrationService');
+        const aiService = new AIIntegrationService();
+        
+        const testResult = await aiService.generateContract({
+          userPrompt: 'test',
+          securityLevel: 'basic',
+          complexity: 'simple',
+          targetNetwork: 1,
+          customRequirements: []
+        });
+        
+        results.tests.openai = {
+          success: true,
+          provider: testResult.aiProvider,
+          message: 'OpenAI test successful'
+        };
+      } catch (error: any) {
+        console.error('❌ OpenAI test failed:', error);
+        results.tests.openai = {
+          success: false,
+          error: error.message,
+          details: {
+            code: error.code,
+            status: error.response?.status,
+            statusText: error.response?.statusText
+          }
+        };
+      }
+    } else {
+      results.tests.openai = {
+        success: false,
+        error: 'No OpenAI API key configured'
+      };
+    }
+    
+    // Test Gemini
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        console.log('🧪 Testing Gemini...');
+        const { AIIntegrationService } = await import('./services/aiIntegrationService');
+        const aiService = new AIIntegrationService();
+        
+        const testResult = await aiService.generateContract({
+          userPrompt: 'test',
+          securityLevel: 'basic',
+          complexity: 'simple',
+          targetNetwork: 1,
+          customRequirements: []
+        });
+        
+        results.tests.gemini = {
+          success: true,
+          provider: testResult.aiProvider,
+          message: 'Gemini test successful'
+        };
+      } catch (error: any) {
+        console.error('❌ Gemini test failed:', error);
+        results.tests.gemini = {
+          success: false,
+          error: error.message,
+          details: {
+            code: error.code,
+            status: error.response?.status,
+            statusText: error.response?.statusText
+          }
+        };
+      }
+    } else {
+      results.tests.gemini = {
+        success: false,
+        error: 'No Gemini API key configured'
+      };
+    }
+    
+    console.log('📊 AI Provider Diagnostic Results:', results);
+    
+    return res.status(200).json({
+      success: true,
+      data: results
+    });
+  } catch (error: any) {
+    console.error('❌ AI Provider Diagnostic Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Diagnostic failed',
+      details: error.message
+    });
+  }
+});
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
