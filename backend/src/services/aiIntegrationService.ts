@@ -256,7 +256,6 @@ export class AIIntegrationService {
     console.log('🔄 Generating fallback contract...');
     
     const contractName = this.generateContractName(request.userPrompt);
-    const securityFeatures = this.extractSecurityFeatures(request.userPrompt);
     
     // Generate a sophisticated Drosera trap using OpenZeppelin patterns
     const contractCode = `// SPDX-License-Identifier: MIT
@@ -444,6 +443,9 @@ contract DroseraSecurityTrap is ReentrancyGuard, Pausable, Ownable {
         revert("DroseraSecurityTrap: Function not found");
     }
 }`;
+
+    // Now extract security features from the actual contract code
+    const securityFeatures = this.extractSecurityFeatures(contractCode);
 
     return {
       success: true,
