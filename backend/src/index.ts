@@ -151,10 +151,14 @@ async function setupRoutes() {
     let aiContractRoutes;
     try {
       const aiRoutesModule = await import('./routes/aiContractGeneration');
+      console.log('📊 AI routes module imported:', typeof aiRoutesModule);
+      console.log('📊 AI routes module keys:', Object.keys(aiRoutesModule));
+      
       aiContractRoutes = aiRoutesModule.default || aiRoutesModule;
       console.log('✅ AI routes imported successfully');
       console.log('📊 AI routes object:', typeof aiContractRoutes);
       console.log('📊 AI routes default:', typeof aiContractRoutes.default);
+      console.log('📊 AI routes router:', aiContractRoutes);
     } catch (error) {
       console.error('❌ Failed to import AI routes:', error);
       throw error;
@@ -193,6 +197,8 @@ async function setupRoutes() {
     console.log('📊 AI routes default type:', typeof aiContractRoutes.default);
     
     try {
+      console.log('🔧 About to register AI routes with app.use...');
+      console.log('📊 AI routes object before registration:', aiContractRoutes);
       app.use('/api/ai-contracts', aiContractRoutes);
       console.log('✅ AI routes registered successfully');
     } catch (error) {
