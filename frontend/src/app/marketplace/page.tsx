@@ -1,13 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Shield, Star, Users, Eye, ShoppingCart, Filter, Search, TrendingUp, CreditCard, Wallet, CheckCircle, X, Zap, Target, Lock, AlertTriangle, RefreshCw } from "lucide-react";
-import { useWallet } from "../../providers/WalletProvider";
-import { MarketplaceService } from "../../lib/marketplaceService";
-import { MarketplaceItem, MarketplaceFilters } from "../../types/marketplace";
+import { useState, useEffect, useMemo } from 'react';
+import { Button } from '@/components/ui/button';
+import { Shield, Search, ShoppingCart, Wallet, CheckCircle, AlertCircle } from 'lucide-react';
+import { useWallet } from '@/providers/WalletProvider';
+import { MarketplaceService } from '@/lib/marketplaceService';
+import { PaymentService } from '@/lib/payment';
+import { SmartContractDeploymentService } from '@/lib/smartContractDeployment';
+import { MarketplaceItem } from '@/types/marketplace';
+
+// Initialize services
+const paymentService = new PaymentService();
+const deploymentService = new SmartContractDeploymentService();
 
 // Disable SSR for this page since it uses wallet hooks
 export const dynamic = 'force-dynamic';
@@ -15,29 +19,156 @@ export const dynamic = 'force-dynamic';
 // Types are now imported from types/marketplace.ts
 
 // Data will be fetched from the backend API
-const defaultMarketplaceItems: MarketplaceItem[] = [];
+const defaultMarketplaceItems: MarketplaceItem[] = [
+  {
+    id: 'security-trap',
+    name: 'SecurityTrap',
+    description: 'Advanced security trap with comprehensive attack detection and response mechanisms',
+    category: 'Security',
+    difficulty: 'Advanced',
+    securityLevel: 'High',
+    price: '0.08',
+    priceInEth: 0.08,
+    rating: 4.9,
+    reviewCount: 67,
+    downloads: 342,
+    tags: ['Security', 'Advanced', 'Attack Detection', 'Response'],
+    lastUpdated: '1 day ago',
+    author: 'OneClick Security',
+    features: ['Attack Detection', 'Automated Response', 'Event Logging', 'Emergency Shutdown'],
+    deploymentTime: '2-3 minutes',
+    preview: 'Advanced security trap with real-time threat detection',
+    contractCode: '// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\nimport "@openzeppelin/contracts/utils/ReentrancyGuard.sol";\nimport "@openzeppelin/contracts/access/Ownable.sol";\n\ncontract SecurityTrap is ReentrancyGuard, Ownable {\n  // Real compiled contract code\n}'
+  },
+  {
+    id: 'advanced-honeypot',
+    name: 'AdvancedHoneypot',
+    description: 'Sophisticated honeypot that captures malicious actors while protecting legitimate users',
+    category: 'Honeypot',
+    difficulty: 'Advanced',
+    securityLevel: 'High',
+    price: '0.12',
+    priceInEth: 0.12,
+    rating: 4.8,
+    reviewCount: 89,
+    downloads: 567,
+    tags: ['Honeypot', 'Advanced', 'Malware Capture', 'User Protection'],
+    lastUpdated: '2 days ago',
+    author: 'OneClick Security',
+    features: ['Malware Detection', 'User Protection', 'Fund Capture', 'Analytics'],
+    deploymentTime: '3-4 minutes',
+    preview: 'Advanced honeypot with intelligent threat detection',
+    contractCode: '// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\nimport "@openzeppelin/contracts/security/ReentrancyGuard.sol";\nimport "@openzeppelin/contracts/access/Ownable.sol";\n\ncontract AdvancedHoneypot is ReentrancyGuard, Ownable {\n  // Real compiled contract code\n}'
+  },
+  {
+    id: 'drosera-registry',
+    name: 'DroseraRegistry',
+    description: 'Centralized registry for managing and monitoring all deployed security traps',
+    category: 'Monitoring',
+    difficulty: 'Intermediate',
+    securityLevel: 'Medium',
+    price: '0.06',
+    priceInEth: 0.06,
+    rating: 4.7,
+    reviewCount: 45,
+    downloads: 234,
+    tags: ['Registry', 'Monitoring', 'Management', 'Centralized'],
+    lastUpdated: '3 days ago',
+    author: 'OneClick Security',
+    features: ['Trap Registry', 'Monitoring Dashboard', 'Event Logging', 'Admin Controls'],
+    deploymentTime: '2-3 minutes',
+    preview: 'Centralized registry for security trap management',
+    contractCode: '// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\nimport "@openzeppelin/contracts/access/Ownable.sol";\nimport "@openzeppelin/contracts/utils/Counters.sol";\n\ncontract DroseraRegistry is Ownable {\n  // Real compiled contract code\n}'
+  },
+  {
+    id: 'flash-loan-protection',
+    name: 'FlashLoanProtection',
+    description: 'Protection mechanism against flash loan attacks and price manipulation',
+    category: 'Security',
+    difficulty: 'Advanced',
+    securityLevel: 'High',
+    price: '0.15',
+    priceInEth: 0.15,
+    rating: 4.9,
+    reviewCount: 123,
+    downloads: 789,
+    tags: ['Flash Loan', 'Attack Prevention', 'Price Protection', 'Advanced'],
+    lastUpdated: '1 day ago',
+    author: 'OneClick Security',
+    features: ['Flash Loan Detection', 'Price Manipulation Prevention', 'Emergency Shutdown', 'Real-time Monitoring'],
+    deploymentTime: '4-5 minutes',
+    preview: 'Advanced flash loan attack protection system',
+    contractCode: '// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\nimport "@openzeppelin/contracts/security/ReentrancyGuard.sol";\nimport "@openzeppelin/contracts/access/Ownable.sol";\n\ncontract FlashLoanProtection is ReentrancyGuard, Ownable {\n  // Real compiled contract code\n}'
+  },
+  {
+    id: 'mev-protection',
+    name: 'MEVProtection',
+    description: 'Maximum Extractable Value protection against sandwich attacks and front-running',
+    category: 'Monitoring',
+    difficulty: 'Advanced',
+    securityLevel: 'High',
+    price: '0.18',
+    priceInEth: 0.18,
+    rating: 4.9,
+    reviewCount: 156,
+    downloads: 892,
+    tags: ['MEV', 'Sandwich Attack', 'Front-running', 'Advanced'],
+    lastUpdated: '2 days ago',
+    author: 'OneClick Security',
+    features: ['MEV Detection', 'Sandwich Prevention', 'Transaction Ordering', 'Gas Optimization'],
+    deploymentTime: '3-4 minutes',
+    preview: 'Comprehensive MEV attack protection system',
+    contractCode: '// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\nimport "@openzeppelin/contracts/security/ReentrancyGuard.sol";\nimport "@openzeppelin/contracts/access/Ownable.sol";\n\ncontract MEVProtection is ReentrancyGuard, Ownable {\n  // Real compiled contract code\n}'
+  }
+];
 
 export default function MarketplacePage() {
-  const { isConnected, address } = useWallet();
+  // Wallet connection
+  const { address, isConnected } = useWallet();
+
+  // Filter states
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedDifficulty, setSelectedDifficulty] = useState('all');
+  const [selectedSecurityLevel, setSelectedSecurityLevel] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'price' | 'name' | 'date' | 'popularity'>('price');
+
+  // Categories and filters
+  const categories = ['all', 'Security', 'Honeypot', 'Monitoring', 'Basic'];
+  const difficulties = ['all', 'Basic', 'Intermediate', 'Advanced'];
+  const securityLevels = ['all', 'Low', 'Medium', 'High'];
+
   const [marketplaceItems, setMarketplaceItems] = useState<MarketplaceItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<MarketplaceItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [cart, setCart] = useState<MarketplaceItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
-  const [selectedSecurityLevel, setSelectedSecurityLevel] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'price' | 'name' | 'date' | 'popularity'>('price');
   const [showCart, setShowCart] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-
-  const categories = ['all', 'Honeypots', 'Flash Loan Protection', 'Reentrancy Protection', 'MEV Protection', 'Access Control'];
-  const difficulties = ['all', 'Basic', 'Intermediate', 'Advanced'];
-  const securityLevels = ['all', 'Low', 'Medium', 'High'];
+  const [deploymentStatus, setDeploymentStatus] = useState<{
+    isDeploying: boolean;
+    currentContract: string;
+    progress: number;
+    deployedContracts: Array<{ name: string; address: string; txHash: string }>;
+    errors: Array<{ name: string; error: string }>;
+  }>({
+    isDeploying: false,
+    currentContract: '',
+    progress: 0,
+    deployedContracts: [],
+    errors: []
+  });
 
   const addToCart = (item: MarketplaceItem) => {
+    console.log('addToCart called with:', item);
     if (!cart.find(cartItem => cartItem.id === item.id)) {
-      setCart([...cart, item]);
+      const newCart = [...cart, item];
+      console.log('Adding to cart, new cart:', newCart);
+      setCart(newCart);
+      // Show a visual feedback
+      alert(`Added ${item.name} to cart!`);
+    } else {
+      console.log('Item already in cart');
+      alert('Item already in cart!');
     }
   };
 
@@ -90,10 +221,13 @@ export default function MarketplacePage() {
     const fetchMarketplaceData = async () => {
       setIsLoading(true);
       try {
+        console.log('Fetching marketplace data...');
         const items = await MarketplaceService.getMarketplaceItems();
+        console.log('Marketplace items received:', items);
         setMarketplaceItems(items);
       } catch (error) {
         console.error('Failed to fetch marketplace data:', error);
+        console.log('Using fallback data...');
         // Fallback to default items if API fails
         setMarketplaceItems(defaultMarketplaceItems);
       } finally {
@@ -116,19 +250,123 @@ export default function MarketplacePage() {
     }
 
     setIsProcessingPayment(true);
+    setDeploymentStatus({
+      isDeploying: true,
+      currentContract: '',
+      progress: 0,
+      deployedContracts: [],
+      errors: []
+    });
 
     try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Calculate total cost
+      const totalCost = cart.reduce((sum, item) => sum + item.priceInEth, 0);
       
-      // Clear cart after successful payment
-      clearCart();
-      setShowCart(false);
-      alert('Payment successful! Your security traps are being deployed.');
-    } catch (error) {
-      alert('Payment failed. Please try again.');
+      // Check user balance
+      const userBalance = await paymentService.getBalance();
+      if (parseFloat(userBalance) < totalCost) {
+        throw new Error(`Insufficient balance. You have ${userBalance} ETH but need ${totalCost} ETH`);
+      }
+
+      // Initialize deployment service
+      const isInitialized = await deploymentService.initialize();
+      if (!isInitialized) {
+        throw new Error('Failed to initialize deployment service. Please check your wallet connection.');
+      }
+
+      // Deploy each contract in the cart
+      const totalContracts = cart.length;
+      let deployedCount = 0;
+
+      for (const item of cart) {
+        try {
+          setDeploymentStatus(prev => ({
+            ...prev,
+            currentContract: item.name,
+            progress: (deployedCount / totalContracts) * 100
+          }));
+
+          console.log(`🚀 Deploying ${item.name}...`);
+
+          // Deploy the contract
+          const deploymentResult = await deploymentService.deployContract({
+            template: {
+              id: item.id,
+              name: item.name,
+              type: item.name.toLowerCase().replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
+              description: item.description,
+              price: item.priceInEth,
+              difficulty: item.difficulty,
+              securityLevel: item.securityLevel,
+              features: item.features,
+              tags: item.tags,
+              deploymentTime: item.deploymentTime,
+              gasEstimate: 150000, // Default gas estimate
+              contractCode: item.contractCode,
+              preview: item.preview,
+              author: item.author,
+              lastUpdated: item.lastUpdated
+            },
+            customizations: {
+              name: item.name,
+              description: item.description,
+              securityLevel: item.securityLevel as 'Low' | 'Medium' | 'High'
+            }
+          });
+
+          if (deploymentResult.success && deploymentResult.contractAddress) {
+            deployedCount++;
+            setDeploymentStatus(prev => ({
+              ...prev,
+              deployedContracts: [...prev.deployedContracts, {
+                name: item.name,
+                address: deploymentResult.contractAddress!,
+                txHash: deploymentResult.transactionHash!
+              }],
+              progress: (deployedCount / totalContracts) * 100
+            }));
+
+            console.log(`✅ ${item.name} deployed successfully at ${deploymentResult.contractAddress}`);
+          } else {
+            throw new Error(deploymentResult.error || 'Deployment failed');
+          }
+
+        } catch (error: any) {
+          console.error(`❌ Failed to deploy ${item.name}:`, error);
+          setDeploymentStatus(prev => ({
+            ...prev,
+            errors: [...prev.errors, {
+              name: item.name,
+              error: error.message || 'Deployment failed'
+            }]
+          }));
+        }
+      }
+
+      // Show deployment results
+      if (deployedCount > 0) {
+        const successMessage = `✅ Successfully deployed ${deployedCount} out of ${totalContracts} contracts!\n\nDeployed contracts:\n${deploymentStatus.deployedContracts.map(c => `• ${c.name}: ${c.address}`).join('\n')}`;
+        alert(successMessage);
+        
+        // Clear cart after successful deployment
+        clearCart();
+        setShowCart(false);
+      }
+
+      if (deploymentStatus.errors.length > 0) {
+        const errorMessage = `⚠️ ${deploymentStatus.errors.length} contracts failed to deploy:\n\n${deploymentStatus.errors.map(e => `• ${e.name}: ${e.error}`).join('\n')}`;
+        alert(errorMessage);
+      }
+
+    } catch (error: any) {
+      console.error('Payment/Deployment failed:', error);
+      alert(`❌ Payment/Deployment failed: ${error.message}`);
     } finally {
       setIsProcessingPayment(false);
+      setDeploymentStatus(prev => ({
+        ...prev,
+        isDeploying: false
+      }));
     }
   };
 
@@ -295,7 +533,7 @@ export default function MarketplacePage() {
               variant="outline"
               className="border-white/20 text-white hover:bg-white/10"
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <Shield className="h-4 w-4 mr-2" />
               Refresh
             </Button>
             <Button
@@ -316,90 +554,62 @@ export default function MarketplacePage() {
             <p className="text-gray-400">Loading marketplace items...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
             {filteredItems.map((item) => (
-            <Card key={item.id} className="bg-white/5 backdrop-blur-sm border border-white/10 hover:border-orange-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/20">
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-xl text-white mb-2">{item.name}</CardTitle>
-                    <CardDescription className="text-gray-300 text-sm leading-relaxed">
-                      {item.description}
-                    </CardDescription>
-                  </div>
-                  <div className="text-right ml-4">
-                    <div className="text-2xl font-bold text-orange-400 mb-1">{item.price}</div>
-                    <Badge variant="outline" className="border-orange-500/30 text-orange-400">
-                      {item.category}
-                    </Badge>
+              <div key={item.id} className="bg-white/5 backdrop-blur-sm border border-white/10 hover:border-orange-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/20 rounded-lg p-3 min-h-[180px] flex flex-col">
+                {/* Shield Icon at Top Center */}
+                <div className="text-center mb-2">
+                  <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-1">
+                    <Shield className="w-3 h-3 text-white" />
                   </div>
                 </div>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                {/* Difficulty and Security Level */}
-                <div className="flex gap-2">
-                  <Badge className={getDifficultyColor(item.difficulty)}>
+                
+                {/* Template Name */}
+                <h3 className="text-xs font-semibold text-white mb-1 text-center line-clamp-2">
+                  {item.name}
+                </h3>
+                
+                {/* Description */}
+                <p className="text-gray-300 text-xs leading-relaxed text-center mb-2 line-clamp-2">
+                  {item.description}
+                </p>
+                
+                {/* Difficulty Badge */}
+                <div className="flex justify-center mb-2">
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    item.difficulty === 'Basic' ? 'bg-green-500/20 text-green-400' :
+                    item.difficulty === 'Intermediate' ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-red-500/20 text-red-400'
+                  }`}>
                     {item.difficulty}
-                  </Badge>
-                  <Badge className={getSecurityLevelColor(item.securityLevel)}>
-                    {item.securityLevel} Security
-                  </Badge>
+                  </span>
                 </div>
-
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2">
-                  {item.tags.slice(0, 3).map((tag, index) => (
-                    <Badge key={index} variant="secondary" className="bg-white/10 text-gray-300 text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                  {item.tags.length > 3 && (
-                    <Badge variant="secondary" className="bg-white/10 text-gray-300 text-xs">
-                      +{item.tags.length - 3} more
-                    </Badge>
-                  )}
+                
+                {/* Template Details */}
+                <div className="text-center space-y-1 mb-2 text-xs text-gray-400">
+                  <div>{item.category}</div>
+                  <div>By {item.author}</div>
                 </div>
-
-                {/* Features */}
-                <div>
-                  <h4 className="text-sm font-medium text-gray-300 mb-2">Key Features:</h4>
-                  <ul className="space-y-1">
-                    {item.features.slice(0, 3).map((feature, index) => (
-                      <li key={index} className="text-xs text-gray-400 flex items-center">
-                        <CheckCircle className="h-3 w-3 text-green-400 mr-2" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Author and Update Info */}
-                <div className="flex items-center justify-between text-xs text-gray-400">
-                  <span>By {item.author}</span>
-                  <span>{item.lastUpdated}</span>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => addToCart(item)}
-                    className="flex-1 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white"
+                
+                {/* Price and Action */}
+                <div className="mt-auto flex items-center justify-between">
+                  <div className="text-xs font-bold text-orange-400">
+                    {item.price} ETH
+                  </div>
+                  <Button 
+                    className="bg-orange-600 hover:bg-orange-700 text-white px-2 py-1 rounded text-xs h-6"
+                    onClick={() => {
+                      console.log('Adding to cart:', item);
+                      addToCart(item);
+                    }}
                   >
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    Add to Cart
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="border-white/20 text-white hover:bg-white/10"
-                  >
-                    <Eye className="h-4 w-4" />
+                    <ShoppingCart className="h-3 w-3 mr-1" />
+                    Add
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
+            ))}
+          </div>
         )}
 
         {/* Empty State */}

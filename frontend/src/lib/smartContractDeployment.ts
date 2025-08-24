@@ -153,25 +153,34 @@ export class SmartContractDeploymentService {
 
   private async getContractData(templateType: string): Promise<{ abi: any; bytecode: string } | null> {
     try {
-      // Use fallback contracts for now - these will be replaced with real compiled contracts later
-      const { fallbackContracts } = await import('./fallbackContracts');
-      
-      switch (templateType) {
-        case 'Honeypot':
-          return fallbackContracts.Honeypot;
-        
-        case 'ReentrancyGuard':
-          return fallbackContracts.ReentrancyGuard;
-        
-        case 'FlashLoanProtection':
-          return fallbackContracts.FlashLoanProtection;
-        
-        case 'MEVProtection':
-          return fallbackContracts.MEVProtection;
-        
-        default:
-          return fallbackContracts.SecurityTrap;
+      // Fetch real compiled contracts from backend API
+      const response = await fetch('https://one-click-c308.onrender.com/api/real-contracts/templates');
+      if (!response.ok) {
+        throw new Error('Failed to fetch contract templates');
       }
+      
+      const result = await response.json();
+      if (!result.success || !result.data.templates) {
+        throw new Error('Invalid response format from templates API');
+      }
+      
+      const templates = result.data.templates;
+      const template = templates.find((t: any) => t.type === templateType || t.name === templateType);
+      
+      if (template && template.abi && template.bytecode) {
+        console.log(`✅ Found template: ${template.name} for type: ${templateType}`);
+        return {
+          abi: template.abi,
+          bytecode: template.bytecode
+        };
+      }
+      
+      // Fallback to basic contract structure if template not found
+      console.warn(`Template ${templateType} not found, using fallback structure`);
+      return {
+        abi: [],
+        bytecode: '0x'
+      };
     } catch (error) {
       console.error('Failed to load contract data:', error);
       return null;

@@ -12,7 +12,7 @@ package = "@netlify/plugin-nextjs"
 [plugins.inputs]
 
 [build]
-publish = "C:\\Users\\USER\\Downloads\\one-click--main\\frontend\\.next"
+publish = "C:\\Users\\USER\\Downloads\\one-click--main\\frontend\\out"
 publishOrigin = "config"
 commandOrigin = "config"
 base = "C:\\Users\\USER\\Downloads\\one-click--main\\frontend"
@@ -72,6 +72,54 @@ for = "/_next/static/*"
 
 [headers.values]
 Cache-Control = "public, max-age=31536000, immutable"
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/_next/static/css/*"
+to = "/_next/static/css/:splat"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/_next/static/chunks/*"
+to = "/_next/static/chunks/:splat"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/_next/static/media/*"
+to = "/_next/static/media/:splat"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
 
 [[redirects]]
 from = "/_next/image/"

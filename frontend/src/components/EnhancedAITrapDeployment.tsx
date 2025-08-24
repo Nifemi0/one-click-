@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { useWallet } from '@/providers/WalletProvider';
 
 interface EnhancedAITrapDeploymentProps {
   isVisible?: boolean; // Control visibility for hidden feature
@@ -41,7 +41,7 @@ interface Deployment {
 const EnhancedAITrapDeployment: React.FC<EnhancedAITrapDeploymentProps> = ({ 
   isVisible = false 
 }) => {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected } = useWallet();
   // const chainId = useChainId(); // Unused variable
   
   const [isDeploying, setIsDeploying] = useState(false);
@@ -61,6 +61,26 @@ const EnhancedAITrapDeployment: React.FC<EnhancedAITrapDeploymentProps> = ({
     alertPreferences: ['email']
   });
 
+  // Password protection state
+  const [isPasswordProtected, setIsPasswordProtected] = useState(true);
+  const [password, setPassword] = useState('');
+  const [showPasswordForm, setShowPasswordForm] = useState(true);
+
+  // Password for testing - change this to your preferred password
+  const CORRECT_PASSWORD = 'oneclick2024';
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === CORRECT_PASSWORD) {
+      setIsPasswordProtected(false);
+      setShowPasswordForm(false);
+      alert('✅ Access granted! Welcome to the Enhanced AI Trap Creation feature.');
+    } else {
+      alert('❌ Incorrect password. This feature is restricted.');
+      setPassword('');
+    }
+  };
+
   useEffect(() => {
     if (isConnected) {
       loadDeployments();
@@ -69,6 +89,56 @@ const EnhancedAITrapDeployment: React.FC<EnhancedAITrapDeploymentProps> = ({
 
   // Hide component if not visible (for hidden feature)
   if (!isVisible) {
+    return null;
+  }
+
+  // Show password form if not authenticated
+  if (showPasswordForm) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-8 max-w-md w-full">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">🔒 Enhanced AI Access</h2>
+            <p className="text-gray-300">This premium feature requires authentication</p>
+          </div>
+          
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="Enter password"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-orange-700 hover:to-red-700 transition-all duration-200"
+            >
+              🔓 Unlock Feature
+            </button>
+          </form>
+          
+          <div className="mt-6 text-center">
+            <p className="text-xs text-gray-400">
+              This is a premium AI feature for testing purposes only
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show main component if authenticated
+  if (isPasswordProtected) {
     return null;
   }
 
@@ -85,7 +155,7 @@ const EnhancedAITrapDeployment: React.FC<EnhancedAITrapDeploymentProps> = ({
 
     setIsDeploying(true);
     try {
-      const response = await fetch('/api/enhanced-ai-trap/deploy', {
+      const response = await fetch('https://one-click-c308.onrender.com/api/enhanced-ai-trap/deploy', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -113,7 +183,7 @@ const EnhancedAITrapDeployment: React.FC<EnhancedAITrapDeploymentProps> = ({
 
   const loadDeployments = async () => {
     try {
-      const response = await fetch('/api/enhanced-ai-trap/deployments', {
+      const response = await fetch('https://one-click-c308.onrender.com/api/enhanced-ai-trap/deployments', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -130,7 +200,7 @@ const EnhancedAITrapDeployment: React.FC<EnhancedAITrapDeploymentProps> = ({
 
   const downloadFile = async (deploymentId: string, fileType: string) => {
     try {
-      const response = await fetch(`/api/enhanced-ai-trap/deployments/${deploymentId}/files?fileType=${fileType}`, {
+      const response = await fetch(`https://one-click-c308.onrender.com/api/enhanced-ai-trap/deployments/${deploymentId}/files?fileType=${fileType}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }

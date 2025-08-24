@@ -21,7 +21,7 @@ export function Header() {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-b border-gray-800">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 dark:bg-black/80 bg-white/90 dark:backdrop-blur-xl backdrop-blur-xl border-b border-gray-800 dark:border-gray-800 border-gray-200 dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left Side - Logo */}
@@ -34,22 +34,22 @@ export function Header() {
 
           {/* Center - Navigation Links */}
           <nav className="hidden md:flex items-center space-x-8">
-            <a href="#hero" className="text-white hover:text-orange-400 transition-colors">
+            <a href="#hero" className="text-white dark:text-white text-gray-900 hover:text-orange-400 transition-colors">
               Home
             </a>
-            <a href="#features" className="text-white hover:text-orange-400 transition-colors">
+            <a href="#features" className="text-white dark:text-white text-gray-900 hover:text-orange-400 transition-colors">
               Features
             </a>
-            <a href="#security" className="text-white hover:text-orange-400 transition-colors">
+            <a href="#security" className="text-white dark:text-white text-gray-900 hover:text-orange-400 transition-colors">
               Security
             </a>
-            <a href="/marketplace" className="text-white hover:text-orange-400 transition-colors">
+            <a href="/marketplace" className="text-white dark:text-white text-gray-900 hover:text-orange-400 transition-colors">
               Marketplace
             </a>
-            <a href="/drosera-registry" className="text-white hover:text-orange-400 transition-colors">
+            <a href="/drosera-registry" className="text-white dark:text-white text-gray-900 hover:text-orange-400 transition-colors">
               Registry
             </a>
-            <a href="#contact" className="text-white hover:text-orange-400 transition-colors">
+            <a href="#contact" className="text-white dark:text-white text-gray-900 hover:text-orange-400 transition-colors">
               Contact
             </a>
           </nav>
@@ -59,7 +59,7 @@ export function Header() {
             <ThemeToggle />
             {isConnected ? (
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-300">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
+                <span className="text-sm text-gray-300 dark:text-gray-300 text-gray-700">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
                 <button
                   onClick={handleLaunchApp}
                   className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-semibold px-4 py-2 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"

@@ -1,117 +1,137 @@
 // Feature Flags System
 // This controls the visibility of hidden/premium features
 
-export interface FeatureFlags {
-  enhancedAITrapDeployment: boolean;
-  premiumFeatures: boolean;
-  enterpriseFeatures: boolean;
-  betaFeatures: boolean;
-}
-
-// Default feature flags (all hidden for initial launch)
-const defaultFeatureFlags: FeatureFlags = {
-  enhancedAITrapDeployment: false, // Hidden premium feature
-  premiumFeatures: false, // Basic premium features
-  enterpriseFeatures: false, // Enterprise features
-  betaFeatures: false, // Beta testing features
-};
-
-type Environment = 'development' | 'production' | 'staging' | 'test';
-
-// Environment-based feature flags
-const getEnvironmentFlags = (): Partial<FeatureFlags> => {
-  const env = (process.env.NODE_ENV || 'development') as Environment;
+export const featureFlags = {
+  // Core features
+  basicTrapDeployment: true,
+  marketplace: true,
+  droseraRegistry: true,
   
-  if (env === 'development') {
-    return {
-      enhancedAITrapDeployment: true, // Show in development
-      premiumFeatures: true,
-      enterpriseFeatures: true,
-      betaFeatures: true,
-    };
-  }
+  // Premium features
+  enhancedAITrapDeployment: true, // Enabled for password-protected testing
+  premiumFeatures: true,
+  enterpriseFeatures: false,
   
-  if (env === 'staging') {
-    return {
-      enhancedAITrapDeployment: false, // Hidden in staging
-      premiumFeatures: true,
-      enterpriseFeatures: false,
-      betaFeatures: true,
-    };
-  }
+  // Development features
+  betaFeatures: false,
+  experimentalFeatures: false,
   
-  if (env === 'test') {
-    return {
-      enhancedAITrapDeployment: true, // Show in test
-      premiumFeatures: true,
-      enterpriseFeatures: true,
-      betaFeatures: true,
-    };
-  }
+  // UI features
+  darkMode: true,
+  advancedFilters: true,
+  realTimeUpdates: true,
   
-  // Production - all hidden
-  return {};
-};
-
-// Runtime feature flags (can be controlled via API)
-let runtimeFeatureFlags: Partial<FeatureFlags> = {};
-
-// Initialize feature flags
-export const initializeFeatureFlags = async (): Promise<void> => {
-  try {
-    // In the future, this could fetch from an API
-    // const response = await fetch('/api/feature-flags');
-    // runtimeFeatureFlags = await response.json();
-    
-    // For now, use environment flags
-    runtimeFeatureFlags = getEnvironmentFlags();
-    
-    console.log('🚀 Feature flags initialized:', getFeatureFlags());
-  } catch (error) {
-    console.warn('Failed to initialize feature flags, using defaults:', error);
-  }
-};
-
-// Get current feature flags
-export const getFeatureFlags = (): FeatureFlags => {
-  return {
-    ...defaultFeatureFlags,
-    ...getEnvironmentFlags(),
-    ...runtimeFeatureFlags,
-  };
-};
-
-// Check if a specific feature is enabled
-export const isFeatureEnabled = (feature: keyof FeatureFlags): boolean => {
-  const flags = getFeatureFlags();
-  return flags[feature] || false;
-};
-
-// Update runtime feature flags (for admin use)
-export const updateFeatureFlags = (updates: Partial<FeatureFlags>): void => {
-  runtimeFeatureFlags = {
-    ...runtimeFeatureFlags,
-    ...updates,
-  };
+  // Analytics and monitoring
+  analytics: true,
+  performanceMonitoring: true,
+  userTracking: false,
   
-  console.log('🔧 Feature flags updated:', getFeatureFlags());
+  // Security features
+  twoFactorAuth: false,
+  advancedSecurity: true,
+  auditLogging: true,
+  
+  // Integration features
+  walletConnect: true,
+  multiChainSupport: true,
+  apiAccess: true,
+  
+  // Testing features
+  testMode: false,
+  debugMode: false,
+  mockData: false
 };
 
-// Feature-specific helper functions
-export const canAccessEnhancedAI = (): boolean => {
-  return isFeatureEnabled('enhancedAITrapDeployment');
+// Helper functions to check feature availability
+export const isFeatureEnabled = (feature: keyof typeof featureFlags): boolean => {
+  return featureFlags[feature] || false;
 };
 
 export const canAccessPremiumFeatures = (): boolean => {
-  return isFeatureEnabled('premiumFeatures');
+  return featureFlags.premiumFeatures;
 };
 
 export const canAccessEnterpriseFeatures = (): boolean => {
-  return isFeatureEnabled('enterpriseFeatures');
+  return featureFlags.enterpriseFeatures;
 };
 
-export const canAccessBetaFeatures = (): boolean => {
-  return isFeatureEnabled('betaFeatures');
+export const canAccessEnhancedAI = (): boolean => {
+  return featureFlags.enhancedAITrapDeployment;
+};
+
+// Environment-specific feature flags
+export const getEnvironmentFeatures = (environment: 'development' | 'staging' | 'production' | 'test') => {
+  switch (environment) {
+    case 'development':
+      return {
+        ...featureFlags,
+        enhancedAITrapDeployment: true, // Show in development
+        debugMode: true,
+        testMode: true
+      };
+    case 'staging':
+      return {
+        ...featureFlags,
+        enhancedAITrapDeployment: true, // Show in staging
+        debugMode: false,
+        testMode: true
+      };
+    case 'production':
+      return {
+        ...featureFlags,
+        enhancedAITrapDeployment: true, // Show in production (password protected)
+        debugMode: false,
+        testMode: false
+      };
+    case 'test':
+      return {
+        ...featureFlags,
+        enhancedAITrapDeployment: true, // Show in test
+        debugMode: true,
+        testMode: true
+      };
+    default:
+      return featureFlags;
+  }
+};
+
+// User role-based feature access
+export const getUserFeatureAccess = (userRole: string, isPremium: boolean) => {
+  const baseFeatures = {
+    basicTrapDeployment: true,
+    marketplace: true,
+    droseraRegistry: true,
+    darkMode: true,
+    walletConnect: true
+  };
+
+  const premiumFeatures = {
+    ...baseFeatures,
+    enhancedAITrapDeployment: isPremium && canAccessEnhancedAI(),
+    premiumFeatures: isPremium,
+    advancedFilters: true,
+    realTimeUpdates: true,
+    analytics: true,
+    performanceMonitoring: true
+  };
+
+  const enterpriseFeatures = {
+    ...premiumFeatures,
+    enterpriseFeatures: true,
+    advancedSecurity: true,
+    auditLogging: true,
+    multiChainSupport: true,
+    apiAccess: true
+  };
+
+  switch (userRole) {
+    case 'enterprise':
+      return enterpriseFeatures;
+    case 'premium':
+      return premiumFeatures;
+    default:
+      return baseFeatures;
+  }
 };
 
 // Subscription-based feature access
@@ -148,9 +168,9 @@ export const getFeatureAvailability = (subscriptionTier: string): Record<string,
     enhancedAITrapDeployment: isPremium && canAccessEnhancedAI(),
     premiumMonitoring: isPremium,
     enterpriseFeatures: isEnterprise,
-    betaFeatures: isPremium && canAccessBetaFeatures(),
+    betaFeatures: isPremium && featureFlags.betaFeatures,
   };
 };
 
 // Export default flags for immediate use
-export default getFeatureFlags();
+export default featureFlags;

@@ -50,7 +50,7 @@ const BasicTrapDeployment: React.FC = () => {
 
   const loadTemplates = async () => {
     try {
-      const response = await fetch('/api/basic-traps/templates');
+      const response = await fetch('https://one-click-c308.onrender.com/api/basic-traps/templates');
       const result = await response.json();
       if (result.success) {
         setTemplates(result.data);
@@ -62,7 +62,7 @@ const BasicTrapDeployment: React.FC = () => {
 
   const loadUserTraps = async () => {
     try {
-      const response = await fetch('/api/basic-traps', {
+      const response = await fetch('https://one-click-c308.onrender.com/api/basic-traps', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -89,7 +89,7 @@ const BasicTrapDeployment: React.FC = () => {
 
     setIsDeploying(true);
     try {
-      const response = await fetch('/api/basic-traps/deploy', {
+      const response = await fetch('https://one-click-c308.onrender.com/api/basic-traps/deploy', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

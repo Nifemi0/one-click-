@@ -212,17 +212,28 @@ export class ContractDeploymentService {
    * Get deployment history for a user
    */
   async getDeploymentHistory(address: string): Promise<any[]> {
-    // This would query the blockchain for deployment events
-    // For now, return mock data
-    return [
-      {
-        contractAddress: '0x1234...5678',
-        contractType: 'AdvancedHoneypot',
-        deploymentDate: new Date().toISOString(),
-        transactionHash: '0xabcd...efgh',
-        status: 'Deployed'
+    try {
+      if (!this.provider) {
+        await this.initializeProvider();
+        if (!this.provider) {
+          throw new Error('Provider not initialized');
+        }
       }
-    ];
+
+      // Query the blockchain for deployment events
+      // This would typically involve querying events from a registry contract
+      // For now, return empty array until we implement event filtering
+      console.log('Querying deployment history for address:', address);
+      
+      // TODO: Implement real event filtering from DroseraRegistry contract
+      // const registryContract = new ethers.Contract(REGISTRY_ADDRESS, REGISTRY_ABI, this.provider);
+      // const events = await registryContract.queryFilter(registryContract.filters.TrapDeployed(address));
+      
+      return [];
+    } catch (error) {
+      console.error('Failed to get deployment history:', error);
+      return [];
+    }
   }
 
   /**

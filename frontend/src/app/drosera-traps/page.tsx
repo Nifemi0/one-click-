@@ -32,59 +32,59 @@ export default function DroseraTrapsPage() {
 
   const trapTemplates: TrapTemplate[] = [
     {
-      id: 'honeypot-basic',
-      name: 'Basic Honeypot',
-      description: 'Simple honeypot trap to catch malicious actors',
-      trapType: 'Honeypot',
+      id: 'security-trap',
+      name: 'SecurityTrap',
+      description: 'Advanced security trap with comprehensive attack detection and response mechanisms',
+      trapType: 'Security',
       defaultThreshold: 1,
       defaultDelay: 0,
-      price: '0.001 ETH',
-      features: ['Automatic attack detection', 'Fund protection', 'Blacklist management'],
+      price: '0.08 ETH',
+      features: ['Attack Detection', 'Automated Response', 'Event Logging', 'Emergency Shutdown'],
+      category: 'Security'
+    },
+    {
+      id: 'advanced-honeypot',
+      name: 'AdvancedHoneypot',
+      description: 'Sophisticated honeypot that captures and analyzes attack patterns',
+      trapType: 'Honeypot',
+      defaultThreshold: 2,
+      defaultDelay: 30,
+      price: '0.12 ETH',
+      features: ['Fund Capture', 'Attack Pattern Analysis', 'Advanced Monitoring', 'Automated Response'],
       category: 'Honeypot'
     },
     {
-      id: 'flashloan-protection',
-      name: 'Flash Loan Protection',
-      description: 'Protect against flash loan attacks',
-      trapType: 'FlashLoanProtection',
+      id: 'drosera-registry',
+      name: 'DroseraRegistry',
+      description: 'Central registry for managing and tracking all deployed security traps',
+      trapType: 'Registry',
+      defaultThreshold: 1,
+      defaultDelay: 0,
+      price: '0.06 ETH',
+      features: ['Trap Registration', 'Status Tracking', 'Performance Metrics', 'Centralized Management'],
+      category: 'Registry'
+    },
+    {
+      id: 'flash-loan-protection',
+      name: 'FlashLoanProtection',
+      description: 'Real-time protection against flash loan attacks with instant blocking',
+      trapType: 'Protection',
       defaultThreshold: 3,
       defaultDelay: 60,
-      price: '0.001 ETH',
-      features: ['Transaction frequency monitoring', 'Gas price analysis', 'Pattern detection'],
+      price: '0.10 ETH',
+      features: ['Flash Loan Detection', 'Instant Blocking', 'Real-time Monitoring', 'Attack Prevention'],
       category: 'Flash Loan Protection'
     },
     {
-      id: 'reentrancy-shield',
-      name: 'Reentrancy Shield',
-      description: 'Guard against reentrancy attacks',
-      trapType: 'ReentrancyGuard',
-      defaultThreshold: 2,
-      defaultDelay: 30,
-      price: '0.005 ETH',
-      features: ['Call depth monitoring', 'Time-based protection', 'Attack pattern recognition'],
-      category: 'Reentrancy Protection'
-    },
-    {
       id: 'mev-protection',
-      name: 'MEV Protection Suite',
-      description: 'Comprehensive MEV attack protection',
+      name: 'MEVProtection',
+      description: 'Comprehensive MEV protection with transaction ordering and sandwich attack prevention',
       trapType: 'MEVProtection',
       defaultThreshold: 5,
       defaultDelay: 120,
-      price: '0.015 ETH',
-      features: ['Gas price manipulation detection', 'Slippage protection', 'Sandwich attack prevention'],
+      price: '0.15 ETH',
+      features: ['MEV Detection', 'Sandwich Prevention', 'Transaction Ordering', 'Advanced Monitoring'],
       category: 'MEV Protection'
-    },
-    {
-      id: 'access-control',
-      name: 'Access Control System',
-      description: 'Multi-signature and role-based access control',
-      trapType: 'AccessControl',
-      defaultThreshold: 1,
-      defaultDelay: 0,
-      price: '0.01 ETH',
-      features: ['Multi-signature support', 'Role management', 'Permission control'],
-      category: 'Access Control'
     }
   ];
 

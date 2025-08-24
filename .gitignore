@@ -189,3 +189,6 @@ metrics-data/
 notification-tokens.json
 webhook-tokens.json
 bot-tokens.jsonbackend/.env
+
+# Local Netlify folder
+.netlify

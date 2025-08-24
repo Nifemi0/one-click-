@@ -85,7 +85,7 @@ const EnhancedAITrapDeployment: React.FC<EnhancedAITrapDeploymentProps> = ({
 
     setIsDeploying(true);
     try {
-      const response = await fetch('/api/enhanced-ai-trap/deploy', {
+      const response = await fetch('https://one-click-c308.onrender.com/api/enhanced-ai-trap/deploy', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -113,7 +113,7 @@ const EnhancedAITrapDeployment: React.FC<EnhancedAITrapDeploymentProps> = ({
 
   const loadDeployments = async () => {
     try {
-      const response = await fetch('/api/enhanced-ai-trap/deployments', {
+      const response = await fetch('https://one-click-c308.onrender.com/api/enhanced-ai-trap/deployments', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -130,7 +130,7 @@ const EnhancedAITrapDeployment: React.FC<EnhancedAITrapDeploymentProps> = ({
 
   const downloadFile = async (deploymentId: string, fileType: string) => {
     try {
-      const response = await fetch(`/api/enhanced-ai-trap/deployments/${deploymentId}/files?fileType=${fileType}`, {
+      const response = await fetch(`https://one-click-c308.onrender.com/api/enhanced-ai-trap/deployments/${deploymentId}/files?fileType=${fileType}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }

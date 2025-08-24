@@ -27,16 +27,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const root = window.document.documentElement;
     
-    // Remove existing theme classes
+    // Remove existing theme classes and data attributes
     root.classList.remove('light', 'dark');
+    root.removeAttribute('data-theme');
     
     if (theme === 'system') {
       const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       setResolvedTheme(systemTheme);
-      root.classList.add(systemTheme);
+      root.setAttribute('data-theme', systemTheme);
     } else {
       setResolvedTheme(theme);
-      root.classList.add(theme);
+      root.setAttribute('data-theme', theme);
     }
     
     // Save to localStorage
@@ -51,7 +52,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const systemTheme = mediaQuery.matches ? 'dark' : 'light';
         setResolvedTheme(systemTheme);
         window.document.documentElement.classList.remove('light', 'dark');
-        window.document.documentElement.classList.add(systemTheme);
+        window.document.documentElement.removeAttribute('data-theme');
+        window.document.documentElement.setAttribute('data-theme', systemTheme);
       }
     };
 

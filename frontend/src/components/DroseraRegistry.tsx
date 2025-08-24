@@ -34,7 +34,7 @@ export default function DroseraRegistry() {
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
 
   // API base URL
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://one-click-c308.onrender.com';
 
   useEffect(() => {
     fetchRegistryData();
