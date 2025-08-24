@@ -145,7 +145,7 @@ app.post('/api/ai-contracts/generate', async (req, res) => {
     console.log('🔍 Request body:', req.body);
     console.log('🔍 Request body type:', typeof req.body);
     
-    const { userPrompt } = req.body;
+    const { userPrompt, securityLevel, complexity, targetNetwork, customRequirements } = req.body;
     
     if (!userPrompt) {
       console.log('❌ Missing userPrompt in request body');
@@ -157,6 +157,10 @@ app.post('/api/ai-contracts/generate', async (req, res) => {
     }
     
     console.log('🤖 Generating AI contract for prompt:', userPrompt);
+    console.log('🔍 Using security level:', securityLevel || 'basic');
+    console.log('🔍 Using complexity:', complexity || 'simple');
+    console.log('🔍 Using target network:', targetNetwork || 1);
+    console.log('🔍 Using custom requirements:', customRequirements || []);
     
     // Import and use AI service
     const { AIIntegrationService } = await import('./services/aiIntegrationService');
@@ -164,10 +168,10 @@ app.post('/api/ai-contracts/generate', async (req, res) => {
     
     const result = await aiService.generateContract({ 
       userPrompt,
-      securityLevel: 'basic',
-      complexity: 'simple',
-      targetNetwork: 1,
-      customRequirements: []
+      securityLevel: securityLevel || 'basic',
+      complexity: complexity || 'simple',
+      targetNetwork: targetNetwork || 1,
+      customRequirements: customRequirements || []
     });
     
     return res.status(200).json(result);
