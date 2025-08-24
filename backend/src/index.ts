@@ -193,19 +193,12 @@ async function setupRoutes() {
     // Re-enable AI routes now that helmet issue is resolved
     console.log('🔧 Registering AI routes...');
     console.log('📊 AI routes path: /api/ai-contracts');
-    console.log('📊 AI routes object type:', typeof aiContractRoutes);
-    console.log('📊 AI routes default type:', typeof aiContractRoutes.default);
+    
+    // Always use direct route registration for AI endpoints to avoid dynamic import issues
+    console.log('🔄 Using direct AI route registration...');
     
     try {
-      console.log('🔧 About to register AI routes with app.use...');
-      console.log('📊 AI routes object before registration:', aiContractRoutes);
-      app.use('/api/ai-contracts', aiContractRoutes);
-      console.log('✅ AI routes registered successfully');
-    } catch (error) {
-      console.error('❌ Failed to register AI routes:', error);
-      console.log('🔄 Falling back to direct route registration...');
-      
-      // Fallback: Create AI routes directly
+      // Import required services
       const { AIIntegrationService } = await import('./services/aiIntegrationService');
       const { ContractCompilationService } = await import('./services/contractCompilation');
       
@@ -327,7 +320,10 @@ async function setupRoutes() {
         }
       });
       
-      console.log('✅ AI routes registered directly as fallback');
+      console.log('✅ AI routes registered directly');
+    } catch (error) {
+      console.error('❌ Failed to register AI routes:', error);
+      throw error;
     }
     app.use('/api/dashboard', dashboardRoutes);
     app.use('/api/auth', authRoutes.default);
