@@ -41,8 +41,11 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
-// Middleware - temporarily simplified for debugging
-// app.use(helmet());
+// Middleware - re-enabled with permissive helmet config
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL || "http://localhost:3000",
@@ -181,8 +184,8 @@ async function setupRoutes() {
     app.use('/api/drosera-traps', droseraTrapsRoutes);
     app.use('/api/drosera-registry', droseraRegistryRoutes.default);
     app.use('/api/real-contracts', realContractsRoutes.default);
-    // Temporarily comment out AI routes to debug
-    // app.use('/api/ai-contracts', aiContractRoutes.default);
+    // Re-enable AI routes now that helmet issue is resolved
+    app.use('/api/ai-contracts', aiContractRoutes.default);
     app.use('/api/dashboard', dashboardRoutes);
     app.use('/api/auth', authRoutes.default);
     app.use('/api/basic-traps', basicTrapsRoutes.default);
