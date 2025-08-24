@@ -68,6 +68,35 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Custom JSON parser for requests that fail standard parsing
+app.use((req, res, next) => {
+  if (req.headers['content-type'] === 'application/json' && !req.body && req.method === 'POST') {
+    let data = '';
+    req.on('data', chunk => {
+      data += chunk;
+    });
+    req.on('end', () => {
+      try {
+        req.body = JSON.parse(data);
+        next();
+      } catch (error) {
+        console.error('❌ Custom JSON parsing failed:', error);
+        next();
+      }
+    });
+  } else {
+    next();
+  }
+});
+
+// Additional middleware to handle different content types
+app.use((req, res, next) => {
+  console.log('🔍 Middleware processing request:', req.method, req.path);
+  console.log('🔍 Content-Type:', req.headers['content-type']);
+  console.log('🔍 Request body before parsing:', req.body);
+  next();
+});
+
 // Error handling middleware to catch any parsing errors
 app.use((err: any, req: any, res: any, next: any) => {
   console.error('❌ Middleware error:', err);
