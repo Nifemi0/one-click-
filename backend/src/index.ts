@@ -275,6 +275,122 @@ app.post('/api/test-post', (req, res) => {
   });
 });
 
+// Simple AI Provider Test Endpoint
+app.get('/api/ai-contracts/test-providers', async (req, res) => {
+  try {
+    console.log('🧪 Testing individual AI providers...');
+    
+    const results: {
+      timestamp: string;
+      tests: {
+        openai?: any;
+        gemini?: any;
+      };
+    } = {
+      timestamp: new Date().toISOString(),
+      tests: {}
+    };
+    
+    // Test OpenAI directly
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        console.log('🧪 Testing OpenAI directly...');
+        const { AIIntegrationService } = await import('./services/aiIntegrationService');
+        const aiService = new AIIntegrationService();
+        
+        // Test the OpenAI method directly
+        const testResult = await aiService['generateWithOpenAI']({
+          userPrompt: 'test',
+          securityLevel: 'basic',
+          complexity: 'simple',
+          targetNetwork: 1,
+          customRequirements: []
+        });
+        
+        results.tests.openai = {
+          success: true,
+          provider: testResult.aiProvider,
+          contractLength: testResult.contractCode.length,
+          message: 'OpenAI direct test successful'
+        };
+      } catch (error: any) {
+        console.error('❌ OpenAI direct test failed:', error);
+        results.tests.openai = {
+          success: false,
+          error: error.message,
+          details: {
+            code: error.code,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            stack: error.stack?.substring(0, 500)
+          }
+        };
+      }
+    } else {
+      results.tests.openai = {
+        success: false,
+        error: 'No OpenAI API key configured'
+      };
+    }
+    
+    // Test Gemini directly
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        console.log('🧪 Testing Gemini directly...');
+        const { AIIntegrationService } = await import('./services/aiIntegrationService');
+        const aiService = new AIIntegrationService();
+        
+        // Test the Gemini method directly
+        const testResult = await aiService['generateWithGemini']({
+          userPrompt: 'test',
+          securityLevel: 'basic',
+          complexity: 'simple',
+          targetNetwork: 1,
+          customRequirements: []
+        });
+        
+        results.tests.gemini = {
+          success: true,
+          provider: testResult.aiProvider,
+          contractLength: testResult.contractCode.length,
+          message: 'Gemini direct test successful'
+        };
+      } catch (error: any) {
+        console.error('❌ Gemini direct test failed:', error);
+        results.tests.gemini = {
+          success: false,
+          error: error.message,
+          details: {
+            code: error.code,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            stack: error.stack?.substring(0, 500)
+          }
+        };
+      }
+    } else {
+      results.tests.gemini = {
+        success: false,
+        error: 'No Gemini API key configured'
+      };
+    }
+    
+    console.log('📊 Individual AI Provider Test Results:', results);
+    
+    return res.status(200).json({
+      success: true,
+      data: results
+    });
+  } catch (error: any) {
+    console.error('❌ Individual AI Provider Test Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Individual provider test failed',
+      details: error.message
+    });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 
