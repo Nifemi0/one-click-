@@ -174,7 +174,11 @@ app.post('/api/ai-contracts/generate', async (req, res) => {
       customRequirements: customRequirements || []
     });
     
-    return res.status(200).json(result);
+    // Wrap the response in a data property to match frontend expectations
+    return res.status(200).json({
+      success: true,
+      data: result
+    });
   } catch (error: any) {
     console.error('❌ AI Generation Error:', error);
     return res.status(500).json({
