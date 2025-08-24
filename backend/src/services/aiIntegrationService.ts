@@ -66,12 +66,22 @@ export class AIIntegrationService {
   async generateContract(request: AIContractRequest): Promise<AIContractResponse> {
     try {
       console.log('🤖 Starting AI contract generation...');
+      console.log('🔍 AI Service Status:', {
+        isAvailable: this.isAvailable,
+        openaiKey: !!this.openaiApiKey,
+        anthropicKey: !!this.anthropicApiKey,
+        geminiKey: !!this.geminiApiKey,
+        openaiKeyLength: this.openaiApiKey ? this.openaiApiKey.length : 0,
+        geminiKeyLength: this.geminiApiKey ? this.geminiApiKey.length : 0
+      });
       
       // If no AI providers are available, use fallback immediately
       if (!this.isAvailable) {
         console.log('🔄 No AI providers available, using fallback contract');
         return this.generateFallbackContract(request);
       }
+      
+      console.log('✅ AI providers are available, proceeding with generation...');
       
       // Try multiple AI providers in order of preference
       const providers = [
@@ -80,6 +90,8 @@ export class AIIntegrationService {
         { name: 'Gemini', method: this.generateWithGemini.bind(this), available: !!this.geminiApiKey },
         { name: 'Fallback', method: this.generateFallbackContract.bind(this), available: true }
       ];
+
+      console.log('🔍 Provider availability:', providers.map(p => ({ name: p.name, available: p.available })));
 
       for (const provider of providers) {
         if (!provider.available) {
@@ -109,9 +121,11 @@ export class AIIntegrationService {
         }
       }
 
+      console.log('❌ All AI providers failed, falling back to fallback method');
       throw new Error('All AI providers failed');
     } catch (error) {
       console.error('❌ AI contract generation failed:', error);
+      console.log('🔄 Falling back to fallback contract generation...');
       return this.generateFallbackContract(request);
     }
   }
@@ -125,8 +139,11 @@ export class AIIntegrationService {
     }
 
     try {
+      console.log('🔄 OpenAI: Building prompt...');
       const prompt = this.buildOpenAIPrompt(request);
+      console.log('🔄 OpenAI: Prompt built, length:', prompt.length);
       
+      console.log('🔄 OpenAI: Making API call to OpenAI...');
       const response = await axios.post(
         'https://api.openai.com/v1/chat/completions',
         {
@@ -153,8 +170,10 @@ export class AIIntegrationService {
         }
       );
 
+      console.log('🔄 OpenAI: API call successful, processing response...');
       if (response.data.choices && response.data.choices[0]) {
         const contractCode = response.data.choices[0].message.content;
+        console.log('🔄 OpenAI: Contract code received, length:', contractCode.length);
         return this.parseAIResponse(contractCode, 'OpenAI', request);
       }
 
@@ -219,8 +238,11 @@ export class AIIntegrationService {
     }
 
     try {
+      console.log('🔄 Gemini: Building prompt...');
       const prompt = this.buildGeminiPrompt(request);
+      console.log('🔄 Gemini: Prompt built, length:', prompt.length);
       
+      console.log('🔄 Gemini: Making API call to Gemini...');
       const response = await axios.post(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.geminiApiKey}`,
         {
@@ -246,8 +268,10 @@ export class AIIntegrationService {
         }
       );
 
+      console.log('🔄 Gemini: API call successful, processing response...');
       if (response.data.candidates && response.data.candidates[0]) {
         const contractCode = response.data.candidates[0].content.parts[0].text;
+        console.log('🔄 Gemini: Contract code received, length:', contractCode.length);
         return this.parseAIResponse(contractCode, 'Gemini', request);
       }
 
