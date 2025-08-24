@@ -74,6 +74,22 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Test route to verify basic routing works
+app.get('/test', (req, res) => {
+  res.json({ 
+    message: 'Basic routing is working',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Test AI endpoint directly
+app.get('/api/ai-contracts/test', (req, res) => {
+  res.json({ 
+    message: 'AI endpoint test - basic routing works',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
