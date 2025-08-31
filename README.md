@@ -1,316 +1,245 @@
-# Drosera One-Click Deployment System
+# 🚀 Drosera One-Click Security Platform
 
-A comprehensive Web3 application that democratizes access to Drosera Network's security Traps, transforming complex developer-only security tools into a user-friendly, one-click deployment platform accessible to non-technical users.
+A comprehensive Web3 security platform for DeFi protection, featuring AI-powered smart contract generation, honeypot detection, and advanced security monitoring.
 
-## 🚀 Features
+## 🎯 Features
 
-- **One-Click Deployment**: Deploy sophisticated security traps with a single click
-- **AI-Powered Analysis**: Intelligent contract analysis that identifies vulnerabilities
-- **Multi-Chain Support**: Protect assets across Ethereum, Polygon, Arbitrum, Base, and more
-- **Template Marketplace**: Browse and deploy from curated, audited security trap templates
-- **Real-Time Monitoring**: 24/7 monitoring with instant alerts when threats are detected
-- **Community Driven**: Contribute templates, share strategies, and earn rewards
+- **AI-Powered Contract Generation**: OpenAI, Anthropic Claude, and Google Gemini integration
+- **Smart Contract Security**: Advanced honeypot detection and vulnerability analysis
+- **Multi-Chain Support**: Ethereum, Hoodi Testnet, and other EVM-compatible chains
+- **Real-time Monitoring**: Live security alerts and threat detection
+- **User Dashboard**: Comprehensive security analytics and trap management
+- **API-First Architecture**: RESTful APIs with WebSocket support
 
-## 🏗️ Architecture
-
-### Frontend
-- **Framework**: Next.js 14 with TypeScript
-- **Styling**: Tailwind CSS with custom design system
-- **State Management**: Zustand for global state
-- **Web3 Integration**: Wagmi v2, Viem, ConnectKit
-- **UI Components**: Headless UI, Heroicons, Lucide React
-
-### Backend
-- **Runtime**: Node.js with Express
-- **Database**: PostgreSQL via Supabase
-- **Authentication**: JWT with wallet signature verification
-- **Real-time**: Socket.IO for live updates
-- **AI Integration**: OpenAI API for contract analysis
-
-### Smart Contracts
-- **Language**: Solidity
-- **Framework**: Hardhat
-- **Testing**: Jest + Hardhat testing
-- **Deployment**: Multi-chain deployment scripts
-
-## 📁 Project Structure
+## 🏗️ Project Structure
 
 ```
 drosera-one-click/
-├── frontend/                 # Next.js frontend application
-│   ├── src/
-│   │   ├── app/             # App router pages
-│   │   ├── components/      # React components
-│   │   │   ├── ui/          # Reusable UI components
-│   │   │   ├── layout/      # Layout components
-│   │   │   ├── wallet/      # Wallet integration
-│   │   │   ├── dashboard/   # Dashboard components
-│   │   │   ├── marketplace/ # Marketplace components
-│   │   │   └── deployment/  # Deployment wizard
-│   │   ├── hooks/           # Custom React hooks
-│   │   ├── lib/             # Utilities and services
-│   │   ├── types/           # TypeScript definitions
-│   │   └── styles/          # Global styles
-│   ├── public/              # Static assets
-│   └── package.json
-├── backend/                  # Express.js backend API
-│   ├── src/
-│   │   ├── controllers/     # Route controllers
-│   │   ├── middleware/      # Express middleware
-│   │   ├── models/          # Data models
-│   │   ├── routes/          # API routes
-│   │   ├── services/        # Business logic
-│   │   ├── utils/           # Utility functions
-│   │   └── types/           # TypeScript definitions
-│   ├── package.json
-│   └── tsconfig.json
-├── packages/                 # Shared packages
-│   └── shared/              # Common utilities
-├── contracts/                # Smart contracts
-├── docs/                     # Documentation
-└── README.md
+├── contracts/                 # Smart contracts (Solidity)
+├── frontend/                  # Next.js React frontend
+├── backend/                   # Express.js API server
+├── scripts/                   # Deployment and utility scripts
+├── test/                      # Test files
+├── hardhat.config.ts         # Hardhat configuration
+├── package.json              # Root dependencies
+└── setup-project.sh          # Automated setup script
 ```
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- PostgreSQL database
-- Ethereum node access (Alchemy/Infura)
-- OpenAI API key
+- **Node.js 18+** and **npm 9+**
+- **Git** for version control
+- **API Keys** for AI providers (OpenAI, Anthropic, Gemini)
 
-### 1. Clone the Repository
+### 1. Clone and Setup
 
 ```bash
-git clone https://github.com/drosera-network/drosera-one-click.git
+# Clone the repository
+git clone <your-repo-url>
 cd drosera-one-click
+
+# Run the automated setup script
+./setup-project.sh
 ```
 
-### 2. Install Dependencies
+### 2. Manual Setup (Alternative)
 
 ```bash
 # Install root dependencies
 npm install
 
 # Install frontend dependencies
-cd frontend
-npm install
+cd frontend && npm install && cd ..
 
 # Install backend dependencies
-cd ../backend
-npm install
+cd backend && npm install && cd ..
+
+# Install smart contract dependencies
+cd contracts && npm install && cd ..
 ```
 
 ### 3. Environment Configuration
 
-#### Frontend (.env.local)
 ```bash
-NEXT_PUBLIC_API_URL=http://localhost:3001
-NEXT_PUBLIC_ALCHEMY_API_KEY=your_alchemy_api_key
-NEXT_PUBLIC_INFURA_API_KEY=your_infura_api_key
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your API keys
+nano .env
 ```
 
-#### Backend (.env)
-```bash
-NODE_ENV=development
-PORT=3001
-DATABASE_URL=postgresql://username:password@localhost:5432/drosera_db
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your_supabase_service_key
-JWT_SECRET=your_super_secret_jwt_key
-OPENAI_API_KEY=your_openai_api_key
-ALCHEMY_API_KEY=your_alchemy_api_key
+**Required Environment Variables:**
+```env
+# AI Provider API Keys
+OPENAI_API_KEY=your_openai_key
+ANTHROPIC_API_KEY=your_anthropic_key
+GEMINI_API_KEY=your_gemini_key
+
+# Database
+DATABASE_URL=your_supabase_url
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_key
+
+# Blockchain
+PRIVATE_KEY=your_private_key
+HOODI_RPC_URL=https://rpc.hoodi.network
 ```
 
-### 4. Database Setup
+### 4. Build and Run
 
 ```bash
-# Create PostgreSQL database
-createdb drosera_db
+# Build all components
+npm run build:all
 
-# Run database migrations (backend will auto-create tables)
-cd backend
-npm run dev
-```
-
-### 5. Start Development Servers
-
-```bash
-# Start backend (from backend directory)
+# Start development servers
 npm run dev
 
-# Start frontend (from frontend directory, in new terminal)
-npm run dev
+# Or start individually:
+npm run frontend:dev    # Frontend on http://localhost:3000
+npm run backend:dev     # Backend on http://localhost:3001
 ```
 
-The application will be available at:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:3001
-- Health Check: http://localhost:3001/health
-
-## 🔧 Development
-
-### Frontend Development
+## 🔧 Development Commands
 
 ```bash
-cd frontend
+# Smart Contracts
+npm run compile          # Compile Solidity contracts
+npm run test            # Run Hardhat tests
 
-# Start development server
-npm run dev
+# Frontend
+npm run frontend:dev    # Start Next.js dev server
+npm run frontend:build  # Build for production
 
-# Build for production
-npm run build
+# Backend
+npm run backend:dev     # Start Express dev server
+npm run backend:build   # Build TypeScript
 
-# Start production server
-npm start
-
-# Run tests
-npm test
-
-# Run linting
-npm run lint
-```
-
-### Backend Development
-
-```bash
-cd backend
-
-# Start development server with hot reload
-npm run dev
-
-# Build TypeScript
-npm run build
-
-# Start production server
-npm start
-
-# Run tests
-npm test
-
-# Run linting
-npm run lint
-```
-
-### Database Management
-
-```bash
-# Connect to database
-psql drosera_db
-
-# View tables
-\dt
-
-# View table structure
-\d+ users
+# Quality Assurance
+npm run lint            # Run ESLint on all code
+npm run test:all        # Run all tests
+npm run clean           # Clean all build artifacts
 ```
 
 ## 🧪 Testing
 
-### Frontend Tests
 ```bash
-cd frontend
-npm test                    # Run unit tests
-npm run test:watch         # Run tests in watch mode
-npm run test:coverage      # Generate coverage report
-npm run test:e2e           # Run end-to-end tests
+# Run all tests
+npm run test:all
+
+# Smart contract tests
+npm run test
+
+# Frontend tests
+cd frontend && npm run test
+
+# Backend tests
+cd backend && npm run test
 ```
-
-### Backend Tests
-```bash
-cd backend
-npm test                   # Run unit tests
-npm run test:watch        # Run tests in watch mode
-npm run test:coverage     # Generate coverage report
-npm run test:integration  # Run integration tests
-```
-
-## 📊 API Documentation
-
-### Authentication Endpoints
-
-- `POST /api/auth/connect` - Connect wallet with signature
-- `GET /api/auth/profile` - Get user profile
-- `PUT /api/auth/settings` - Update user settings
-- `POST /api/auth/disconnect` - Disconnect wallet
-- `POST /api/auth/refresh` - Refresh JWT token
-
-### Trap Management
-
-- `GET /api/traps/templates` - Get available templates
-- `POST /api/traps/deploy` - Deploy new trap
-- `GET /api/traps/user/:address` - Get user's deployed traps
-- `PUT /api/traps/:id/configure` - Update trap configuration
-- `DELETE /api/traps/:id` - Deactivate trap
-
-### Contract Analysis
-
-- `POST /api/analyze/contract` - Analyze contract for vulnerabilities
-- `GET /api/analyze/recommendations/:address` - Get AI recommendations
-
-### Alerts & Monitoring
-
-- `GET /api/alerts/user/:address` - Get user alerts
-- `POST /api/alerts/webhook` - Receive blockchain event webhooks
-- `PUT /api/alerts/:id/acknowledge` - Mark alert as read
-
-### Marketplace
-
-- `GET /api/marketplace/templates` - Browse marketplace templates
-- `GET /api/marketplace/stats` - Get platform statistics
-
-## 🔐 Security Features
-
-- **Wallet Authentication**: Secure wallet connection with signature verification
-- **JWT Tokens**: Stateless authentication with configurable expiration
-- **Rate Limiting**: API rate limiting to prevent abuse
-- **Input Validation**: Comprehensive input sanitization and validation
-- **SQL Injection Protection**: Parameterized queries and input validation
-- **CORS Configuration**: Secure cross-origin resource sharing
-- **Helmet Security**: Security headers and middleware
-
-## 🌐 Supported Networks
-
-- **Ethereum Mainnet** (Chain ID: 1)
-- **Polygon** (Chain ID: 137)
-- **Arbitrum One** (Chain ID: 42161)
-- **Base** (Chain ID: 8453)
-- **Testnets**: Sepolia, Mumbai, Arbitrum Goerli, Base Goerli
 
 ## 🚀 Deployment
 
-### Frontend (Vercel)
-
+### Frontend (Netlify)
 ```bash
 cd frontend
 npm run build
-vercel --prod
+# Deploy to Netlify
 ```
 
-### Backend (Railway/Render)
-
+### Backend (Render/VPS)
 ```bash
 cd backend
 npm run build
-# Deploy to Railway or Render with environment variables
+npm start
 ```
 
-### Database (Supabase)
+### Smart Contracts
+```bash
+# Deploy to Hoodi Testnet
+npm run deploy:hoodi
 
-1. Create new Supabase project
-2. Run database migrations
-3. Configure environment variables
-4. Deploy backend with database connection
+# Deploy to local network
+npm run deploy:local
+```
 
-## 📈 Monitoring & Analytics
+## 🔍 Troubleshooting
 
-- **Application Monitoring**: Real-time performance metrics
-- **Error Tracking**: Sentry integration for error monitoring
-- **User Analytics**: PostHog integration for user behavior analysis
-- **Database Monitoring**: Connection pool and query performance
-- **Blockchain Monitoring**: Transaction status and gas usage
+### Common Issues
+
+#### 1. AI Provider Integration Failing
+- **Problem**: API calls succeeding but response parsing failing
+- **Solution**: Check API keys and update endpoints in `.env`
+- **Debug**: Check logs for specific error messages
+
+#### 2. Smart Contract Compilation Errors
+- **Problem**: Missing OpenZeppelin dependencies
+- **Solution**: Run `npm install` in root and contracts directories
+- **Debug**: Check Hardhat configuration and Solidity version
+
+#### 3. Database Connection Issues
+- **Problem**: Supabase connection errors
+- **Solution**: Verify `DATABASE_URL` and Supabase project status
+- **Debug**: Check network connectivity and credentials
+
+#### 4. Build Failures
+- **Problem**: TypeScript compilation errors
+- **Solution**: Ensure all dependencies are installed
+- **Debug**: Run `npm run lint` to identify issues
+
+### Debug Commands
+
+```bash
+# Check dependency status
+npm list --depth=0
+
+# Verify TypeScript configuration
+npx tsc --noEmit
+
+# Check Hardhat configuration
+npx hardhat --version
+
+# Test database connection
+node test-db-connection.js
+```
+
+## 📚 API Documentation
+
+### AI Contract Generation
+```http
+POST /api/ai/generate-contract
+Content-Type: application/json
+
+{
+  "userPrompt": "Create a honeypot detection contract",
+  "complexity": "medium",
+  "securityLevel": "high"
+}
+```
+
+### Security Traps
+```http
+GET /api/traps
+GET /api/traps/:id
+POST /api/traps
+PUT /api/traps/:id
+DELETE /api/traps/:id
+```
+
+### Blockchain Operations
+```http
+POST /api/blockchain/deploy
+POST /api/blockchain/verify
+GET /api/blockchain/status
+```
+
+## 🔐 Security Features
+
+- **Input Validation**: Comprehensive request sanitization
+- **Rate Limiting**: API abuse prevention
+- **Authentication**: JWT-based user management
+- **Encryption**: Sensitive data encryption
+- **Audit Logging**: Complete operation tracking
 
 ## 🤝 Contributing
 
@@ -325,8 +254,8 @@ npm run build
 - Follow TypeScript best practices
 - Write comprehensive tests
 - Use conventional commit messages
-- Follow the existing code style
-- Add JSDoc comments for complex functions
+- Update documentation for new features
+- Run linting before committing
 
 ## 📄 License
 
@@ -334,18 +263,19 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-- **Documentation**: [docs.drosera.xyz](https://docs.drosera.xyz)
-- **Discord**: [discord.gg/drosera](https://discord.gg/drosera)
-- **Twitter**: [@drosera](https://twitter.com/drosera)
-- **Email**: support@drosera.xyz
+- **Issues**: [GitHub Issues](https://github.com/your-repo/issues)
+- **Documentation**: [Wiki](https://github.com/your-repo/wiki)
+- **Discord**: [Community Server](https://discord.gg/your-server)
 
-## 🙏 Acknowledgments
+## 🗺️ Roadmap
 
-- Drosera Network team for the vision and guidance
-- OpenZeppelin for security best practices
-- Ethereum community for Web3 standards
-- All contributors and beta testers
+- [ ] Multi-chain deployment automation
+- [ ] Advanced AI contract auditing
+- [ ] Real-time threat intelligence
+- [ ] Mobile application
+- [ ] Enterprise features
+- [ ] Community governance
 
 ---
 
-**Built with ❤️ for the DeFi community**
+**Built with ❤️ by the Drosera Team**

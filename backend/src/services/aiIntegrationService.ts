@@ -147,37 +147,50 @@ export class AIIntegrationService {
       const response = await axios.post(
         'https://api.openai.com/v1/chat/completions',
         {
-          model: 'gpt-4',
+          model: 'gpt-4-turbo-preview', // Updated to latest model
           messages: [
             {
               role: 'system',
-              content: 'You are an expert Solidity smart contract developer specializing in DeFi security traps and honeypots. Generate production-ready, secure smart contracts.'
+              content: 'You are an expert Solidity smart contract developer specializing in DeFi security traps and honeypots. Generate production-ready, secure smart contracts with proper error handling, events, and security best practices. Always return valid Solidity code.'
             },
             {
               role: 'user',
               content: prompt
             }
           ],
-          temperature: 0.3,
-          max_tokens: 4000
+          temperature: 0.2, // Lower temperature for more consistent output
+          max_tokens: 4000,
+          top_p: 0.9,
+          frequency_penalty: 0.1,
+          presence_penalty: 0.1
         },
         {
           headers: {
             'Authorization': `Bearer ${this.openaiApiKey}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'User-Agent': 'Drosera-Security-Platform/1.0'
           },
-          timeout: 30000
+          timeout: 45000
         }
       );
 
       console.log('🔄 OpenAI: API call successful, processing response...');
-      if (response.data.choices && response.data.choices[0]) {
-        const contractCode = response.data.choices[0].message.content;
-        console.log('🔄 OpenAI: Contract code received, length:', contractCode.length);
-        return this.parseAIResponse(contractCode, 'OpenAI', request);
+      if (response.data && response.data.choices && response.data.choices[0]) {
+        const choice = response.data.choices[0];
+        if (choice.message && choice.message.content) {
+          const contractCode = choice.message.content;
+          console.log('🔄 OpenAI: Contract code received, length:', contractCode.length);
+          
+          // Validate response content
+          if (!contractCode || contractCode.trim().length < 100) {
+            throw new Error('OpenAI response too short - likely incomplete');
+          }
+          
+          return this.parseAIResponse(contractCode, 'OpenAI', request);
+        }
       }
 
-      throw new Error('Invalid OpenAI response');
+      throw new Error('Invalid OpenAI response structure');
     } catch (error: any) {
       console.error('❌ OpenAI API error:', error);
       
@@ -186,21 +199,29 @@ export class AIIntegrationService {
         console.error('❌ OpenAI API response error:', {
           status: error.response.status,
           statusText: error.response.statusText,
-          data: error.response.data
+          data: error.response.data,
+          headers: error.response.headers
         });
         
         if (error.response.status === 401) {
-          throw new Error('OpenAI API key invalid or expired');
+          throw new Error('OpenAI API key invalid or expired - please check your API key');
         } else if (error.response.status === 400) {
-          throw new Error(`OpenAI API request error: ${error.response.data?.error?.message || 'Bad request'}`);
+          const errorMsg = error.response.data?.error?.message || 'Bad request';
+          throw new Error(`OpenAI API request error: ${errorMsg}`);
         } else if (error.response.status === 429) {
-          throw new Error('OpenAI API rate limit exceeded');
+          throw new Error('OpenAI API rate limit exceeded - please try again later');
+        } else if (error.response.status === 503) {
+          throw new Error('OpenAI API service temporarily unavailable - please try again later');
         } else if (error.response.status >= 500) {
-          throw new Error('OpenAI API server error');
+          throw new Error('OpenAI API server error - please try again later');
         }
+      } else if (error.code === 'ECONNABORTED') {
+        throw new Error('OpenAI API request timeout - please try again');
+      } else if (error.code === 'ENOTFOUND') {
+        throw new Error('OpenAI API endpoint not reachable - check network connection');
       }
       
-      throw error;
+      throw new Error(`OpenAI API error: ${error.message || 'Unknown error'}`);
     }
   }
 
@@ -257,11 +278,11 @@ export class AIIntegrationService {
       throw new Error('Gemini API key not configured');
     }
 
-    // Try multiple Gemini API endpoints in case one is deprecated
+    // Updated Gemini API endpoints - using the latest stable versions
     const geminiEndpoints = [
       'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent',
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-      'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent'
+      'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent',
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'
     ];
 
     for (const endpoint of geminiEndpoints) {
@@ -286,25 +307,49 @@ export class AIIntegrationService {
             ],
             generationConfig: {
               temperature: 0.3,
-              maxOutputTokens: 4000
-            }
+              maxOutputTokens: 4000,
+              topP: 0.8,
+              topK: 40
+            },
+            safetySettings: [
+              {
+                category: "HARM_CATEGORY_HARASSMENT",
+                threshold: "BLOCK_MEDIUM_AND_ABOVE"
+              },
+              {
+                category: "HARM_CATEGORY_HATE_SPEECH",
+                threshold: "BLOCK_MEDIUM_AND_ABOVE"
+              }
+            ]
           },
           {
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'User-Agent': 'Drosera-Security-Platform/1.0'
             },
-            timeout: 30000
+            timeout: 45000
           }
         );
 
         console.log('🔄 Gemini: API call successful, processing response...');
-        if (response.data.candidates && response.data.candidates[0]) {
-          const contractCode = response.data.candidates[0].content.parts[0].text;
-          console.log('🔄 Gemini: Contract code received, length:', contractCode.length);
-          return this.parseAIResponse(contractCode, 'Gemini', request);
+        
+        // Enhanced response parsing with better error handling
+        if (response.data && response.data.candidates && response.data.candidates[0]) {
+          const candidate = response.data.candidates[0];
+          if (candidate.content && candidate.content.parts && candidate.content.parts[0]) {
+            const contractCode = candidate.content.parts[0].text;
+            console.log('🔄 Gemini: Contract code received, length:', contractCode.length);
+            
+            // Validate response content
+            if (!contractCode || contractCode.trim().length < 100) {
+              throw new Error('Gemini response too short - likely incomplete');
+            }
+            
+            return this.parseAIResponse(contractCode, 'Gemini', request);
+          }
         }
 
-        throw new Error('Invalid Gemini response');
+        throw new Error('Invalid Gemini response structure');
       } catch (error: any) {
         console.error(`❌ Gemini API error with endpoint ${endpoint}:`, error);
         
@@ -315,21 +360,29 @@ export class AIIntegrationService {
             console.error('❌ Gemini API response error:', {
               status: error.response.status,
               statusText: error.response.statusText,
-              data: error.response.data
+              data: error.response.data,
+              headers: error.response.headers
             });
             
             if (error.response.status === 404) {
-              throw new Error('All Gemini API endpoints failed - API may have changed');
+              throw new Error('Gemini API endpoint not found - API may have changed. Please check documentation.');
             } else if (error.response.status === 400) {
-              throw new Error(`Gemini API request error: ${error.response.data?.error?.message || 'Bad request'}`);
+              const errorMsg = error.response.data?.error?.message || 'Bad request';
+              throw new Error(`Gemini API request error: ${errorMsg}`);
+            } else if (error.response.status === 401) {
+              throw new Error('Gemini API key invalid or expired');
             } else if (error.response.status === 429) {
-              throw new Error('Gemini API rate limit exceeded');
+              throw new Error('Gemini API rate limit exceeded - please try again later');
             } else if (error.response.status >= 500) {
-              throw new Error('Gemini API server error');
+              throw new Error('Gemini API server error - please try again later');
             }
+          } else if (error.code === 'ECONNABORTED') {
+            throw new Error('Gemini API request timeout - please try again');
+          } else if (error.code === 'ENOTFOUND') {
+            throw new Error('Gemini API endpoint not reachable - check network connection');
           }
           
-          throw error;
+          throw new Error(`Gemini API error: ${error.message || 'Unknown error'}`);
         }
         
         // Continue to next endpoint
@@ -338,7 +391,7 @@ export class AIIntegrationService {
       }
     }
 
-    throw new Error('All Gemini API endpoints failed');
+    throw new Error('All Gemini API endpoints failed - please check your API key and network connection');
   }
 
   /**
@@ -799,8 +852,10 @@ Return only the Solidity contract code.`;
       console.log(`🔄 ${provider}: Raw response length:`, aiResponse.length);
       console.log(`🔄 ${provider}: Raw response preview:`, aiResponse.substring(0, 200));
       
-      // Extract contract code (remove markdown if present)
+      // Enhanced contract code extraction with better markdown handling
       let contractCode = aiResponse;
+      
+      // Remove markdown code blocks
       if (aiResponse.includes('```solidity')) {
         console.log(`🔄 ${provider}: Found Solidity code block, extracting...`);
         const start = aiResponse.indexOf('```solidity') + 11;
@@ -824,10 +879,27 @@ Return only the Solidity contract code.`;
       } else {
         console.log(`🔄 ${provider}: No code blocks found, using full response`);
       }
+      
+      // Remove any remaining markdown formatting
+      contractCode = contractCode
+        .replace(/^#+\s*/gm, '') // Remove headers
+        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+        .replace(/\*(.*?)\*/g, '$1') // Remove italic
+        .replace(/`(.*?)`/g, '$1') // Remove inline code
+        .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Remove links
+        .trim();
+
+      // Validate extracted code
+      if (!contractCode || contractCode.length < 100) {
+        throw new Error('Extracted contract code is too short or empty');
+      }
+      
+      if (!contractCode.includes('contract') && !contractCode.includes('pragma')) {
+        throw new Error('Extracted content does not appear to be Solidity code');
+      }
 
       console.log(`🔄 ${provider}: Final contract code length:`, contractCode.length);
       console.log(`🔄 ${provider}: Contract code preview:`, contractCode.substring(0, 200));
-
       // Generate contract name
       const contractName = this.generateContractName(request.userPrompt);
       console.log(`🔄 ${provider}: Generated contract name:`, contractName);
@@ -854,8 +926,8 @@ Return only the Solidity contract code.`;
         securityFeatures,
         estimatedGas,
         riskAssessment,
-        compilationInstructions: 'Review and test the generated code thoroughly before deployment',
-        deploymentNotes: 'Ensure all dependencies are installed and test on testnet first',
+        compilationInstructions: 'Review and test the generated code thoroughly before deployment. Ensure all OpenZeppelin dependencies are installed.',
+        deploymentNotes: 'Test on testnet first. Verify all security features are working as expected.',
         aiProvider: provider,
         confidence: 0.85
       };
@@ -865,6 +937,7 @@ Return only the Solidity contract code.`;
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : 'No stack trace'
       });
+      console.error(`❌ ${provider}: Raw response:`, aiResponse.substring(0, 500) + '...');
       
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to parse ${provider} response: ${errorMessage}`);
