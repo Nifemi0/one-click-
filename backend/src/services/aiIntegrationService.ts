@@ -859,13 +859,15 @@ Return only the Solidity contract code.`;
         aiProvider: provider,
         confidence: 0.85
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`❌ ${provider}: Failed to parse AI response:`, error);
       console.error(`❌ ${provider}: Error details:`, {
-        message: error.message,
-        stack: error.stack
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
       });
-      throw new Error(`Failed to parse ${provider} response: ${error.message}`);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to parse ${provider} response: ${errorMessage}`);
     }
   }
 
