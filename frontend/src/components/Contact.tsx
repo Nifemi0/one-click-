@@ -1,122 +1,266 @@
-'use client';
+import React from 'react';
+import { Mail, Phone, MapPin, MessageSquare, Send, Clock, Users, Shield } from 'lucide-react';
 
-import { Mail, MessageCircle, Globe, Shield } from 'lucide-react';
-
-export function Contact() {
+const Contact: React.FC = () => {
   return (
-    <section id="contact" className="py-20 px-4 sm:px-6 lg:px-8 bg-black relative overflow-hidden">
-      {/* Floating Background Elements */}
-      <div className="absolute inset-0">
-        <div className="absolute top-1/3 left-1/4 w-80 h-80 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/3 right-1/4 w-64 h-64 bg-gradient-to-r from-purple-500/5 to-blue-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }}></div>
-      </div>
-
-      <div className="max-w-7xl mx-auto relative z-10">
+    <section className="section">
+      <div className="container-custom">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
-            <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-              Get In Touch
-            </span>
+          <h2 className="h2 text-charcoal">
+            Get in <span className="text-gradient-primary">Touch</span>
           </h2>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            Have questions about our security platform? Need help with deployment? We're here to help.
+          <p className="text-large text-gray-600 max-w-3xl mx-auto">
+            Have questions about our security platform? Need help with deployment? 
+            Our team is here to help you secure your DeFi assets.
           </p>
         </div>
 
-        {/* Contact Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-          {/* Support */}
-          <div className="bg-gray-900/50 backdrop-blur-xl rounded-2xl p-8 border border-gray-800/50 hover:border-blue-500/50 transition-all duration-500 hover:transform hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20">
-            <div className="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center mb-6">
-              <MessageCircle className="w-8 h-8 text-blue-400" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          {/* Contact Form */}
+          <div className="card">
+            <div className="card-body">
+              <h3 className="h3 text-charcoal mb-6">Send us a Message</h3>
+              
+              <form className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="firstName" className="form-label">First Name</label>
+                    <input
+                      type="text"
+                      id="firstName"
+                      name="firstName"
+                      className="form-input"
+                      placeholder="John"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="lastName" className="form-label">Last Name</label>
+                    <input
+                      type="text"
+                      id="lastName"
+                      name="lastName"
+                      className="form-input"
+                      placeholder="Doe"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="email" className="form-label">Email Address</label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    className="form-input"
+                    placeholder="john@example.com"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="subject" className="form-label">Subject</label>
+                  <select id="subject" name="subject" className="form-select" required>
+                    <option value="">Select a subject</option>
+                    <option value="general">General Inquiry</option>
+                    <option value="technical">Technical Support</option>
+                    <option value="deployment">Deployment Help</option>
+                    <option value="security">Security Questions</option>
+                    <option value="partnership">Partnership</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="message" className="form-label">Message</label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    rows={5}
+                    className="form-input"
+                    placeholder="Tell us how we can help you..."
+                    required
+                  ></textarea>
+                </div>
+
+                <button type="submit" className="btn btn-primary w-full">
+                  <Send className="w-4 h-4 mr-2" />
+                  Send Message
+                </button>
+              </form>
             </div>
-            <h3 className="text-2xl font-bold text-white mb-4">Support</h3>
-            <p className="text-gray-300 mb-6 leading-relaxed">
-              Get help with deployment, configuration, or any technical questions.
-            </p>
-            <a 
-              href="mailto:support@oneclickdefi.com" 
-              className="inline-flex items-center text-blue-400 hover:text-blue-300 transition-colors font-medium"
-            >
-              <Mail className="w-4 h-4 mr-2" />
-              support@oneclickdefi.com
-            </a>
           </div>
 
-          {/* Documentation */}
-          <div className="bg-gray-900/50 backdrop-blur-xl rounded-2xl p-8 border border-gray-800/50 hover:border-purple-500/50 transition-all duration-500 hover:transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20">
-            <div className="w-16 h-16 bg-purple-500/20 rounded-2xl flex items-center justify-center mb-6">
-              <Globe className="w-8 h-8 text-purple-400" />
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-4">Documentation</h3>
-            <p className="text-gray-300 mb-6 leading-relaxed">
-              Comprehensive guides, API references, and best practices for security deployment.
-            </p>
-            <a 
-              href="#docs" 
-              className="inline-flex items-center text-purple-400 hover:text-purple-300 transition-colors font-medium"
-            >
-              <Globe className="w-4 h-4 mr-2" />
-              View Documentation
-            </a>
-          </div>
+          {/* Contact Information */}
+          <div className="space-y-8">
+            {/* Contact Methods */}
+            <div className="space-y-6">
+              <h3 className="h3 text-charcoal">Contact Information</h3>
+              
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Mail className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-charcoal mb-1">Email</h4>
+                    <p className="text-gray-600">support@oneclick.com</p>
+                    <p className="text-sm text-gray-500">We'll respond within 24 hours</p>
+                  </div>
+                </div>
 
-          {/* Security */}
-          <div className="bg-gray-900/50 backdrop-blur-xl rounded-2xl p-8 border border-gray-800/50 hover:border-green-500/50 transition-all duration-500 hover:transform hover:scale-105 hover:shadow-2xl hover:shadow-green-500/20">
-            <div className="w-16 h-16 bg-green-500/20 rounded-2xl flex items-center justify-center mb-6">
-              <Shield className="w-8 h-8 text-green-400" />
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <MessageSquare className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-charcoal mb-1">Live Chat</h4>
+                    <p className="text-gray-600">Available 24/7</p>
+                    <p className="text-sm text-gray-500">Get instant help from our team</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Phone className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-charcoal mb-1">Phone</h4>
+                    <p className="text-gray-600">+1 (555) 123-4567</p>
+                    <p className="text-sm text-gray-500">Mon-Fri, 9AM-6PM EST</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <MapPin className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-charcoal mb-1">Office</h4>
+                    <p className="text-gray-600">123 Security Street</p>
+                    <p className="text-sm text-gray-500">New York, NY 10001</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <h3 className="text-2xl font-bold text-white mb-4">Security</h3>
-            <p className="text-gray-300 mb-6 leading-relaxed">
-              Report security vulnerabilities or learn about our security practices.
-            </p>
-            <a 
-              href="#security" 
-              className="inline-flex items-center text-green-400 hover:text-green-300 transition-colors font-medium"
-            >
-              <Shield className="w-4 h-4 mr-2" />
-              Security Center
-            </a>
+
+            {/* Support Hours */}
+            <div className="bg-gradient-to-r from-primary/5 to-orange-600/5 rounded-xl p-6 border border-primary/20">
+              <div className="flex items-center gap-3 mb-4">
+                <Clock className="w-6 h-6 text-primary" />
+                <h4 className="h4 text-charcoal">Support Hours</h4>
+              </div>
+              <div className="space-y-2 text-sm text-gray-600">
+                <div className="flex justify-between">
+                  <span>Monday - Friday:</span>
+                  <span>9:00 AM - 6:00 PM EST</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Saturday:</span>
+                  <span>10:00 AM - 4:00 PM EST</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Sunday:</span>
+                  <span>Emergency Support Only</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="space-y-4">
+              <h4 className="h4 text-charcoal">Quick Actions</h4>
+              <div className="grid grid-cols-1 gap-3">
+                <a href="/docs" className="btn btn-utility w-full justify-center">
+                  📚 Documentation
+                </a>
+                <a href="/support" className="btn btn-utility w-full justify-center">
+                  🆘 Support Center
+                </a>
+                <a href="/status" className="btn btn-utility w-full justify-center">
+                  📊 System Status
+                </a>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Social Links */}
-        <div className="text-center">
-          <h3 className="text-2xl font-bold text-white mb-8">Follow Our Journey</h3>
-          <div className="flex flex-wrap justify-center gap-6">
-            <a 
-              href="#twitter" 
-              className="inline-flex items-center gap-3 bg-blue-500/10 border border-blue-500/20 rounded-full px-6 py-3 text-blue-400 hover:bg-blue-500/20 transition-all duration-300"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-              </svg>
-              Twitter
-            </a>
-            <a 
-              href="#discord" 
-              className="inline-flex items-center gap-3 bg-purple-500/10 border border-purple-500/20 rounded-full px-6 py-3 text-purple-400 hover:bg-purple-500/20 transition-all duration-300"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419-.019 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1568 2.4189Z"/>
-              </svg>
-              Discord
-            </a>
-            <a 
-              href="https://github.com/Nifemi0/one-click-" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 bg-gray-500/10 border border-gray-500/20 rounded-full px-6 py-3 text-gray-400 hover:bg-gray-500/20 transition-all duration-300"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.63-5.373-12-12-12"/>
-              </svg>
-              GitHub
-            </a>
+        {/* FAQ Section */}
+        <div className="mt-20">
+          <div className="text-center mb-12">
+            <h3 className="h3 text-charcoal">Frequently Asked Questions</h3>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Find quick answers to common questions about our platform and services
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="card">
+              <div className="card-body">
+                <h4 className="h4 text-charcoal mb-3">How do I deploy a security trap?</h4>
+                <p className="text-gray-600">
+                  Simply navigate to our deploy page, choose a template, customize your settings, 
+                  and click deploy. Our AI will generate and deploy your contract in minutes.
+                </p>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-body">
+                <h4 className="h4 text-charcoal mb-3">What networks do you support?</h4>
+                <p className="text-gray-600">
+                  We support Ethereum, Polygon, Arbitrum, Base, and many other EVM-compatible networks. 
+                  More networks are added regularly.
+                </p>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-body">
+                <h4 className="h4 text-charcoal mb-3">Is my data secure?</h4>
+                <p className="text-gray-600">
+                  Absolutely. We use enterprise-grade encryption and never store your private keys. 
+                  All security measures follow industry best practices.
+                </p>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-body">
+                <h4 className="h4 text-charcoal mb-3">Can I customize security templates?</h4>
+                <p className="text-gray-600">
+                  Yes! All our templates are fully customizable. You can modify security levels, 
+                  add custom logic, and integrate with your existing systems.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CTA Section */}
+        <div className="mt-20 text-center">
+          <div className="bg-gradient-to-r from-primary/5 to-orange-600/5 rounded-2xl p-8 border border-primary/20">
+            <h3 className="h3 text-charcoal mb-4">
+              Ready to Secure Your DeFi Assets?
+            </h3>
+            <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+              Join thousands of users who trust One Click to protect their protocols. 
+              Start deploying security traps today.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <a href="/deploy" className="btn btn-primary btn-lg">
+                🚀 Start Deploying
+              </a>
+              <a href="/marketplace" className="btn btn-secondary btn-lg">
+                🏪 Browse Templates
+              </a>
+            </div>
           </div>
         </div>
       </div>
     </section>
   );
-}
+};
+
+export default Contact;

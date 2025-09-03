@@ -1,4 +1,4 @@
-# 🔒 Security Guide - Drosera Security Trap System
+# 🔒 Security Guide - One Click Security Trap System
 
 ## ⚠️ **CRITICAL SECURITY WARNINGS**
 
@@ -181,7 +181,7 @@ chmod 644 .env
 ## 📞 **Security Contacts**
 
 ### **Report Security Issues:**
-- **Email**: security@drosera.com
+- **Email**: security@oneclick.com
 - **Emergency**: +1-XXX-XXX-XXXX
 - **Slack**: #security-alerts
 

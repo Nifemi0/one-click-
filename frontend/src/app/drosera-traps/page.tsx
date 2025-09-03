@@ -19,7 +19,7 @@ interface TrapTemplate {
   category: string;
 }
 
-export default function DroseraTrapsPage() {
+export default function OneClickTrapsPage() {
   const { isConnected, address, connect } = useWallet();
   const [selectedTemplate, setSelectedTemplate] = useState<TrapTemplate | null>(null);
   const [deploymentStep, setDeploymentStep] = useState<'select' | 'configure' | 'deploying' | 'success'>('select');
@@ -54,8 +54,8 @@ export default function DroseraTrapsPage() {
       category: 'Honeypot'
     },
     {
-      id: 'drosera-registry',
-      name: 'DroseraRegistry',
+      id: 'oneclick-registry',
+      name: 'OneClickRegistry',
       description: 'Central registry for managing and tracking all deployed security traps',
       trapType: 'Registry',
       defaultThreshold: 1,
@@ -128,7 +128,7 @@ export default function DroseraTrapsPage() {
             </div>
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl mb-6">
               <span className="bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">
-                Drosera
+                One Click
               </span>
               <span className="text-gray-900 dark:text-white"> Traps</span>
             </h1>
@@ -155,13 +155,13 @@ export default function DroseraTrapsPage() {
         <div className="text-center mb-16">
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl mb-6">
             <span className="bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">
-              Drosera
+              One Click
             </span>
             <span className="text-gray-900 dark:text-white"> Traps</span>
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
             Deploy intelligent security traps with one-click automation. Protect your DeFi protocols 
-            with enterprise-grade security infrastructure built on the Drosera framework.
+            with enterprise-grade security infrastructure built on the One Click framework.
           </p>
         </div>
 

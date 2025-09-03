@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# 🚀 One-Click Backend Update Script
-# Use this script to update your backend on VPS after making changes
+# One Click Backend Deployment Script
+# ===================================
 
 set -e
 
@@ -28,7 +28,7 @@ print_step() {
 }
 
 # Configuration
-DEPLOY_DIR="/opt/drosera-one-click/one-click/backend"
+DEPLOY_DIR="/opt/one-click/one-click/backend"
 
 # Step 1: Navigate to backend directory
 print_step "1. Navigating to backend directory..."
@@ -52,7 +52,7 @@ print_status "Application built successfully"
 
 # Step 5: Restart PM2
 print_step "5. Restarting PM2 process..."
-pm2 restart drosera-one-click-backend
+pm2 restart one-click-backend
 print_status "PM2 process restarted"
 
 # Step 6: Wait for startup
@@ -65,7 +65,7 @@ if curl -f http://localhost:3001/health > /dev/null 2>&1; then
     print_status "✅ Health check passed!"
 else
     print_warning "⚠️ Health check failed, checking logs..."
-    pm2 logs drosera-one-click-backend --lines 20
+    pm2 logs one-click-backend --lines 20
 fi
 
 # Step 8: Show status
@@ -79,7 +79,7 @@ pm2 status
 echo ""
 print_status "🚀 Your One-Click backend has been updated!"
 print_status "📝 Useful commands:"
-print_status "   - View logs: pm2 logs drosera-one-click-backend"
-print_status "   - Restart: pm2 restart drosera-one-click-backend"
-print_status "   - Stop: pm2 stop drosera-one-click-backend"
+print_status "   - View logs: pm2 logs one-click-backend"
+print_status "   - Restart: pm2 restart one-click-backend"
+print_status "   - Stop: pm2 stop one-click-backend"
 print_status "   - Monitor: pm2 monit"

@@ -203,7 +203,7 @@ export default function EnhancedAIPage() {
       }
       
       // Step 3: Success
-      addMessage('assistant', `🎉 Drosera trap successfully deployed!\n\n**Contract Address:** ${deployResult.data.contractAddress}\n**Transaction Hash:** ${deployResult.data.transactionHash}\n**Gas Used:** ${deployResult.data.gasUsed.toLocaleString()}\n**Deployment Cost:** ${deployResult.data.deploymentCost} ETH\n\nYour Drosera security trap is now active on the Hoodi testnet! 🚀`);
+      addMessage('assistant', `🎉 One Click trap successfully deployed!\n\n**Contract Address:** ${deployResult.data.contractAddress}\n**Transaction Hash:** ${deployResult.data.transactionHash}\n**Gas Used:** ${deployResult.data.gasUsed.toLocaleString()}\n**Deployment Cost:** ${deployResult.data.deploymentCost} ETH\n\nYour One Click security trap is now active on the Hoodi testnet! 🚀`);
       
       // Clear stored contract data
       localStorage.removeItem('generatedContract');
@@ -280,7 +280,7 @@ export default function EnhancedAIPage() {
               <h1 className="text-4xl font-bold text-white">Enhanced AI Dashboard</h1>
             </div>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              Advanced AI-powered DROSERA TRAP creation and deployment. Generate, customize, and deploy 
+              Advanced AI-powered ONE CLICK TRAP creation and deployment. Generate, customize, and deploy 
               sophisticated security traps that monitor, capture, and analyze malicious transactions.
             </p>
           </div>
@@ -297,7 +297,7 @@ export default function EnhancedAIPage() {
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">AI Generation</h3>
             <p className="text-gray-300 text-sm">
-              Generate custom Drosera trap contracts using advanced AI algorithms
+              Generate custom One Click trap contracts using advanced AI algorithms
             </p>
           </div>
           
@@ -305,7 +305,7 @@ export default function EnhancedAIPage() {
             <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <Code className="w-6 h-6 text-white" />
             </div>
-            <h3 className="text-lg font-semibold text-white mb-2">Drosera Traps</h3>
+            <h3 className="text-lg font-semibold text-white mb-2">One Click Traps</h3>
             <p className="text-gray-300 text-sm">
               Deploy intelligent security traps with built-in monitoring and capture mechanisms
             </p>
@@ -326,7 +326,7 @@ export default function EnhancedAIPage() {
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
           <div className="flex items-center gap-3 mb-6">
             <MessageSquare className="w-6 h-6 text-blue-400" />
-            <h2 className="text-2xl font-bold text-white">AI Drosera Trap Generator</h2>
+            <h2 className="text-2xl font-bold text-white">AI One Click Trap Generator</h2>
           </div>
           
           {/* Chat Messages */}
@@ -334,7 +334,7 @@ export default function EnhancedAIPage() {
             {chatMessages.length === 0 ? (
               <div className="text-center text-gray-400 py-8">
                 <Brain className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>Start a conversation with AI to generate your Drosera security trap</p>
+                <p>Start a conversation with AI to generate your One Click security trap</p>
                 <p className="text-sm mt-2">Example: "Create a DEX watcher that monitors transactions and flags farming wallets"</p>
               </div>
             ) : (
@@ -378,7 +378,7 @@ export default function EnhancedAIPage() {
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="Describe your Drosera trap requirements..."
+                placeholder="Describe your One Click trap requirements..."
                 className="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isGenerating || isDeploying}
               />

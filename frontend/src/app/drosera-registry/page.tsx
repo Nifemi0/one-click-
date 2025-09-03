@@ -1,5 +1,5 @@
-import DroseraRegistry from '../../components/DroseraRegistry';
+import OneClickRegistry from '../../components/OneClickRegistry';
 
-export default function DroseraRegistryPage() {
-  return <DroseraRegistry />;
+export default function OneClickRegistryPage() {
+  return <OneClickRegistry />;
 }

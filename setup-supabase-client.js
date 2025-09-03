@@ -1,8 +1,10 @@
+#!/usr/bin/env node
+
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
 
-console.log('🚀 Setting up Drosera Security Trap System Database via Supabase Client...\n');
+console.log('🚀 Setting up One Click Security Trap System Database via Supabase Client...\n');
 
 const supabaseUrl = 'https://lctrrotjiwwekquwcpbn.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjdHJyb3RqaXd3ZWtxdXdjcGJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUwMTY3MDQsImV4cCI6MjA3MDU5MjcwNH0.1Z2iP9g2f7oWeYiDkPo0WwPr9TLtDCxgnWkg6YFVZXg';

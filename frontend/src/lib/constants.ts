@@ -12,8 +12,8 @@ export const SUPPORTED_CHAINS = {
       decimals: 18,
     },
     contracts: {
-      droseraFactory: process.env.NEXT_PUBLIC_HOODI_DROSERA_FACTORY || '',
-      droseraRegistry: process.env.NEXT_PUBLIC_HOODI_DROSERA_REGISTRY || '',
+      oneclickFactory: process.env.NEXT_PUBLIC_HOODI_ONE_CLICK_FACTORY || '',
+      oneclickRegistry: process.env.NEXT_PUBLIC_HOODI_ONE_CLICK_REGISTRY || '',
     },
   },
 } as const;

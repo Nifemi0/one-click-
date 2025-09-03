@@ -1,6 +1,7 @@
--- =====================================================
--- DROSERA SECURITY TRAP SYSTEM DATABASE SCHEMA
--- =====================================================
+-- ONE CLICK SECURITY TRAP SYSTEM DATABASE SCHEMA
+-- ================================================
+-- This schema creates the database structure for the One Click security platform
+-- including user management, trap deployments, and security monitoring
 
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -524,4 +525,4 @@ COMMENT ON COLUMN monitoring_logs.metadata IS 'Additional log data in JSON forma
 -- SCHEMA COMPLETE
 -- =====================================================
 
-SELECT 'Drosera Security Trap System database schema created successfully!' as status;
+SELECT 'One Click Security Trap System database schema created successfully!' as status;

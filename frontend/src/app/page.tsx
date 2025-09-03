@@ -1,29 +1,30 @@
 'use client';
 
-import { Header } from '../components/Header';
-import { Hero } from '../components/Hero';
-import { Stats } from '../components/Stats';
-import { Features } from '../components/Features';
-import { Donation } from '../components/Donation';
-import { Footer } from '../components/Footer';
+import React from 'react';
+import Hero from '@/components/Hero';
+import Features from '@/components/Features';
+import Stats from '@/components/Stats';
+import Donation from '@/components/Donation';
+import Contact from '@/components/Contact';
 
 export default function Home() {
-
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <Header />
-
-      {/* Main Content */}
-      <main>
-        <Hero />
-        <Stats />
-        <Features />
-        <Donation />
-      </main>
-
-      <Footer />
-    </div>
+    <main className="min-h-screen">
+      {/* Hero Section */}
+      <Hero />
+      
+      {/* Features Section */}
+      <Features />
+      
+      {/* Stats Section */}
+      <Stats />
+      
+      {/* Donation Section */}
+      <Donation />
+      
+      {/* Contact Section */}
+      <Contact />
+    </main>
   );
 }
 

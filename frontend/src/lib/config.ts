@@ -39,5 +39,7 @@ export const apiEndpoints = {
   analyze: '/api/analyze',
   alerts: '/api/alerts',
   traps: '/api/traps',
-  rpcTest: '/api/rpc-test'
+  rpcTest: '/api/rpc-test',
+  oneclickTraps: '/api/oneclick-traps',
+  oneclickRegistry: '/api/oneclick-registry'
 };

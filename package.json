@@ -1,63 +1,48 @@
 {
-  "name": "drosera-one-click",
+  "name": "one-click",
   "version": "1.0.0",
-  "description": "Drosera One-Click Deployment System - Complete Web3 Security Platform",
+  "description": "One Click - Complete Web3 Security Platform",
   "main": "index.js",
-  "type": "module",
   "scripts": {
-    "compile": "hardhat compile",
-    "test": "hardhat test",
-    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
-    "deploy:hoodi": "hardhat run scripts/deploy.js --network hoodi",
-    "backend:build": "cd backend && npm run build",
-    "backend:start": "cd backend && npm start",
-    "backend:dev": "cd backend && npm run dev",
-    "frontend:build": "cd frontend && npm run build",
-    "frontend:dev": "cd frontend && npm run dev",
-    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
-    "build:all": "npm run compile && npm run backend:build && npm run frontend:build",
-    "lint": "npm run lint:root && npm run lint:frontend && npm run lint:backend",
-    "lint:root": "eslint . --ext .js,.ts",
-    "lint:frontend": "cd frontend && npm run lint",
-    "lint:backend": "cd backend && npm run lint",
-    "test:all": "npm run test && cd frontend && npm run test && cd ../backend && npm run test",
-    "clean": "rm -rf node_modules frontend/node_modules backend/node_modules dist frontend/.next backend/dist",
-    "setup": "npm run install:all && npm run build:all",
-    "health:check": "node health-check.cjs",
-    "verify:deps": "npm list --depth=0",
-    "test:compile": "npx hardhat compile --quiet"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "concurrently \"npm run build:backend\" \"npm run build:frontend\"",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm start",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "clean": "rm -rf node_modules backend/node_modules frontend/node_modules",
+    "setup": "npm run install:all && npm run build",
+    "deploy": "npm run build && npm run deploy:backend && npm run deploy:frontend",
+    "deploy:backend": "cd backend && npm run deploy",
+    "deploy:frontend": "cd frontend && npm run deploy",
+    "health": "node health-check.cjs",
+    "status": "git status",
+    "logs": "cd backend && npm run logs",
+    "restart": "cd backend && npm run restart",
+    "stop": "cd backend && npm run stop"
   },
   "keywords": [
-    "web3",
+    "oneclick",
     "security",
     "defi",
-    "drosera",
+    "web3",
     "blockchain",
     "smart-contracts",
-    "solidity",
-    "hardhat"
+    "honeypot",
+    "protection"
   ],
-  "author": "Drosera Team",
+  "author": "One Click Team",
   "license": "MIT",
-  "dependencies": {
-    "@openzeppelin/contracts": "^5.4.0",
-    "dotenv": "^16.6.1"
-  },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
-    "hardhat": "^2.26.0",
-    "@types/node": "^20.19.10",
-    "typescript": "^5.9.2",
-    "eslint": "^8.57.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0"
+    "concurrently": "^8.2.2"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Nifemi0/one-click-.git"
-  },
-  "bugs": {
-    "url": "https://github.com/Nifemi0/one-click-/issues"
-  },
-  "homepage": "https://github.com/Nifemi0/one-click-#readme"
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
 }

@@ -1,8 +1,8 @@
-# 🚀 Drosera Security Traps - Professional DeFi Protection
+# 🚀 One Click Security Traps - Professional DeFi Protection
 
-## Overview
+## 🎯 **Overview**
 
-**Drosera Security Traps** is a comprehensive security infrastructure that provides automated threat detection and response for DeFi protocols. Built on the Drosera network, these traps offer real-time protection against various attack vectors including honeypots, flash loans, reentrancy, MEV attacks, and more.
+**One Click Security Traps** is a comprehensive security infrastructure that provides automated threat detection and response for DeFi protocols. Built on the One Click network, these traps offer real-time protection against various attack vectors including honeypots, flash loans, reentrancy, MEV attacks, and more.
 
 ## 🌟 Key Features
 
@@ -18,8 +18,8 @@
 4. **MEV Protection** - Guard against MEV and sandwich attacks
 5. **Access Control** - Multi-signature and role-based permissions
 
-### ⚡ **Drosera Network Integration**
-- **Native Drosera trap interface** (`detect()` and `respond()` functions)
+### ⚡ **One Click Network Integration**
+- **Native One Click trap interface** (`detect()` and `respond()` functions)
 - **Network-wide threat intelligence** sharing
 - **Automated operator responses** for immediate protection
 
@@ -28,31 +28,31 @@
 ### Smart Contracts
 
 #### `SecurityTrap.sol`
-- **Main trap contract** implementing the Drosera interface
+- **Main trap contract** implementing the One Click interface
 - **Multi-trap support** with individual configurations
 - **Whitelist/blacklist management** for address control
 - **Configurable thresholds** and response delays
 
 #### `AdvancedHoneypot.sol`
-- **Specialized honeypot implementation** for Drosera
+- **Specialized honeypot implementation** for One Click
 - **Fund protection** with configurable balances
 - **Attack pattern recognition** and response
 - **Advanced threat detection** algorithms
 
-#### `IDroseraTrap.sol`
+#### `IOneClickTrap.sol`
 - **Standard interface** all traps must implement
-- **Ensures compatibility** with Drosera network
+- **Ensures compatibility** with One Click network
 - **Defines core functions** for detection and response
 
 ### Frontend Integration
 
-#### `DroseraTrapManager.ts`
+#### `OneClickTrapManager.ts`
 - **TypeScript service** for trap management
 - **Wallet integration** with MetaMask support
 - **Template-based deployment** system
 - **Real-time monitoring** and response execution
 
-#### `Drosera Traps Page`
+#### `One Click Traps Page`
 - **User-friendly interface** for trap deployment
 - **Template selection** with detailed descriptions
 - **Configuration management** for trap parameters
@@ -89,13 +89,13 @@ NEXT_PUBLIC_SECURITY_TRAP_CONTRACT_ADDRESS=<deployed-address>
 
 4. **Deploy contracts** (optional - for development)
 ```bash
-npx hardhat run scripts/deploy-drosera.js --network hoodi
+npx hardhat run scripts/deploy-oneclick.js --network hoodi
 ```
 
 ### Usage
 
-#### 1. **Access Drosera Traps**
-- Navigate to `/drosera-traps` in your application
+#### 1. **Access One Click Traps**
+- Navigate to `/oneclick-traps` in your application
 - Connect your MetaMask wallet
 - Ensure you're on Hoodi testnet
 
@@ -123,10 +123,10 @@ npx hardhat run scripts/deploy-drosera.js --network hoodi
 
 ## 🔧 Technical Details
 
-### Drosera Trap Interface
+### One Click Trap Interface
 
 ```solidity
-interface IDroseraTrap {
+interface IOneClickTrap {
     function detect(
         uint256 trapId,
         address target,
@@ -213,14 +213,14 @@ interface IDroseraTrap {
 - **Integration with DeFi protocols** for native protection
 
 ### Phase 3: Ecosystem Expansion
-- **Drosera network integration** for global threat intelligence
+- **One Click network integration** for global threat intelligence
 - **Protocol partnerships** for enhanced security
 - **Mobile applications** for remote monitoring
 - **API access** for third-party integrations
 
 ## 🤝 Contributing
 
-We welcome contributions to improve the Drosera trap system:
+We welcome contributions to improve the One Click trap system:
 
 1. **Fork the repository**
 2. **Create a feature branch**
@@ -246,8 +246,8 @@ We welcome contributions to improve the Drosera trap system:
 - **GitHub Issues**: [Link to issues]
 
 ### Contact
-- **Email**: support@drosera-traps.com
-- **Twitter**: [@DroseraTraps](https://twitter.com/DroseraTraps)
+- **Email**: support@oneclick-traps.com
+- **Twitter**: [@OneClickTraps](https://twitter.com/OneClickTraps)
 
 ## 📄 License
 
@@ -255,11 +255,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- **Drosera Network** for the trap infrastructure
+- **One Click Network** for the trap infrastructure
 - **OpenZeppelin** for security contract libraries
 - **Hardhat** for development framework
 - **Community contributors** for feedback and testing
 
 ---
 
-**🚀 Deploy your first Drosera trap today and join the future of DeFi security!**
+**🚀 Deploy your first One Click trap today and join the future of DeFi security!**

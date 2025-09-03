@@ -1,0 +1,14 @@
+warning: in the working copy of 'frontend/.netlify/static/deploy/index.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/.netlify/static/drosera-traps/index.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/.netlify/static/index.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/.netlify/static/marketplace/index.txt', LF will be replaced by CRLF the next time Git touches it
+frontend/.netlify/static/404.html
+frontend/.netlify/static/404/index.html
+frontend/.netlify/static/deploy/index.html
+frontend/.netlify/static/deploy/index.txt
+frontend/.netlify/static/drosera-traps/index.html
+frontend/.netlify/static/drosera-traps/index.txt
+frontend/.netlify/static/index.html
+frontend/.netlify/static/index.txt
+frontend/.netlify/static/marketplace/index.html
+frontend/.netlify/static/marketplace/index.txt

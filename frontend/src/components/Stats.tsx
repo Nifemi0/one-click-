@@ -1,152 +1,126 @@
 'use client';
 
-import { Shield, Target, Clock, Zap } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import React from 'react';
+import { Shield, Users, DollarSign, TrendingUp, CheckCircle, Zap, Lock, Globe } from 'lucide-react';
 
-interface StatItem {
-  icon: React.ComponentType<{ className?: string }>;
-  value: string;
-  label: string;
-  color: string;
-}
-
-const stats: StatItem[] = [
-  {
-    icon: Shield,
-    value: "1,234+",
-    label: "Security Traps Deployed",
-    color: "from-orange-500 to-red-600"
-  },
-  {
-    icon: Zap,
-    value: "150+",
-    label: "Active Deployments",
-    color: "from-orange-500 to-red-600"
-  },
-  {
-    icon: Target,
-    value: "99.9%",
-    label: "Attack Prevention Rate",
-    color: "from-orange-500 to-red-600"
-  },
-  {
-    icon: Clock,
-    value: "24/7",
-    label: "Monitoring Active",
-    color: "from-orange-500 to-red-600"
-  }
-];
-
-export function Stats() {
-  const [animatedValues, setAnimatedValues] = useState<{ [key: string]: number }>({});
-
-  useEffect(() => {
-    const animateCounters = () => {
-      stats.forEach((stat, index) => {
-        setTimeout(() => {
-          if (stat.value.includes('+') || stat.value.includes('%') || stat.value.includes('/')) {
-            // For non-numeric values, just show them immediately
-            setAnimatedValues(prev => ({ ...prev, [index]: 1 }));
-          } else {
-            // For numeric values, animate them
-            const numericValue = parseFloat(stat.value.replace(/[^0-9.]/g, ''));
-            if (!isNaN(numericValue)) {
-              let current = 0;
-              const increment = numericValue / 50;
-              const timer = setInterval(() => {
-                current += increment;
-                if (current >= numericValue) {
-                  current = numericValue;
-                  clearInterval(timer);
-                }
-                setAnimatedValues(prev => ({ ...prev, [index]: current }));
-              }, 20);
-            }
-          }
-        }, index * 200);
-      });
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          animateCounters();
-          observer.unobserve(entry.target);
-        }
-      });
-    });
-
-    const statsSection = document.getElementById('stats');
-    if (statsSection) {
-      observer.observe(statsSection);
+const Stats: React.FC = () => {
+  const stats = [
+    {
+      icon: Shield,
+      value: '10,000+',
+      label: 'Security Traps Deployed',
+      description: 'Active protection across multiple networks',
+      gradient: 'from-primary to-orange-600'
+    },
+    {
+      icon: Users,
+      value: '5,000+',
+      label: 'Active Users',
+      description: 'Trusted by leading DeFi protocols',
+      gradient: 'from-success to-green-600'
+    },
+    {
+      icon: DollarSign,
+      value: '$2.5B+',
+      label: 'Assets Protected',
+      description: 'Total value secured by our platform',
+      gradient: 'from-warning to-yellow-600'
+    },
+    {
+      icon: TrendingUp,
+      value: '99.9%',
+      label: 'Success Rate',
+      description: 'Reliable threat detection and prevention',
+      gradient: 'from-purple-500 to-purple-700'
     }
+  ];
 
-    return () => observer.disconnect();
-  }, []);
+  const reasons = [
+    {
+      icon: Zap,
+      title: 'Lightning Fast Deployment',
+      description: 'Deploy security traps in under 5 minutes with our streamlined process.'
+    },
+    {
+      icon: Lock,
+      title: 'Enterprise Security',
+      description: 'Bank-grade security measures with continuous monitoring and threat detection.'
+    },
+    {
+      icon: Globe,
+      title: 'Multi-Chain Support',
+      description: 'Protect assets across Ethereum, Polygon, Arbitrum, Base, and more.'
+    }
+  ];
 
   return (
-    <section id="stats" className="section relative overflow-hidden">
-      {/* Floating Background Elements */}
-      <div className="absolute inset-0">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-accent/10 to-accent-hover/10 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-gradient-to-r from-accent-hover/10 to-accent/10 rounded-full blur-3xl animate-float-delay-1"></div>
-      </div>
+    <section className="section">
+      <div className="container-custom">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          {stats.map((stat, index) => (
+            <div key={index} className="card text-center">
+              <div className="card-body">
+                <div className={`w-16 h-16 bg-gradient-to-br ${stat.gradient} rounded-2xl flex items-center justify-center mx-auto mb-4`}>
+                  <stat.icon className="w-8 h-8 text-white" />
+                </div>
+                <div className="text-3xl font-bold text-charcoal mb-2">{stat.value}</div>
+                <div className="font-medium text-charcoal mb-2">{stat.label}</div>
+                <div className="text-sm text-gray-600">{stat.description}</div>
+              </div>
+            </div>
+          ))}
+        </div>
 
-      <div className="container relative z-10">
-        {/* Section Header */}
-        <div className="text-center mb-16">
-          <h2 className="mb-6">
-            <span className="gradient-text">
-              Security Metrics
-            </span>
+        {/* Why Protocols Choose One Click */}
+        <div className="text-center mb-12">
+          <h2 className="h2 text-charcoal mb-4">
+            Why Protocols Choose <span className="text-gradient-primary">One Click</span>
           </h2>
-          <p className="text-xl text-muted container-sm">
-            Real-time statistics showcasing our platform's security effectiveness
+          <p className="text-large text-gray-600 max-w-3xl mx-auto">
+            Our platform has become the go-to solution for DeFi security, trusted by 
+            leading protocols worldwide for its reliability, speed, and effectiveness.
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid-responsive">
-          {stats.map((stat, index) => {
-            const IconComponent = stat.icon;
-            const animatedValue = animatedValues[index];
-            
-            return (
-              <div
-                key={index}
-                className="group relative"
-              >
-                <div className="card card-hover h-full">
-                  {/* Glow Effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-accent/5 to-accent-hover/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  
-                  {/* Icon */}
-                  <div className="relative z-10 w-16 h-16 bg-gradient-to-r from-accent/20 to-accent-hover/20 rounded-2xl flex items-center justify-center mb-6 group-hover:from-accent/30 group-hover:to-accent-hover/30 transition-all duration-500">
-                    <IconComponent className="w-8 h-8 text-accent group-hover:text-accent-hover transition-colors duration-500" />
-                  </div>
-                  
-                  {/* Value */}
-                  <div className="relative z-10 mb-4">
-                    <div className="text-3xl md:text-4xl font-bold gradient-text">
-                      {stat.value.includes('+') || stat.value.includes('%') || stat.value.includes('/') 
-                        ? stat.value 
-                        : animatedValue 
-                          ? `${Math.floor(animatedValue).toLocaleString()}${stat.value.includes('M') ? 'M' : ''}`
-                          : '0'
-                      }
-                    </div>
-                  </div>
-                  
-                  {/* Label */}
-                  <p className="relative z-10 text-muted text-center leading-relaxed group-hover:text-foreground transition-colors duration-500">
-                    {stat.label}
-                  </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          {reasons.map((reason, index) => (
+            <div key={index} className="card">
+              <div className="card-body text-center">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <reason.icon className="w-8 h-8 text-primary" />
                 </div>
+                <h3 className="h3 text-charcoal mb-3">{reason.title}</h3>
+                <p className="text-gray-600">{reason.description}</p>
               </div>
-            );
-          })}
+            </div>
+          ))}
+        </div>
+
+        {/* Trust Indicators */}
+        <div className="bg-gradient-to-r from-primary/5 to-orange-600/5 rounded-2xl p-8 border border-primary/20 text-center">
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-8 h-8 text-primary" />
+          </div>
+          <h3 className="h2 text-charcoal mb-4">
+            Trusted by Industry Leaders
+          </h3>
+          <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+            Join thousands of DeFi protocols that have already secured their assets with One Click. 
+            Our platform has been battle-tested in production environments.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="/deploy" className="btn btn-primary btn-lg">
+              🚀 Start Protecting
+            </a>
+            <a href="/marketplace" className="btn btn-secondary btn-lg">
+              🏪 View Templates
+            </a>
+          </div>
         </div>
       </div>
     </section>
   );
-}
+};
+
+export default Stats;

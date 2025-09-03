@@ -1,59 +1,27 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { WalletProvider } from "../providers/WalletProvider";
-import { ThemeProvider } from "../providers/ThemeProvider";
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import { WalletProvider } from '@/providers/WalletProvider';
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "One Click - DeFi Security Made Simple",
-  description: "Deploy sophisticated security traps on Hoodi testnet with AI-powered analysis. Protect your assets with enterprise-grade security made simple.",
-  keywords: ["DeFi", "security", "blockchain", "smart contracts", "cryptocurrency", "Hoodi", "testnet", "one click"],
-  authors: [{ name: "One Click Network" }],
-  creator: "One Click Network",
-  publisher: "One Click Network",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  metadataBase: new URL('https://oneclick.network'),
+  title: 'One Click - DeFi Security Platform',
+  description: 'Deploy enterprise-grade security traps in minutes with AI-powered contract generation. Protect your DeFi protocols from common attack vectors.',
+  keywords: 'DeFi, security, smart contracts, blockchain, Ethereum, Polygon, Arbitrum, Base, security traps, honeypots, AI, artificial intelligence',
+  authors: [{ name: 'One Click Team' }],
   openGraph: {
-    title: "One Click - DeFi Security Made Simple",
-    description: "Deploy sophisticated security traps on Hoodi testnet with AI-powered analysis.",
-    url: 'https://oneclick.network',
-    siteName: 'One Click Network',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'One Click Network - DeFi Security Platform',
-      },
-    ],
-    locale: 'en_US',
+    title: 'One Click - DeFi Security Platform',
+    description: 'Deploy enterprise-grade security traps in minutes with AI-powered contract generation.',
     type: 'website',
+    locale: 'en_US',
   },
   twitter: {
     card: 'summary_large_image',
-    title: "One Click - DeFi Security Made Simple",
-    description: "Deploy sophisticated security traps on Hoodi testnet with AI-powered analysis.",
-    images: ['/og-image.png'],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
-  verification: {
-    google: 'your-google-verification-code',
+    title: 'One Click - DeFi Security Platform',
+    description: 'Deploy enterprise-grade security traps in minutes with AI-powered contract generation.',
   },
 };
 
@@ -63,22 +31,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.className}>
-      <head>
-        <link rel="icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#000000" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        {/* Standalone CSS for Netlify compatibility - moved to globals.css */}
-        {/* <link rel="stylesheet" href="/standalone.css" /> */}
-      </head>
-      <body className="antialiased">
-        <ThemeProvider>
-          <WalletProvider>
-            {children}
-          </WalletProvider>
-        </ThemeProvider>
+    <html lang="en">
+      <body className={inter.className}>
+        <WalletProvider>
+          <Header />
+          <main>{children}</main>
+          <Footer />
+        </WalletProvider>
       </body>
     </html>
   );

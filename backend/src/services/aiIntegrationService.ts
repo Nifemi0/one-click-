@@ -168,7 +168,7 @@ export class AIIntegrationService {
           headers: {
             'Authorization': `Bearer ${this.openaiApiKey}`,
             'Content-Type': 'application/json',
-            'User-Agent': 'Drosera-Security-Platform/1.0'
+            'User-Agent': 'OneClick-Security-Platform/1.0'
           },
           timeout: 45000
         }
@@ -325,7 +325,7 @@ export class AIIntegrationService {
           {
             headers: {
               'Content-Type': 'application/json',
-              'User-Agent': 'Drosera-Security-Platform/1.0'
+              'User-Agent': 'OneClick-Security-Platform/1.0'
             },
             timeout: 45000
           }
@@ -419,7 +419,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 /**
  * @title DEXWatcherTrap
  * @dev Advanced DEX monitoring and attack detection trap
- * @custom:security-contact security@drosera.com
+ * @custom:security-contact security@oneclick.com
  */
 contract DEXWatcherTrap is ReentrancyGuard, Pausable, Ownable {
     using Address for address payable;
@@ -520,7 +520,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /**
  * @title HoneypotTrap
  * @dev Advanced honeypot security trap with fund capture
- * @custom:security-contact security@drosera.com
+ * @custom:security-contact security@oneclick.com
  */
 contract HoneypotTrap is ReentrancyGuard, Ownable {
     mapping(address => uint256) public balances;
@@ -571,7 +571,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 /**
  * @title DroseraSecurityTrap
  * @dev Advanced security trap with fund capture and attack detection
- * @custom:security-contact security@drosera.com
+ * @custom:security-contact security@oneclick.com
  */
 contract DroseraSecurityTrap is ReentrancyGuard, Pausable, Ownable {
     using Address for address payable;

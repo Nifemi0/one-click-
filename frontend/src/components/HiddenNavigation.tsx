@@ -17,7 +17,7 @@ const HiddenNavigation: React.FC<HiddenNavigationProps> = ({ isVisible = false }
 
   const handleSecretCode = () => {
     // Easter egg: Konami code or secret phrase
-    if (secretCode.toLowerCase().includes('drosera') || secretCode.toLowerCase().includes('enhanced')) {
+    if (secretCode.toLowerCase().includes('oneclick') || secretCode.toLowerCase().includes('enhanced')) {
       setShowHiddenMenu(true);
       setAttempts(0);
     } else {

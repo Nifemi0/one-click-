@@ -1,97 +1,95 @@
-# =====================================================
-# DROSERA SECURITY TRAP SYSTEM - GIT IGNORE
-# =====================================================
-# ⚠️  CRITICAL: Never commit sensitive data to version control!
+# ONE CLICK SECURITY TRAP SYSTEM - GIT IGNORE
 
-# ===== ENVIRONMENT FILES (CONTAINS SECRETS) =====
-.env
-.env.local
-.env.development
-.env.production
-.env.test
-.env.staging
-.env.*.local
-
-# ===== BACKEND ENVIRONMENT =====
-backend/.env
-backend/.env.*
-backend/config/secrets.json
-backend/config/keys.json
-
-# ===== FRONTEND ENVIRONMENT =====
-frontend/.env.local
-frontend/.env.development.local
-frontend/.env.production.local
-frontend/.env.test.local
-
-# ===== DATABASE =====
-*.db
-*.sqlite
-*.sqlite3
-database/
-db/
-
-# ===== LOGS =====
-logs/
-*.log
+# Dependencies
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-lerna-debug.log*
 
-# ===== RUNTIME DATA =====
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Logs
+logs/
+*.log
+
+# Runtime data
 pids/
 *.pid
 *.seed
 *.pid.lock
 
-# ===== COVERAGE DIRECTORY =====
+# Coverage directory used by tools like istanbul
 coverage/
 *.lcov
+
+# nyc test coverage
 .nyc_output
 
-# ===== GRUNT INTERMEDIATE STORAGE =====
-.grunt
+# Dependency directories
+jspm_packages/
 
-# ===== BOWER DEPENDENCY DIRECTORY =====
-bower_components
-
-# ===== NODE MODULES =====
-node_modules/
-*/node_modules/
-
-# ===== NPM =====
+# Optional npm cache directory
 .npm
+
+# Optional eslint cache
 .eslintcache
 
-# ===== YARN =====
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
 .yarn-integrity
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
 
-# ===== BUILD OUTPUTS =====
-dist/
-build/
-out/
-.next/
-.nuxt/
-.vuepress/dist
-.serverless/
-.fusebox/
-.dynamodb/
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
 
-# ===== IDE & EDITOR FILES =====
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# Editor directories and files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# ===== OS GENERATED FILES =====
+# OS generated files
 .DS_Store
 .DS_Store?
 ._*
@@ -100,95 +98,26 @@ out/
 ehthumbs.db
 Thumbs.db
 
-# ===== TEMPORARY FILES =====
-*.tmp
-*.temp
-.tmp/
-.temp/
-
-# ===== TEST FILES =====
-test-results/
-test-results.xml
-coverage/
-
-# ===== DOCKER =====
-.dockerignore
-docker-compose.override.yml
-
-# ===== KUBERNETES =====
-*.kubeconfig
-kubeconfig
-
-# ===== SSL CERTIFICATES =====
-*.pem
-*.key
-*.crt
-*.csr
-*.p12
-*.pfx
-
-# ===== WALLET FILES =====
-*.keystore
-*.wallet
-wallets/
-keystores/
-
-# ===== CONTRACT ARTIFACTS =====
-artifacts/
+# Hardhat
 cache/
+artifacts/
 typechain/
 typechain-types/
 
-# ===== HARDHAT =====
-.hardhat/
-hardhat.config.js
-hardhat.config.ts
+# Database
+*.db
+*.sqlite
+*.sqlite3
 
-# ===== TRUFFLE =====
-truffle-config.js
-truffle.js
-
-# ===== FOUNDRY =====
-foundry.toml
-out/
-cache/
-
-# ===== ENCRYPTION =====
-*.enc
-*.encrypted
-encryption-keys/
-
-# ===== BACKUP FILES =====
-*.backup
+# Backup files
 *.bak
+*.backup
 *.old
-*.orig
 
-# ===== PACKAGE LOCK FILES (OPTIONAL) =====
-# package-lock.json
-# yarn.lock
-# pnpm-lock.yaml
+# Test files
+coverage/
+.nyc_output/
 
-# ===== ENVIRONMENT TEMPLATES =====
-.env.example
-.env.template
-env.example
-env.template
-
-# ===== SECURITY SCAN RESULTS =====
-security-scan-results/
-vulnerability-reports/
-security-audit-reports/
-
-# ===== MONITORING & ANALYTICS =====
-monitoring-data/
-analytics-data/
-metrics-data/
-
-# ===== NOTIFICATION TOKENS =====
-notification-tokens.json
-webhook-tokens.json
-bot-tokens.jsonbackend/.env
-
-# Local Netlify folder
-.netlify
+# Deployment
+deployments/
+.env.production

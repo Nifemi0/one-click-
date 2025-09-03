@@ -1,109 +1,100 @@
-import { Button } from "./ui/button";
-import { ArrowRight, Zap, Brain, TestTube } from "lucide-react";
+import React from 'react';
+import { Shield, Zap, Eye, Lock, Network, Brain } from 'lucide-react';
 
-export function Features() {
+const Features: React.FC = () => {
+  const features = [
+    {
+      icon: Shield,
+      title: 'AI-Powered Security',
+      description: 'Our advanced AI generates smart contracts with built-in security patterns, protecting against common DeFi attack vectors.',
+      gradient: 'from-primary to-orange-600'
+    },
+    {
+      icon: Zap,
+      title: 'One-Click Deployment',
+      description: 'Deploy sophisticated security traps in minutes with our streamlined deployment process. No coding required.',
+      gradient: 'from-success to-green-600'
+    },
+    {
+      icon: Eye,
+      title: 'Real-Time Monitoring',
+      description: 'Monitor your deployed traps with real-time alerts, threat detection, and comprehensive analytics dashboard.',
+      gradient: 'from-warning to-yellow-600'
+    },
+    {
+      icon: Lock,
+      title: 'Enterprise Security',
+      description: 'Bank-grade security measures with multi-signature support, access controls, and audit trails.',
+      gradient: 'from-purple-500 to-purple-700'
+    },
+    {
+      icon: Network,
+      title: 'Multi-Chain Support',
+      description: 'Deploy on Ethereum, Polygon, Arbitrum, Base, and other EVM-compatible networks.',
+      gradient: 'from-blue-500 to-blue-700'
+    },
+    {
+      icon: Brain,
+      title: 'Smart Optimization',
+      description: 'Automatically optimize gas usage, storage patterns, and security configurations for maximum efficiency.',
+      gradient: 'from-pink-500 to-pink-700'
+    }
+  ];
+
   return (
-    <section id="features" className="section">
-      <div className="container">
+    <section className="section bg-gray-light">
+      <div className="container-custom">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center glass border-accent/20 rounded-full px-4 py-2 mb-6">
-            <span className="text-accent text-sm font-medium">Features</span>
-          </div>
-          <h2 className="mb-6">
-            <span className="text-foreground">Why Choose </span>
-            <span className="gradient-text">One Click?</span>
+          <h2 className="h2 text-charcoal mb-4">
+            Why Choose <span className="text-gradient-primary">One Click</span>
           </h2>
-          <p className="text-xl text-muted container-sm">
-            Advanced security technology wrapped in a simple, intuitive interface
+          <p className="text-large text-gray-600 max-w-3xl mx-auto">
+            Our platform combines cutting-edge AI technology with enterprise-grade security 
+            to provide the most comprehensive DeFi protection solution available.
           </p>
         </div>
 
-        {/* Feature Cards */}
-        <div className="grid-responsive mb-16">
-          {/* Card 1: Honeypot Deployment */}
-          <div className="card card-hover">
-            <div className="w-16 h-16 bg-gradient-to-r from-accent/20 to-accent-hover/20 rounded-2xl flex items-center justify-center mb-6">
-              <Zap className="w-8 h-8 text-accent" />
+        {/* Features Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+          {features.map((feature, index) => (
+            <div key={index} className="card hover:shadow-xl transition-all duration-300 group">
+              <div className="card-body text-center">
+                <div className={`w-16 h-16 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                  <feature.icon className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="h3 text-charcoal mb-4">{feature.title}</h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {feature.description}
+                </p>
+              </div>
             </div>
-            <h3 className="text-xl font-bold text-foreground mb-4">Honeypot Deployment</h3>
-            <p className="text-muted mb-6 leading-relaxed">
-              Set sophisticated traps for malicious actors with advanced honeypot mechanisms.
-            </p>
-            <Button 
-              variant="ghost" 
-              className="text-accent hover:text-accent-hover p-0 h-auto font-medium group"
-            >
-              Learn more 
-              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </div>
-
-          {/* Card 2: Real-time Monitoring */}
-          <div className="card card-hover">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-500/20 to-purple-600/20 rounded-2xl flex items-center justify-center mb-6">
-              <Brain className="w-8 h-8 text-blue-400" />
-            </div>
-            <h3 className="text-xl font-bold text-foreground mb-4">Real-time Monitoring</h3>
-            <p className="text-muted mb-6 leading-relaxed">
-              24/7 surveillance of your security infrastructure with instant alerts.
-            </p>
-            <Button 
-              variant="ghost" 
-              className="text-accent hover:text-accent-hover p-0 h-auto font-medium group"
-            >
-              Learn more 
-              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </div>
-
-          {/* Card 3: Attack Prevention */}
-          <div className="card card-hover">
-            <div className="w-16 h-16 bg-gradient-to-r from-red-500/20 to-pink-600/20 rounded-2xl flex items-center justify-center mb-6">
-              <TestTube className="w-8 h-8 text-red-400" />
-            </div>
-            <h3 className="text-xl font-bold text-foreground mb-4">Attack Prevention</h3>
-            <p className="text-muted mb-6 leading-relaxed">
-              Proactive blocking of common DeFi attacks with intelligent threat detection.
-            </p>
-            <Button 
-              variant="ghost" 
-              className="text-accent hover:text-accent-hover p-0 h-auto font-medium group"
-            >
-              Learn more 
-              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </div>
-
-          {/* Card 4: Custom Solutions */}
-          <div className="card card-hover">
-            <div className="w-16 h-16 bg-gradient-to-r from-green-500/20 to-teal-600/20 rounded-2xl flex items-center justify-center mb-6">
-              <Zap className="w-8 h-8 text-green-400" />
-            </div>
-            <h3 className="text-xl font-bold text-foreground mb-4">Custom Solutions</h3>
-            <p className="text-muted mb-6 leading-relaxed">
-              Tailored security for your specific protocol requirements and use cases.
-            </p>
-            <Button 
-              variant="ghost" 
-              className="text-accent hover:text-accent-hover p-0 h-auto font-medium group"
-            >
-              Learn more 
-              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </div>
+          ))}
         </div>
 
-        {/* System Status */}
+        {/* CTA Section */}
         <div className="text-center">
-          <div className="inline-flex items-center gap-3 glass border-green-500/20 rounded-full px-6 py-3">
-            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-green-500 text-sm font-medium">
-              All systems operational on Hoodi testnet
-            </span>
+          <div className="bg-gradient-to-r from-primary/5 to-orange-600/5 rounded-2xl p-8 border border-primary/20">
+            <h3 className="h2 text-charcoal mb-4">
+              Ready to Secure Your Protocol?
+            </h3>
+            <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+              Join thousands of DeFi protocols that trust One Click to protect their assets. 
+              Start deploying security traps today.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <a href="/deploy" className="btn btn-primary btn-lg">
+                🚀 Start Deploying
+              </a>
+              <a href="/marketplace" className="btn btn-secondary btn-lg">
+                🏪 Browse Templates
+              </a>
+            </div>
           </div>
         </div>
       </div>
     </section>
   );
-}
+};
+
+export default Features;

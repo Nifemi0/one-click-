@@ -1,83 +1,98 @@
 "use client";
 
-import { useWallet } from '../providers/WalletProvider';
-import { ThemeToggle } from './ThemeToggle';
+import React, { useState } from 'react';
+import { Shield, Menu, X } from 'lucide-react';
 
-export function Header() {
-  const { isConnected, address, connect } = useWallet();
+const Header: React.FC = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleConnectWallet = () => {
-    if (!isConnected) {
-      connect();
-    }
-  };
-
-  const handleLaunchApp = () => {
-    if (isConnected) {
-      window.location.href = '/app';
-    } else {
-      connect();
-    }
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 dark:bg-black/80 bg-white/90 dark:backdrop-blur-xl backdrop-blur-xl border-b border-gray-800 dark:border-gray-800 border-gray-200 dark:border-gray-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Left Side - Logo */}
-          <div className="flex items-center space-x-4">
-            <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
-              <span className="text-lg font-bold text-white">1</span>
+    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+      <div className="container-custom">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+              <Shield className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl font-semibold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">One Click DeFi</span>
+            <span className="text-xl font-bold text-charcoal">One Click</span>
           </div>
 
-          {/* Center - Navigation Links */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <a href="#hero" className="text-white dark:text-white text-gray-900 hover:text-orange-400 transition-colors">
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-8">
+            <a href="/" className="text-gray-600 hover:text-primary transition-colors">
               Home
             </a>
-            <a href="#features" className="text-white dark:text-white text-gray-900 hover:text-orange-400 transition-colors">
-              Features
-            </a>
-            <a href="#security" className="text-white dark:text-white text-gray-900 hover:text-orange-400 transition-colors">
-              Security
-            </a>
-            <a href="/marketplace" className="text-white dark:text-white text-gray-900 hover:text-orange-400 transition-colors">
+            <a href="/marketplace" className="text-gray-600 hover:text-primary transition-colors">
               Marketplace
             </a>
-            <a href="/drosera-registry" className="text-white dark:text-white text-gray-900 hover:text-orange-400 transition-colors">
-              Registry
+            <a href="/features" className="text-gray-600 hover:text-primary transition-colors">
+              Features
             </a>
-            <a href="#contact" className="text-white dark:text-white text-gray-900 hover:text-orange-400 transition-colors">
-              Contact
+            <a href="/status" className="text-gray-600 hover:text-primary transition-colors">
+              Status
+            </a>
+            <a href="/docs" className="text-gray-600 hover:text-primary transition-colors">
+              Docs
+            </a>
+            <a href="/support" className="text-gray-600 hover:text-primary transition-colors">
+              Support
             </a>
           </nav>
 
-          {/* Right Side - Action Buttons */}
-          <div className="flex items-center space-x-4">
-            <ThemeToggle />
-            {isConnected ? (
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-300 dark:text-gray-300 text-gray-700">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
-                <button
-                  onClick={handleLaunchApp}
-                  className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-semibold px-4 py-2 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-                >
-                  Launch App
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleConnectWallet}
-                className="bg-transparent border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white font-semibold px-4 py-2 rounded-lg transition-all duration-300"
-              >
-                Connect Wallet
-              </button>
-            )}
+          {/* CTA Button */}
+          <div className="hidden md:block">
+            <a href="/deploy" className="btn btn-primary">
+              Deploy Now
+            </a>
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={toggleMobileMenu}
+            className="md:hidden p-2 text-gray-600 hover:text-primary transition-colors"
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 py-4">
+            <nav className="flex flex-col space-y-4">
+              <a href="/" className="text-gray-600 hover:text-primary transition-colors">
+                Home
+              </a>
+              <a href="/marketplace" className="text-gray-600 hover:text-primary transition-colors">
+                Marketplace
+              </a>
+              <a href="/features" className="text-gray-600 hover:text-primary transition-colors">
+                Features
+              </a>
+              <a href="/status" className="text-gray-600 hover:text-primary transition-colors">
+                Status
+              </a>
+              <a href="/docs" className="text-gray-600 hover:text-primary transition-colors">
+                Docs
+              </a>
+              <a href="/support" className="text-gray-600 hover:text-primary transition-colors">
+                Support
+              </a>
+              <div className="pt-4">
+                <a href="/deploy" className="btn btn-primary w-full">
+                  Deploy Now
+                </a>
+              </div>
+            </nav>
+          </div>
+        )}
       </div>
     </header>
   );
-}
+};
+
+export default Header;

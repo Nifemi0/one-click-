@@ -5,7 +5,7 @@ export const featureFlags = {
   // Core features
   basicTrapDeployment: true,
   marketplace: true,
-  droseraRegistry: true,
+  oneclickRegistry: true,
   
   // Premium features
   enhancedAITrapDeployment: true, // Enabled for password-protected testing
@@ -100,7 +100,7 @@ export const getUserFeatureAccess = (userRole: string, isPremium: boolean) => {
   const baseFeatures = {
     basicTrapDeployment: true,
     marketplace: true,
-    droseraRegistry: true,
+    oneclickRegistry: true,
     darkMode: true,
     walletConnect: true
   };

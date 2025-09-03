@@ -13,346 +13,263 @@ contract AdvancedHoneypot is IDroseraTrap, Ownable, ReentrancyGuard {
     // Trap Configuration
     struct HoneypotTrap {
         uint256 trapId;
-        address deployer;
-        bool isActive;
+        string trapType;
         uint256 activationThreshold;
         uint256 responseDelay;
-        uint256 balance;
-        uint256 totalAttacks;
-        uint256 blockedAttacks;
+        bool isActive;
+        uint256 totalTriggers;
+        uint256 lastTriggerTime;
+        uint256 capturedFunds;
         mapping(address => bool) whitelist;
         mapping(address => bool) blacklist;
-        mapping(address => uint256) attackCounts;
-        uint256 lastAttackTime;
     }
-    
+
     // State variables
-    uint256 private _trapIds;
     mapping(uint256 => HoneypotTrap) public traps;
+    mapping(address => bool) public authorizedDeployers;
     
-    uint256 public deploymentFee = 0.001 ether;
-    uint256 public maxTrapBalance = 10 ether;
-    
+    uint256 public nextTrapId = 1;
+    uint256 public totalCapturedFunds = 0;
+    uint256 public constant MINIMUM_THRESHOLD = 0.001 ether;
+    uint256 public constant MAXIMUM_THRESHOLD = 10 ether;
+
+    // Events
+    event HoneypotDeployed(uint256 indexed trapId, address indexed deployer);
+    event FundsCaptured(uint256 indexed trapId, address indexed attacker, uint256 amount);
+    event AttackerBlacklisted(uint256 indexed trapId, address indexed attacker);
+
     // Modifiers
-    modifier onlyTrapOwner(uint256 trapId) {
-        require(traps[trapId].deployer == msg.sender, "Not trap owner");
+    modifier onlyAuthorized() {
+        require(authorizedDeployers[msg.sender] || msg.sender == owner(), "Not authorized");
         _;
     }
-    
+
     modifier trapExists(uint256 trapId) {
-        require(trapId > 0 && trapId <= _trapIds, "Trap does not exist");
+        require(traps[trapId].trapId != 0, "Trap does not exist");
         _;
     }
-    
+
     modifier trapActive(uint256 trapId) {
         require(traps[trapId].isActive, "Trap is not active");
         _;
     }
-    
-    constructor() Ownable(msg.sender) {
-        _trapIds = 0;
+
+    constructor() {
+        authorizedDeployers[msg.sender] = true;
     }
-    
+
     /**
      * @dev Deploy a new honeypot trap (Drosera compatible)
      * @param trapType Type of trap (should be "Honeypot")
      * @param activationThreshold Threshold for trap activation
-     * @param responseDelay Delay before executing response
+     * @param responseDelay Delay before response execution
      */
     function deployTrap(
         string memory trapType,
         uint256 activationThreshold,
         uint256 responseDelay
-    ) external payable override nonReentrant {
-        require(msg.value >= deploymentFee, "Insufficient payment");
-        require(keccak256(bytes(trapType)) == keccak256(bytes("Honeypot")), "Invalid trap type");
-        require(activationThreshold > 0, "Invalid threshold");
-        require(responseDelay <= 3600, "Response delay too long"); // Max 1 hour
+    ) external onlyAuthorized {
+        require(keccak256(bytes(trapType)) == keccak256(bytes("Honeypot")), "Must be Honeypot type");
+        require(activationThreshold >= MINIMUM_THRESHOLD, "Threshold too low");
+        require(activationThreshold <= MAXIMUM_THRESHOLD, "Threshold too high");
+        require(responseDelay <= 24 hours, "Response delay too long");
+
+        uint256 trapId = nextTrapId++;
         
-        _trapIds++;
-        uint256 newTrapId = _trapIds;
-        
-        HoneypotTrap storage newTrap = traps[newTrapId];
-        newTrap.trapId = newTrapId;
-        newTrap.deployer = msg.sender;
-        newTrap.isActive = true;
+        HoneypotTrap storage newTrap = traps[trapId];
+        newTrap.trapId = trapId;
+        newTrap.trapType = trapType;
         newTrap.activationThreshold = activationThreshold;
         newTrap.responseDelay = responseDelay;
-        newTrap.balance = 0;
-        newTrap.totalAttacks = 0;
-        newTrap.blockedAttacks = 0;
-        newTrap.lastAttackTime = 0;
-        
-        emit TrapDeployed(newTrapId, msg.sender, trapType);
+        newTrap.isActive = true;
+        newTrap.totalTriggers = 0;
+        newTrap.lastTriggerTime = 0;
+        newTrap.capturedFunds = 0;
+
+        emit HoneypotDeployed(trapId, msg.sender);
     }
-    
+
     /**
      * @dev Drosera Trap Interface: Detect function for honeypot attacks
      * @param trapId The trap ID to check
      * @param target The target address to monitor
-     * @param data Additional detection data
+     * @return bool True if trap should be activated
      */
-    function detect(
-        uint256 trapId,
-        address target,
-        bytes calldata data
-    ) external view override trapExists(trapId) trapActive(trapId) returns (bool shouldRespond, string memory reason) {
+    function detect(uint256 trapId, address target) external view override returns (bool) {
         HoneypotTrap storage trap = traps[trapId];
         
-        // Check if target is blacklisted
-        if (trap.blacklist[target]) {
-            return (true, "Target is blacklisted");
+        if (!trap.isActive) {
+            return false;
         }
-        
+
         // Check if target is whitelisted (bypass)
         if (trap.whitelist[target]) {
-            return (false, "Target is whitelisted");
+            return false;
         }
-        
-        // Check activation threshold
-        if (trap.totalAttacks >= trap.activationThreshold) {
-            return (true, "Activation threshold reached");
+
+        // Check if target is blacklisted (always trigger)
+        if (trap.blacklist[target]) {
+            return true;
         }
+
+        // Check activation conditions
+        uint256 targetBalance = target.balance;
+        bool meetsThreshold = targetBalance >= trap.activationThreshold;
+        bool cooldownExpired = block.timestamp >= trap.lastTriggerTime + trap.responseDelay;
         
-        // Check time-based conditions
-        uint256 timeSinceLastAttack = block.timestamp - trap.lastAttackTime;
-        if (timeSinceLastAttack < trap.responseDelay) {
-            return (false, "Response delay not met");
-        }
-        
-        // Honeypot-specific detection logic
-        if (data.length > 0) {
-            // Check for suspicious function calls
-            if (bytes4(data[:4]) == bytes4(keccak256("withdraw()"))) {
-                return (true, "Honeypot withdrawal attempt");
-            }
-            if (bytes4(data[:4]) == bytes4(keccak256("transfer(address,uint256)"))) {
-                return (true, "Honeypot transfer attempt");
-            }
-        }
-        
-        // Check for repeated attacks from same address
-        if (trap.attackCounts[target] > 3) {
-            return (true, "Repeated attack pattern detected");
-        }
-        
-        return (false, "No honeypot threat");
+        return meetsThreshold && cooldownExpired;
     }
-    
+
     /**
      * @dev Drosera Trap Interface: Respond function for honeypot attacks
      * @param trapId The trap ID to execute
      * @param target The target address
-     * @param actionType Type of response action
+     * @return bool True if response was successful
      */
-    function respond(
-        uint256 trapId,
-        address target,
-        string memory actionType
-    ) external override trapExists(trapId) trapActive(trapId) returns (bool success) {
+    function respond(uint256 trapId, address target) external override returns (bool) {
         HoneypotTrap storage trap = traps[trapId];
         
-        // Only trap owner or authorized operators can respond
-        require(msg.sender == trap.deployer || msg.sender == owner(), "Not authorized");
+        require(trap.isActive, "Trap is not active");
+        require(detect(trapId, target), "Trap conditions not met");
+
+        // Update trap state
+        trap.totalTriggers++;
+        trap.lastTriggerTime = block.timestamp;
+
+        // Execute honeypot response
+        uint256 capturedAmount = executeHoneypotResponse(trapId, target);
         
-        // Execute response action
-        if (keccak256(bytes(actionType)) == keccak256(bytes("Blacklist"))) {
-            success = _executeBlacklist(trapId, target);
-        } else if (keccak256(bytes(actionType)) == keccak256(bytes("Honeypot"))) {
-            success = _executeHoneypot(trapId, target);
-        } else if (keccak256(bytes(actionType)) == keccak256(bytes("Block"))) {
-            success = _executeBlock(trapId, target);
-        }
-        
-        if (success) {
-            trap.totalAttacks++;
-            trap.lastAttackTime = block.timestamp;
-            trap.attackCounts[target]++;
+        if (capturedAmount > 0) {
+            trap.capturedFunds += capturedAmount;
+            totalCapturedFunds += capturedAmount;
             
-            emit TrapResponse(trapId, actionType, success);
+            // Blacklist the attacker
+            trap.blacklist[target] = true;
+            
+            emit FundsCaptured(trapId, target, capturedAmount);
+            emit AttackerBlacklisted(trapId, target);
         }
-        
-        return success;
-    }
-    
-    /**
-     * @dev Internal response execution functions
-     */
-    function _executeBlacklist(uint256 trapId, address target) internal returns (bool) {
-        traps[trapId].blacklist[target] = true;
-        emit TrapTriggered(trapId, target, "Target blacklisted");
+
         return true;
     }
-    
-    function _executeHoneypot(uint256 trapId, address target) internal returns (bool) {
-        // Activate honeypot mode - this will always fail for attackers
-        emit TrapTriggered(trapId, target, "Honeypot activated");
-        return true;
-    }
-    
-    function _executeBlock(uint256 trapId, address target) internal returns (bool) {
-        // Block the target address
-        traps[trapId].blacklist[target] = true;
-        emit TrapTriggered(trapId, target, "Target blocked");
-        return true;
-    }
-    
+
     /**
-     * @dev Trap management functions
+     * @dev Get available trap types
+     * @return string[] Array of available trap types
      */
-    function toggleTrap(uint256 trapId) external override onlyTrapOwner(trapId) trapExists(trapId) {
-        traps[trapId].isActive = !traps[trapId].isActive;
-    }
-    
-    function updateTrapConfig(
-        uint256 trapId,
-        uint256 newThreshold,
-        uint256 newDelay
-    ) external override onlyTrapOwner(trapId) trapExists(trapId) {
-        require(newThreshold > 0, "Invalid threshold");
-        require(newDelay <= 3600, "Delay too long");
-        
-        HoneypotTrap storage trap = traps[trapId];
-        trap.activationThreshold = newThreshold;
-        trap.responseDelay = newDelay;
-    }
-    
-    function addToWhitelist(uint256 trapId, address addr) external override onlyTrapOwner(trapId) trapExists(trapId) {
-        traps[trapId].whitelist[addr] = true;
-    }
-    
-    function removeFromWhitelist(uint256 trapId, address addr) external override onlyTrapOwner(trapId) trapExists(trapId) {
-        traps[trapId].whitelist[addr] = false;
-    }
-    
-    /**
-     * @dev Honeypot-specific functions
-     */
-    function fundTrap(uint256 trapId) external payable onlyTrapOwner(trapId) trapExists(trapId) {
-        require(msg.value > 0, "No funds to add");
-        require(traps[trapId].balance + msg.value <= maxTrapBalance, "Exceeds max balance");
-        
-        traps[trapId].balance += msg.value;
-    }
-    
-    function withdrawTrapFunds(uint256 trapId) external onlyTrapOwner(trapId) trapExists(trapId) nonReentrant {
-        HoneypotTrap storage trap = traps[trapId];
-        require(trap.balance > 0, "No funds to withdraw");
-        
-        uint256 amount = trap.balance;
-        trap.balance = 0;
-        
-        (bool success, ) = payable(msg.sender).call{value: amount}("");
-        require(success, "Withdrawal failed");
-    }
-    
-    /**
-     * @dev Fallback function to catch ETH transfers (honeypot lure)
-     */
-    receive() external payable {
-        // This function will always fail for attackers, making it a honeypot
-        revert("Honeypot: Withdrawal failed");
-    }
-    
-    /**
-     * @dev Attempt to withdraw funds (this will always fail for attackers)
-     */
-    function withdraw() external {
-        // This will always fail for attackers
-        revert("Honeypot: Withdrawal failed");
-    }
-    
-    /**
-     * @dev View functions
-     */
-    function getTrapInfo(uint256 trapId) external view override trapExists(trapId) returns (
-        uint256 trapId_,
-        address deployer,
-        string memory trapType,
-        bool isActive,
-        uint256 activationThreshold,
-        uint256 responseDelay,
-        uint256 totalTriggers,
-        uint256 lastAttackTime
-    ) {
-        HoneypotTrap storage trap = traps[trapId];
-        return (
-            trap.trapId,
-            trap.deployer,
-            "Honeypot",
-            trap.isActive,
-            trap.activationThreshold,
-            trap.responseDelay,
-            trap.totalAttacks,
-            trap.lastAttackTime
-        );
-    }
-    
-    function getUserTraps(address user) external view override returns (uint256[] memory) {
-        uint256[] memory userTraps = new uint256[](_trapIds);
-        uint256 count = 0;
-        
-        for (uint256 i = 1; i <= _trapIds; i++) {
-            if (traps[i].deployer == user) {
-                userTraps[count] = i;
-                count++;
-            }
-        }
-        
-        // Resize array to actual count
-        assembly {
-            mstore(userTraps, count)
-        }
-        
-        return userTraps;
-    }
-    
     function getAvailableTrapTypes() external view override returns (string[] memory) {
         string[] memory types = new string[](1);
         types[0] = "Honeypot";
         return types;
     }
-    
-    function getTrapStats(uint256 trapId) external view trapExists(trapId) returns (
+
+    /**
+     * @dev Execute honeypot response and capture funds
+     * @param trapId The trap ID
+     * @param target The target address
+     * @return uint256 Amount of funds captured
+     */
+    function executeHoneypotResponse(uint256 trapId, address target) internal returns (uint256) {
+        // Simulate fund capture (in a real implementation, this would interact with the target)
+        uint256 targetBalance = target.balance;
+        
+        if (targetBalance > 0) {
+            // In a real implementation, this would transfer funds from the target
+            // For now, we'll just return a simulated amount
+            return targetBalance > 0.1 ether ? 0.1 ether : targetBalance;
+        }
+        
+        return 0;
+    }
+
+    // Admin functions
+    function addToWhitelist(uint256 trapId, address addr) external onlyAuthorized trapExists(trapId) {
+        traps[trapId].whitelist[addr] = true;
+    }
+
+    function removeFromWhitelist(uint256 trapId, address addr) external onlyAuthorized trapExists(trapId) {
+        traps[trapId].whitelist[addr] = false;
+    }
+
+    function addToBlacklist(uint256 trapId, address addr) external onlyAuthorized trapExists(trapId) {
+        traps[trapId].blacklist[addr] = true;
+    }
+
+    function removeFromBlacklist(uint256 trapId, address addr) external onlyAuthorized trapExists(trapId) {
+        traps[trapId].blacklist[addr] = false;
+    }
+
+    function toggleTrap(uint256 trapId) external onlyAuthorized trapExists(trapId) {
+        traps[trapId].isActive = !traps[trapId].isActive;
+    }
+
+    function updateTrapConfig(
+        uint256 trapId,
+        uint256 newThreshold,
+        uint256 newDelay
+    ) external onlyAuthorized trapExists(trapId) {
+        require(newThreshold >= MINIMUM_THRESHOLD, "Threshold too low");
+        require(newThreshold <= MAXIMUM_THRESHOLD, "Threshold too high");
+        require(newDelay <= 24 hours, "Response delay too long");
+
+        traps[trapId].activationThreshold = newThreshold;
+        traps[trapId].responseDelay = newDelay;
+    }
+
+    function authorizeDeployer(address deployer) external onlyOwner {
+        authorizedDeployers[deployer] = true;
+    }
+
+    function revokeDeployer(address deployer) external onlyOwner {
+        authorizedDeployers[deployer] = false;
+    }
+
+    // View functions
+    function getTrapInfo(uint256 trapId) external view returns (
         uint256 trapId_,
-        address deployer,
-        uint256 balance,
+        string memory trapType,
+        uint256 activationThreshold,
+        uint256 responseDelay,
         bool isActive,
-        uint256 totalAttacks,
-        uint256 blockedAttacks
+        uint256 totalTriggers,
+        uint256 lastTriggerTime,
+        uint256 capturedFunds
     ) {
         HoneypotTrap storage trap = traps[trapId];
         return (
             trap.trapId,
-            trap.deployer,
-            trap.balance,
+            trap.trapType,
+            trap.activationThreshold,
+            trap.responseDelay,
             trap.isActive,
-            trap.totalAttacks,
-            trap.blockedAttacks
+            trap.totalTriggers,
+            trap.lastTriggerTime,
+            trap.capturedFunds
         );
     }
-    
-    function getTotalTraps() external view returns (uint256) {
-        return _trapIds;
+
+    function isWhitelisted(uint256 trapId, address addr) external view returns (bool) {
+        return traps[trapId].whitelist[addr];
     }
-    
-    /**
-     * @dev Admin functions
-     */
-    function updateDeploymentFee(uint256 newFee) external onlyOwner {
-        deploymentFee = newFee;
+
+    function isBlacklisted(uint256 trapId, address addr) external view returns (bool) {
+        return traps[trapId].blacklist[addr];
     }
-    
-    function updateMaxTrapBalance(uint256 newMax) external onlyOwner {
-        maxTrapBalance = newMax;
+
+    function getTotalCapturedFunds() external view returns (uint256) {
+        return totalCapturedFunds;
     }
-    
-    function withdrawFees() external onlyOwner {
+
+    // Emergency functions
+    function emergencyWithdraw() external onlyOwner {
         uint256 balance = address(this).balance;
-        require(balance > 0, "No fees to withdraw");
+        require(balance > 0, "No funds to withdraw");
         
         (bool success, ) = payable(owner()).call{value: balance}("");
         require(success, "Withdrawal failed");
     }
+
+    // Receive function for ETH deposits
+    receive() external payable {}
 }
 
