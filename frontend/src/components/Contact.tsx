@@ -8,7 +8,7 @@ const Contact: React.FC = () => {
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="h2 text-charcoal">
-            Get in <span className="text-gradient-primary">Touch</span>
+            Get in <span className="bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent">Touch</span>
           </h2>
           <p className="text-large text-gray-600 max-w-3xl mx-auto">
             Have questions about our security platform? Need help with deployment? 

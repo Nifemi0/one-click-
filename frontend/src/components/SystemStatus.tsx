@@ -101,7 +101,7 @@ const SystemStatus: React.FC = () => {
         {/* Section Header */}
         <div className="text-center mb-12">
           <h2 className="h2 text-charcoal mb-4">
-            System <span className="text-gradient-primary">Status</span>
+            System <span className="bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent">Status</span>
           </h2>
           <p className="text-large text-gray-600 max-w-3xl mx-auto">
             Real-time status of all One Click services and infrastructure.

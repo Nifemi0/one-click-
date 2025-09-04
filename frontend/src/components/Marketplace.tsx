@@ -143,7 +143,7 @@ const Marketplace: React.FC = () => {
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="h2 text-charcoal">
-            Security <span className="text-gradient-primary">Marketplace</span>
+            Security <span className="bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent">Marketplace</span>
           </h2>
           <p className="text-large text-gray-600 max-w-3xl mx-auto">
             Browse and deploy pre-built security templates. All templates are community-verified 

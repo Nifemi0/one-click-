@@ -29,8 +29,9 @@
   --card-foreground: 222.2 84% 4.9%;
   --popover: 0 0% 100%;
   --popover-foreground: 222.2 84% 4.9%;
-  --primary: 222.2 47.4% 11.2%;
-  --primary-foreground: 210 40% 98%;
+  /* Set semantic primary to our orange */
+  --primary: 24 94% 53%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 210 40% 96%;
   --secondary-foreground: 222.2 84% 4.9%;
   --muted: 210 40% 96%;
@@ -41,7 +42,7 @@
   --destructive-foreground: 210 40% 98%;
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
-  --ring: 222.2 84% 4.9%;
+  --ring: 24 94% 53%;
   
   /* Spacing Scale (8px multiples) */
   --spacing-xs: 0.5rem;    /* 8px */
@@ -115,6 +116,15 @@
 
 /* ===== COMPONENT STYLES ===== */
 @layer components {
+  /* Legacy layout helpers used across components */
+  .section {
+    @apply py-16 px-4 sm:px-6 lg:px-8;
+  }
+
+  .container-custom {
+    @apply max-w-7xl mx-auto;
+  }
+
   /* Button System */
   .btn {
     @apply inline-flex items-center justify-center px-6 py-3 font-medium transition-all duration-200 rounded-md;
@@ -130,10 +140,9 @@
     @apply bg-gray-100 text-charcoal hover:bg-gray-200 focus:ring-gray-500;
     @apply border border-gray-300;
   }
-  
-  .btn-outline {
-    @apply border-2 border-primary-500 text-primary-600 hover:bg-primary-50 focus:ring-primary-500;
-    @apply bg-transparent;
+
+  .btn-utility {
+    @apply bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-gray-400 focus:ring-gray-500;
   }
   
   .btn-ghost {
@@ -306,20 +315,6 @@
 }
 
 /* ===== ACCESSIBILITY ===== */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* Focus styles for keyboard navigation */
-.focus-visible {
-  @apply outline-none ring-2 ring-primary-500 ring-offset-2;
-}
-
-/* High contrast mode support */
 @media (prefers-contrast: high) {
   .btn-primary {
     @apply border-2 border-current;
@@ -328,4 +323,9 @@
   .card {
     @apply border-2 border-current;
   }
+}
+
+/* Focus styles for keyboard navigation */
+.focus-visible {
+  @apply outline-none ring-2 ring-primary-500 ring-offset-2;
 }

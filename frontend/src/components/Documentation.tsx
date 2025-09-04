@@ -251,7 +251,7 @@ POST /api/ai-contracts/generate
             <BookOpen className="w-10 h-10 text-primary" />
           </div>
           <h1 className="h1 text-charcoal mb-4">
-            Documentation & <span className="text-gradient-primary">Guides</span>
+            Documentation & <span className="bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent">Guides</span>
           </h1>
           <p className="text-large text-gray-600 max-w-3xl mx-auto">
             Comprehensive guides, API references, and best practices to help you 

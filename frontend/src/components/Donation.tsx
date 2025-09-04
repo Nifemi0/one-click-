@@ -53,7 +53,7 @@ const Donation: React.FC = () => {
             <Heart className="w-10 h-10 text-primary" />
           </div>
           <h2 className="h2 text-charcoal mb-4">
-            Support <span className="text-gradient-primary">One Click</span>
+            Support <span className="bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent">One Click</span>
           </h2>
           <p className="text-large text-gray-600 max-w-3xl mx-auto">
             Help us continue building the most advanced DeFi security platform. 

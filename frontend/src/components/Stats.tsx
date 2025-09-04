@@ -54,8 +54,8 @@ const Stats: React.FC = () => {
   ];
 
   return (
-    <section className="section">
-      <div className="container-custom">
+    <section className="py-16 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {stats.map((stat, index) => (
@@ -74,10 +74,10 @@ const Stats: React.FC = () => {
 
         {/* Why Protocols Choose One Click */}
         <div className="text-center mb-12">
-          <h2 className="h2 text-charcoal mb-4">
-            Why Protocols Choose <span className="text-gradient-primary">One Click</span>
+          <h2 className="text-3xl md:text-4xl font-bold leading-tight text-charcoal mb-4">
+            Why Protocols Choose <span className="bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent">One Click</span>
           </h2>
-          <p className="text-large text-gray-600 max-w-3xl mx-auto">
+                      <p className="text-lg leading-relaxed text-gray-600 max-w-3xl mx-auto">
             Our platform has become the go-to solution for DeFi security, trusted by 
             leading protocols worldwide for its reliability, speed, and effectiveness.
           </p>
